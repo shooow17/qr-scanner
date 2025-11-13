@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>班級即時顯示</title>
-
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
@@ -42,11 +41,9 @@
         #status-buttons button.sent {
             background-color: #28a745; 
         }
-
     </style>
 </head>
 <body>
-
     <div class="container">
         <h1 id="welcome-message">等待掃描中...</h1>
         <p id="student-id">請在掃描裝置上開始掃描</p>
@@ -62,12 +59,12 @@
     <script>
         // --- 2. 你的 Firebase 設定 (我已幫你貼上) ---
         const firebaseConfig = {
-          apiKey: "AIzaSy8...FHcMhi-UrwyBqZAIipmffWvNgzJJc", // (請貼上你畫面上「完整」的金鑰)
+          apiKey: "AIzaSyB_-fHCMhi-URwyBqzAIipmffWwvNgzJJc",
           authDomain: "qr-scanner-app-2c73d.firebaseapp.com",
           databaseURL: "https://qr-scanner-app-2c73d-default-rtdb.asia-southeast1.firebasedatabase.app",
           projectId: "qr-scanner-app-2c73d",
-          storageBucket: "qr-scanner-app-2c73d.appspot.com",
-          messagingSenderId: "1385628927398",
+          storageBucket: "qr-scanner-app-2c73d.firebasestorage.app",
+          messagingSenderId: "385628927398",
           appId: "1:385628927398:web:00239f1b2acebd6e790b67"
         };
         // ------------------------------------
@@ -78,10 +75,10 @@
         // ------------------------
         
         const KVDB_GUARD_KEY = "alerts"; // 警衛室的 Key
-        let classQueueRef = null; // 班級佇列的引用
+        let classQueueRef = null; 
         
-        let currentStudentData = null; // 儲存目前正在處理的學生資料
-        let studentQueue = []; // 儲存待處理的學生佇列
+        let currentStudentData = null; 
+        let studentQueue = []; 
 
         function updateDisplay() {
             const messageElement = document.getElementById('welcome-message');
@@ -128,11 +125,8 @@
             try {
                 const alertsRef = database.ref(KVDB_GUARD_KEY);
                 await alertsRef.push(guardData);
-                
                 console.log("訊息成功傳送到警衛室");
-                
                 clearAndRestartPolling(); 
-
             } catch (err) {
                 console.error("傳送失敗:", err);
                 alert(`傳送失敗: ${err.message}`);
@@ -143,16 +137,12 @@
 
         function clearAndRestartPolling() {
             if (!currentStudentData) return;
-
             console.log(`處理完畢: ${currentStudentData.name}，正在移除佇列...`);
             
             classQueueRef.child(currentStudentData.key).remove()
                 .then(() => {
                     console.log("成功從 Firebase 移除");
-                    
-                    studentQueue.shift(); 
-                    
-                    updateDisplay();
+                    // studentQueue.shift() 會在 on('child_removed') 事件中被觸發
                 })
                 .catch(err => {
                     console.error("從 Firebase 移除失敗:", err);
@@ -172,17 +162,13 @@
             }
             
             classQueueRef = database.ref(`queues/${className}`);
-            
             messageElement.textContent = `班級 ${className} - 載入中...`;
 
             classQueueRef.on('child_added', (snapshot) => {
                 const studentData = snapshot.val();
                 studentData.key = snapshot.key; 
-
                 console.log("收到新學生:", studentData.name);
-                
                 studentQueue.push(studentData);
-                
                 if (studentQueue.length === 1) {
                     updateDisplay();
                 }
