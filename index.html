@@ -34,13 +34,13 @@
     </div>
 
     <script>
-        // --- 1. 你的 jsonbin.io 設定 (請貼上「金鑰 A」) ---
-        // !!! 貼上你在「步驟 1」取得的「ScannerKey (Update Key)」!!!
-        const JSONBIN_ACCESS_KEY = "$2a$10$aF96IMmqo8m.0Crn98xuhu1tMIhz6hsOgen7tFyF4s4nUVlDOcVsy"; 
-        const JSONBIN_BIN_ID = "691579ceae596e708f563f95"; // 你的 Bin ID 保持不變
+        // --- 1. 你的 kvdb.io 設定 (我已幫你填入) ---
+        const KVDB_BUCKET_URL = "https://kvdb.io/LTmqS13egNm2VPndi8sQWR"; 
+        
+        // 我們將把資料存在這個 "key" 底下
+        const KVDB_KEY = "currentStudent";
+        const KVDB_API_URL = `${KVDB_BUCKET_URL}/${KVDB_KEY}`;
         // ------------------------------------
-
-        const JSONBIN_API_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
 
         let studentDatabase = new Map();
         let html5Qrcode;
@@ -69,22 +69,18 @@
 
                 showMessage("正在傳送資料...", true);
                 try {
-                    const response = await fetch(JSONBIN_API_URL, {
-                        method: 'PUT',
+                    // kvdb.io 使用 POST 來覆蓋資料
+                    const response = await fetch(KVDB_API_URL, {
+                        method: 'POST', // 使用 POST
                         headers: {
-                            'Content-Type': 'application/json',
-                            // --- [修正] ---
-                            // 我們不再使用 X-Master-Key
-                            // 改用權限較小的 X-Access-Key
-                            'X-Access-Key': JSONBIN_ACCESS_KEY 
-                            // ----------------
+                            'Content-Type': 'application/json'
                         },
                         body: JSON.stringify(studentData)
                     });
 
                     if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(`伺服器錯誤: ${errorData.message || response.statusText}`);
+                        const errorText = await response.text();
+                        throw new Error(`伺服器錯誤: ${errorText}`);
                     }
                     
                     showMessage(`成功傳送: ${studentName}`, true);
@@ -107,13 +103,6 @@
         function onScanFailure(error) { /* 持續掃描... */ }
 
         document.addEventListener("DOMContentLoaded", () => {
-             // 檢查金鑰是否已填寫
-            if (JSONBIN_ACCESS_KEY.includes("YOUR") || JSONBIN_ACCESS_KEY.includes("在這裡")) {
-                showMessage("<b>設定錯誤：</b><br>請先在 index.html 中填入你的 jsonbin.io [Access Key A]。");
-                cameraControls.style.display = 'none';
-                return;
-            }
-
             html5Qrcode = new Html5Qrcode("qr-reader");
 
             fetch('students.csv')
