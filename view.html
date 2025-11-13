@@ -12,7 +12,6 @@
         .container { text-align: center; background-color: #ffffff; padding: 40px; border-radius: 12px; box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1); width: 90%; max-width: 1200px; }
         h1 { font-size: 2.5em; margin: 0; color: #d84315; }
         
-        /* [修改] 變更為 5x3 網格 */
         #alert-grid {
             margin-top: 20px;
             display: grid;
@@ -20,7 +19,7 @@
             grid-template-rows: repeat(3, 1fr); /* 3 列 */
             gap: 15px;
             width: 100%;
-            height: 60vh; /* 佔據 60% 的螢幕高度 */
+            height: 60vh; 
         }
         .alert-item {
             padding: 15px;
@@ -32,10 +31,9 @@
             display: flex;
             flex-direction: column;
             justify-content: center;
-            line-height: 1.5; /* [新] 增加行高 */
+            line-height: 1.5; 
         }
         .placeholder {
-            /* [新] 用於空白格子的樣式 */
             background-color: #fdfdfd;
             border: 1px dashed #ddd;
             display: flex;
@@ -45,23 +43,22 @@
             color: #ccc;
         }
         
-        /* [修改] 放大字體 */
         .alert-message {
-            font-size: 1.4em; /* 放大 */
+            font-size: 1.4em; 
             color: #333; 
             font-weight: bold; 
         }
         .alert-message .student-name {
             color: #005a9c; 
             display: block; 
-            font-size: 1.3em; /* 放大 */
+            font-size: 1.3em; 
             margin-bottom: 8px;
         }
         .alert-message .status {
             color: #d84315; 
         }
         .alert-time {
-            font-size: 1em; /* 放大 */
+            font-size: 1em; 
             color: #777;
             margin-top: 10px;
             display: block;
@@ -117,19 +114,17 @@
         // ------------------------
 
         const GUARD_ALERTS_KEY = "alerts"; 
-        const QUEUES_KEY = "queues"; // [新] 班級佇列的 Key
+        const QUEUES_KEY = "queues"; 
         const alertsRef = database.ref(GUARD_ALERTS_KEY);
-        const queuesRef = database.ref(QUEUES_KEY); // [新]
+        const queuesRef = database.ref(QUEUES_KEY); 
         
         const MAX_ALERTS = 15; // 15 格
-        let alertHistory = []; // 儲存所有資料 (用於匯出)
+        let alertHistory = []; 
 
-        // [修改] 重新渲染整個網格
         function renderGrid() {
             const gridElement = document.getElementById('alert-grid');
-            gridElement.innerHTML = ''; // 清空網格
+            gridElement.innerHTML = ''; 
             
-            // 取得最新的 15 筆資料 (從新到舊)
             const itemsToDisplay = alertHistory.slice(-MAX_ALERTS).reverse();
 
             for (let i = 0; i < MAX_ALERTS; i++) {
@@ -138,7 +133,6 @@
                 cell.className = 'alert-item';
 
                 if (item) {
-                    // 如果有資料，填入
                     const localTime = new Date(item.timestamp).toLocaleString('zh-TW');
                     cell.innerHTML = `
                         <div class="alert-message">
@@ -148,28 +142,21 @@
                         <span class="alert-time">(時間: ${localTime})</span>
                     `;
                 } else {
-                    // 如果沒有資料，顯示為空格子
                     cell.classList.add('placeholder');
-                    cell.textContent = '---'; // 顯示 ---
+                    cell.textContent = '---'; 
                 }
                 gridElement.appendChild(cell);
             }
         }
 
-        // [修改] 清除「所有」資料庫
         function clearAlerts() {
             if (!confirm("確定要清除所有警衛室和班級的資料嗎？(這會清空資料庫)")) {
                 return;
             }
             console.log("正在清除所有警報和佇列...");
             
-            // 1. 從 Firebase 刪除 "alerts" 節點
             alertsRef.remove().catch(err => alert(`清除 [alerts] 失敗: ${err.message}`));
-            
-            // 2. [新] 從 Firebase 刪除 "queues" 節點
             queuesRef.remove().catch(err => alert(`清除 [queues] 失敗: ${err.message}`));
-            
-            // (本地端會由 'value' 事件監聽器自動清除)
         }
         
         function exportReport() {
@@ -183,7 +170,6 @@
             let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
             csvContent += "時間,班級,學生姓名,狀態\r\n";
 
-            // [修改] 從 alertHistory 匯出
             [...alertHistory].reverse().forEach(item => {
                 const time = new Date(item.timestamp).toLocaleString('zh-TW');
                 const row = `"${time}","${item.class}","${item.name}","${item.status}"`;
@@ -201,26 +187,23 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             
-            // [修改] 監聽最新的 15 筆
             alertsRef.limitToLast(MAX_ALERTS).on('child_added', (snapshot) => {
                 const alertData = snapshot.val();
                 alertData.key = snapshot.key; 
                 console.log("收到新警報:", alertData.name);
                 
-                // [修改] 只儲存最新的 15 筆
                 alertHistory.push(alertData); 
                 if (alertHistory.length > MAX_ALERTS) {
-                    alertHistory.shift(); // 移除最舊的一筆
+                    alertHistory.shift(); 
                 }
-                renderGrid(); // 重新渲染網格
+                renderGrid(); 
             });
 
-            // [修改] 監聽清除事件 (alerts 和 queues 都會觸發)
             alertsRef.on('value', (snapshot) => {
                 if (!snapshot.exists()) {
                     console.log("Firebase 資料庫 (alerts) 已清空");
                     alertHistory = [];
-                    renderGrid(); // 渲染空格子
+                    renderGrid(); 
                 }
             });
             
@@ -230,7 +213,6 @@
                 }
             });
 
-            // 第一次載入時，渲染一次
             renderGrid();
         });
     </script>
