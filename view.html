@@ -3,47 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>警衛室顯示界面</title>
+    <title>警衛室管理(即時顯示)</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
     <style>
         body { font-family: Arial, sans-serif; background-color: #fff8f0; display: flex; justify-content: center; align-items: center; flex-direction: column; height: 100vh; margin: 0; color: #5d4037; }
-        .container { text-align: center; background-color: #ffffff; padding: 40px 60px; border-radius: 12px; box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1); width: 80%; max-width: 600px; }
+        .container { text-align: center; background-color: #ffffff; padding: 40px; border-radius: 12px; box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1); width: 90%; max-width: 1200px; }
         h1 { font-size: 2.5em; margin: 0; color: #d84315; }
         
-        #alert-list {
+        /* [修改] 變更為 5x3 網格 */
+        #alert-grid {
             margin-top: 20px;
-            max-height: 60vh;
-            overflow-y: auto; 
+            display: grid;
+            grid-template-columns: repeat(5, 1fr); /* 5 欄 */
+            grid-template-rows: repeat(3, 1fr); /* 3 列 */
+            gap: 15px;
             width: 100%;
-            border: 1px solid #eee;
-            border-radius: 8px;
+            height: 60vh; /* 佔據 60% 的螢幕高度 */
         }
         .alert-item {
             padding: 15px;
-            border-bottom: 1px solid #f0f0f0;
+            border: 1px solid #eee;
+            border-radius: 8px;
             text-align: left;
+            background-color: #fafafa;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
-        .alert-item:last-child {
-            border-bottom: none;
+        .placeholder {
+            /* [新] 用於空白格子的樣式 */
+            background-color: #fdfdfd;
+            border: 1px dashed #ddd;
         }
+        
         .alert-message {
-            font-size: 1.6em; 
+            font-size: 1.2em; /* 調整字體大小以適應格子 */
             color: #333; 
             font-weight: bold; 
-            line-height: 1.5;
+            line-height: 1.4;
         }
         .alert-message .student-name {
             color: #005a9c; 
+            display: block; /* 換行 */
+            font-size: 1.2em;
+            margin-bottom: 5px;
         }
         .alert-message .status {
             color: #d84315; 
         }
         .alert-time {
-            font-size: 1em;
+            font-size: 0.9em;
             color: #777;
-            margin-top: 5px;
+            margin-top: 10px;
             display: block;
         }
         .controls {
@@ -69,9 +83,8 @@
 <body>
     <div class="container">
         <h1>警衛室即時訊息</h1>
-        <div id="alert-list">
-            <p id="placeholder">--- 等待班級回傳訊息 ---</p>
-        </div>
+        <div id="alert-grid">
+            </div>
 
         <div class="controls">
             <button id="btn-clear" onclick="clearAlerts()">清除畫面 (並清空資料庫)</button>
@@ -100,35 +113,42 @@
         const GUARD_ALERTS_KEY = "alerts"; 
         const alertsRef = database.ref(GUARD_ALERTS_KEY);
         
-        let alertHistory = [];
+        const MAX_ALERTS = 15; // [新] 總共 15 格
+        let alertHistory = []; // 儲存所有資料 (用於匯出)
+        let displayedAlerts = {}; // 儲存畫面上顯示的資料 (用於清除)
 
-        function updateDisplay(data, key) {
-            const listElement = document.getElementById('alert-list');
-            const placeholder = document.getElementById('placeholder');
+        // [修改] 重新渲染整個網格
+        function renderGrid() {
+            const gridElement = document.getElementById('alert-grid');
+            gridElement.innerHTML = ''; // 清空網格
             
-            if (placeholder) {
-                placeholder.remove();
-            }
+            // 取得最新的 15 筆資料 (從新到舊)
+            const itemsToDisplay = alertHistory.slice(-MAX_ALERTS).reverse();
 
-            if (data && data.name) {
-                const newItem = document.createElement('div');
-                newItem.className = 'alert-item';
-                newItem.id = `alert-${key}`;
-                
-                const localTime = new Date(data.timestamp).toLocaleString('zh-TW');
+            for (let i = 0; i < MAX_ALERTS; i++) {
+                const item = itemsToDisplay[i];
+                const cell = document.createElement('div');
+                cell.className = 'alert-item';
 
-                newItem.innerHTML = `
-                    <div class="alert-message">
-                        <span class="student-name">${data.name} (${data.class})</span>:
-                        <span class="status">${data.status}</span>
-                    </div>
-                    <span class="alert-time">(時間: ${localTime})</span>
-                `;
-                
-                listElement.prepend(newItem);
+                if (item) {
+                    // 如果有資料，填入
+                    const localTime = new Date(item.timestamp).toLocaleString('zh-TW');
+                    cell.innerHTML = `
+                        <div class="alert-message">
+                            <span class="student-name">${item.name} (${item.class})</span>
+                            <span class="status">${item.status}</span>
+                        </div>
+                        <span class="alert-time">(時間: ${localTime})</span>
+                    `;
+                } else {
+                    // 如果沒有資料，顯示為空格子
+                    cell.classList.add('placeholder');
+                }
+                gridElement.appendChild(cell);
             }
         }
 
+        // [修改] 清除畫面的函式
         function clearAlerts() {
             if (!confirm("確定要清除所有警衛室訊息嗎？(這會同時清空資料庫)")) {
                 return;
@@ -138,9 +158,7 @@
             alertsRef.remove()
                 .then(() => {
                     console.log("Firebase 資料庫已清空");
-                    const listElement = document.getElementById('alert-list');
-                    listElement.innerHTML = '<p id="placeholder">--- 等待班級回傳訊息 ---</p>';
-                    alertHistory = [];
+                    // 本地端會由 'value' 事件監聽器自動清除
                 })
                 .catch(err => {
                     alert(`清除失敗: ${err.message}`);
@@ -155,7 +173,7 @@
 
             console.log("正在產生報表...");
             
-            let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // BOM 標頭
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
             csvContent += "時間,班級,學生姓名,狀態\r\n";
 
             [...alertHistory].reverse().forEach(item => {
@@ -174,24 +192,31 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            // 監聽最新的 12 筆
-            alertsRef.limitToLast(12).on('child_added', (snapshot) => {
+            
+            // [修改] 監聽最新的 15 筆
+            alertsRef.limitToLast(MAX_ALERTS).on('child_added', (snapshot) => {
                 const alertData = snapshot.val();
                 alertData.key = snapshot.key; 
                 console.log("收到新警報:", alertData.name);
                 
                 alertHistory.push(alertData); 
-                updateDisplay(alertData, alertData.key);
+                displayedAlerts[alertData.key] = alertData; // 存入顯示列表
+                renderGrid(); // 重新渲染網格
             });
 
-            alertsRef.on('child_removed', (snapshot) => {
-                const keyToRemove = snapshot.key;
-                const elementToRemove = document.getElementById(`alert-${keyToRemove}`);
-                if (elementToRemove) {
-                    elementToRemove.remove();
+            // [修改] 監聽清除事件
+            alertsRef.on('value', (snapshot) => {
+                if (!snapshot.exists()) {
+                    console.log("Firebase 資料庫已清空");
+                    alertHistory = [];
+                    displayedAlerts = {};
+                    renderGrid(); // 渲染空格子
                 }
-                alertHistory = alertHistory.filter(item => item.key !== keyToRemove);
             });
+
+            // (移除 'child_removed' 監聽，因為 'value' 會處理清空)
+            // 第一次載入時，渲染一次
+            renderGrid();
         });
     </script>
 </body>
