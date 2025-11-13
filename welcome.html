@@ -80,6 +80,8 @@
         </div>
     </div>
 
+    <audio id="notification-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-message-pop-alert-2354.mp3" preload="auto"></audio>
+
     <script>
         // --- 2. 你的 Firebase 設定 (我已幫你貼上) ---
         const firebaseConfig = {
@@ -98,27 +100,23 @@
         const database = firebase.database();
         // ------------------------
         
-        // Base64 內嵌音效 (叮咚聲)
-        const B64_SOUND = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABgAAABkYXRhAgAAAEhEsDzQb/Rh9mH8YfRh/2H6Yfth/WH9Yf5h/mH+Yf9hAmIDYgJiA2IDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBgBEEIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgAgeA=";
-        
         const GUARD_ALERTS_KEY = "alerts"; 
         let classQueueRef = null; 
         
         let currentStudentData = null; 
         let studentQueue = []; 
         let currentClassName = ""; 
-        let sound; // [新] 音效物件
+        let sound; // [修改] 音效物件
 
         function playNotificationSound() {
             if (sound) {
-                sound.currentTime = 0; // 倒帶
+                sound.currentTime = 0; 
                 sound.play().catch(error => {
                     console.warn("音效播放失敗:", error);
                 });
             }
         }
 
-        // 鎖定/解鎖所有按鈕
         function setButtonsDisabled(disabled = true) {
             document.querySelectorAll('#status-buttons button').forEach(btn => {
                 btn.disabled = disabled;
@@ -180,12 +178,9 @@
             }
         }
 
-        // [修改] 移除 event 參數
         function processNextStudent() {
             if (!currentStudentData) return;
             
-            // [修改] 只有在按鈕還沒被鎖定時才鎖定
-            // (防止 sendToGuard 呼叫時重複鎖定)
             if (event && event.target) {
                  setButtonsDisabled(true);
             }
@@ -209,32 +204,25 @@
         
         // [新] 啟動 App 的函式
         function startApp() {
-            // 1. 隱藏啟動畫面，顯示主畫面
             document.getElementById('start-overlay').style.display = 'none';
             document.getElementById('main-container').style.display = 'block';
 
-            // 2. [關鍵] 初始化並 "解鎖" 音效
-            sound = new Audio(B64_SOUND); // <-- 這次 100% 貼上了
-            sound.play().then(() => {
+            // --- [關鍵修正] ---
+            // 1. 我們抓取 HTML 中的 <audio> 元素
+            sound = document.getElementById('notification-sound'); 
+            
+            // 2. 我們在「點擊」事件中「直接」播放它，然後立刻暫停
+            // 這是 100% 可靠的解鎖方式
+            try {
+                sound.play();
                 sound.pause();
                 sound.currentTime = 0;
                 console.log("音效已成功解鎖");
-            }).catch(err => {
-                // 如果第一次播放失敗 (例如 Chrome 的嚴格模式)
-                // 我們增加一個 "點擊" 事件來再次嘗試解鎖
-                console.warn("音效自動解鎖失敗，需要使用者再次互動", err);
-                document.body.addEventListener('click', () => {
-                    if (sound.paused) {
-                        sound.play().then(() => {
-                            sound.pause();
-                            sound.currentTime = 0;
-                            console.log("音效已透過點擊解鎖");
-                        });
-                    }
-                }, { once: true }); // 這個事件只觸發一次
-            });
+            } catch (err) {
+                 console.warn("音效解鎖失敗，可能需要再次點擊", err);
+            }
+            // --------------------
             
-            // 3. 讀取網址參數
             const urlParams = new URLSearchParams(window.location.search);
             const className = urlParams.get('class');
             const messageElement = document.getElementById('welcome-message');
@@ -248,7 +236,6 @@
             currentClassName = className; 
             messageElement.textContent = `班級 ${className} - 載入中...`;
 
-            // 4. [修改] 在點擊後才開始監聽
             classQueueRef.on('child_added', (snapshot) => {
                 const studentData = snapshot.val();
                 if (!studentData || !studentData.id) return;
