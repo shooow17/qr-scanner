@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>班級即時提示顯示</title>
+    <title>班級老師回應</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
@@ -229,7 +229,7 @@
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 console.log("音效已成功解鎖");
                 
-                // (可選) 播放一個非常短的無聲，確保它被啟動
+                // 播放一個非常短的無聲，確保它被啟動
                 const buffer = audioCtx.createBuffer(1, 1, 22050);
                 const source = audioCtx.createBufferSource();
                 source.buffer = buffer;
@@ -254,14 +254,18 @@
             currentClassName = className; 
             messageElement.textContent = `班級 ${className} - 載入中...`;
 
-            // 4. 在點擊後才開始監聽
-            classQueueRef.on('child_added', (snapshot) => {
+            // [關鍵修正] 
+            // 我們必須記錄「現在」的时间，只監聽這之後的資料
+            const startTime = new Date().toISOString();
+
+            classQueueRef.orderByChild('timestamp').startAt(startTime).on('child_added', (snapshot) => {
                 const studentData = snapshot.val();
                 if (!studentData || !studentData.id) return;
                 studentData.key = snapshot.key; 
                 
                 console.log("Firebase 偵測到新資料:", studentData.name, studentData.id);
 
+                // 檢查是否重複 (你的邏輯)
                 const alreadyInQueue = studentQueue.some(student => student.id === studentData.id) ||
                                      (currentStudentData && currentStudentData.id === studentData.id);
                 
