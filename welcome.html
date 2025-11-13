@@ -20,8 +20,8 @@
     </div>
 
     <script>
-        // --- 1. 你的 jsonbin.io 設定 (已填入) ---
-        const JSONBIN_API_KEY = "$2a$10$oKVJcpSHHHF3fkMSPFVcFewXjPY1hoczaged2TDQE.eI5U2YtYBeS";
+        // --- 1. 你的 jsonbin.io 設定 (已填入你的最新金鑰) ---
+        const JSONBIN_API_KEY = "$2a$10$bRv8yMS2auclsglHpzPJwuupssVoYSn2Xl0MLCllGBNUe2uaew6fi";
         const JSONBIN_BIN_ID = "691579ceae596e708f563f95";
         // ------------------------------------
 
@@ -63,6 +63,7 @@
             const idElement = document.getElementById('student-id');
 
             if (data && data.name) {
+                // 這是你第一次建立 Bin 時的初始資料，我們過濾掉它
                 if(data.id === "init" || data.id === "INITIAL") return; 
                 
                 messageElement.textContent = `歡迎, ${data.name}!`;
