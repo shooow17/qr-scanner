@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>警衛室管理介面 (即時顯示)</title>
+    <title>警衛室 (即時顯示)</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
@@ -46,7 +46,6 @@
             margin-top: 5px;
             display: block;
         }
-        /* [新] 按鈕區域 */
         .controls {
             margin-top: 20px;
             width: 100%;
@@ -101,7 +100,6 @@
         const GUARD_ALERTS_KEY = "alerts"; 
         const alertsRef = database.ref(GUARD_ALERTS_KEY);
         
-        // [新] 用來儲存報表資料
         let alertHistory = [];
 
         function updateDisplay(data, key) {
@@ -131,7 +129,6 @@
             }
         }
 
-        // [新] 清除畫面的函式
         function clearAlerts() {
             if (!confirm("確定要清除所有警衛室訊息嗎？(這會同時清空資料庫)")) {
                 return;
@@ -150,7 +147,6 @@
                 });
         }
         
-        // [新] 匯出報表的函式
         function exportReport() {
             if (alertHistory.length === 0) {
                 alert("目前沒有資料可匯出。");
@@ -162,7 +158,6 @@
             let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // BOM 標頭
             csvContent += "時間,班級,學生姓名,狀態\r\n";
 
-            // 反轉陣列，讓匯出的資料是從舊到新
             [...alertHistory].reverse().forEach(item => {
                 const time = new Date(item.timestamp).toLocaleString('zh-TW');
                 const row = `"${time}","${item.class}","${item.name}","${item.status}"`;
@@ -179,24 +174,22 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            // [修改] 監聽最新的 12 筆
+            // 監聽最新的 12 筆
             alertsRef.limitToLast(12).on('child_added', (snapshot) => {
                 const alertData = snapshot.val();
                 alertData.key = snapshot.key; 
                 console.log("收到新警報:", alertData.name);
                 
-                alertHistory.push(alertData); // 存入歷史紀錄
+                alertHistory.push(alertData); 
                 updateDisplay(alertData, alertData.key);
             });
 
-            // [新] 監聽移除事件 (為了 "清除畫面" 按鈕)
             alertsRef.on('child_removed', (snapshot) => {
                 const keyToRemove = snapshot.key;
                 const elementToRemove = document.getElementById(`alert-${keyToRemove}`);
                 if (elementToRemove) {
                     elementToRemove.remove();
                 }
-                // 同時從歷史紀錄中移除
                 alertHistory = alertHistory.filter(item => item.key !== keyToRemove);
             });
         });
