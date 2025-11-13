@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>歡迎 (即時顯示)</title>
+    <title>歡迎2(即時顯示)</title>
     
     <style>
         body { font-family: Arial, sans-serif; background-color: #e8f5e9; display: flex; justify-content: center; align-items: center; flex-direction: column; height: 100vh; margin: 0; color: #2e7d32; }
@@ -20,29 +20,30 @@
     </div>
 
     <script>
-        // --- 1. 你的 kvdb.io 設定 (我已幫你填入) ---
-        // (必須和 index.html 中的網址完全一樣)
+        // --- 1. 你的 kvdb.io 設定 (已填入) ---
         const KVDB_BUCKET_URL = "https://kvdb.io/LTmqS13egNm2VPndi8sQWR"; 
 
         const KVDB_KEY = "currentStudent";
         const KVDB_API_URL = `${KVDB_BUCKET_URL}/${KVDB_KEY}`;
         // ------------------------------------
 
-        const POLLING_INTERVAL = 2000; // 2 秒
+        // --- [已修改] ---
+        // 更新間隔 (1000 毫秒 = 1 秒)
+        const POLLING_INTERVAL = 1000; 
+        // ----------------
+
         let lastKnownTimestamp = null;
 
         async function fetchData() {
             try {
-                // kvdb.io 的 GET 請求不需要金鑰
                 const response = await fetch(KVDB_API_URL, {
                     method: 'GET',
-                    cache: 'no-cache' // 確保拿到最新資料
+                    cache: 'no-cache' 
                 });
                 
                 if (response.status === 404) {
-                    // 這是正常的，表示掃描器還沒上傳過資料
                     console.log("資料尚未建立，等待掃描...");
-                    updateDisplay(null); // 顯示預設訊息
+                    updateDisplay(null); 
                     return;
                 }
 
@@ -51,7 +52,6 @@
                     throw new Error(`讀取失敗: ${errorText}`);
                 }
                 
-                // kvdb.io 直接回傳 JSON
                 const data = await response.json(); 
 
                 if (data && data.timestamp && data.timestamp !== lastKnownTimestamp) {
@@ -60,7 +60,6 @@
                     updateDisplay(data);
                 }
             } catch (err) {
-                // 如果 JSON 解析失敗 (例如資料是空的)，也顯示預設訊息
                 if (err instanceof SyntaxError) {
                     console.log("資料格式錯誤或為空，等待掃描...");
                     updateDisplay(null);
@@ -81,7 +80,6 @@
                 messageElement.textContent = `歡迎, ${data.name}!`;
                 idElement.textContent = `(ID: ${data.id})`;
             } else {
-                // 預設訊息
                 messageElement.textContent = '等待掃描中...';
                 idElement.textContent = '請在掃描裝置上開始掃描';
             }
