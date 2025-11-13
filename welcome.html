@@ -20,10 +20,9 @@
     </div>
 
     <script>
-        // --- 1. 貼上你的 jsonbin.io 設定 ---
-        // !!! 這裡是你必須填寫的地方 (必須和 index.html 完全一樣) !!!
-        const JSONBIN_API_KEY = "$2a$10$oKVJcpSHHHF3fkMSPFVcFewXjPY1hoczaged2TDQE.eI5U2YtYBeS"; 
-        const JSONBIN_BIN_ID = "691579ceae596e708f563f95"; // 貼上你剛剛提供的 Bin ID
+        // --- 1. 你的 jsonbin.io 設定 (已填入) ---
+        const JSONBIN_API_KEY = "$2a$10$oKVJcpSHHHF3fkMSPFVcFewXjPY1hoczaged2TDQE.eI5U2YtYBeS";
+        const JSONBIN_BIN_ID = "691579ceae596e708f563f95";
         // ------------------------------------
 
         const POLLING_INTERVAL = 2000; // 2 秒
@@ -64,8 +63,8 @@
             const idElement = document.getElementById('student-id');
 
             if (data && data.name) {
-                // 我們不顯示 "等待掃描中..." 這個初始值
-                if(data.id === "init") return; 
+                // 這是你第一次建立 Bin 時的初始資料，我們過濾掉它
+                if(data.id === "init" || data.id === "INITIAL") return; 
                 
                 messageElement.textContent = `歡迎, ${data.name}!`;
                 idElement.textContent = `(ID: ${data.id})`;
@@ -77,13 +76,6 @@
 
         let pollingTimer;
         document.addEventListener('DOMContentLoaded', () => {
-             // S 檢查金鑰是否已填寫
-            if (JSONBIN_API_KEY.includes("YOUR") || JSONBIN_API_KEY.includes("在這裡")) {
-                const messageElement = document.getElementById('welcome-message');
-                messageElement.innerHTML = "<b>設定錯誤：</b><br>請在 welcome.html 中填入你的<br>jsonbin.io API Key 和 Bin ID。";
-                return;
-            }
-            
             fetchData();
             pollingTimer = setInterval(fetchData, POLLING_INTERVAL);
         });
