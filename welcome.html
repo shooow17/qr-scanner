@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>班級即時顯示</title>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
     <style>
         body { font-family: Arial, sans-serif; background-color: #f0f8ff; display: flex; justify-content: center; align-items: center; flex-direction: column; height: 100vh; margin: 0; color: #333; }
@@ -52,92 +55,45 @@
             <button onclick="sendToGuard('收拾書包前往警衛室')">收拾書包前往警衛室</button>
             <button onclick="sendToGuard('上廁所請稍候')">上廁所請稍候</button>
             <button onclick="sendToGuard('班級在室外活動')">班級在室外活動</button>
-            
             <button id="btn-clear" onclick="clearAndRestartPolling()">處理完畢 (下一位)</button>
         </div>
     </div>
 
     <script>
-        // --- 1. 你的 kvdb.io 設定 (已填入) ---
-        const KVDB_BUCKET_URL = "https://kvdb.io/LTmqS13egNm2VPndi8sQWR"; 
+        // --- 2. 你的 Firebase 設定 (我已幫你貼上) ---
+        const firebaseConfig = {
+          apiKey: "AIzaSy8...FHcMhi-UrwyBqZAIipmffWvNgzJJc", // (請貼上你畫面上「完整」的金鑰)
+          authDomain: "qr-scanner-app-2c73d.firebaseapp.com",
+          databaseURL: "https://qr-scanner-app-2c73d-default-rtdb.asia-southeast1.firebasedatabase.app",
+          projectId: "qr-scanner-app-2c73d",
+          storageBucket: "qr-scanner-app-2c73d.appspot.com",
+          messagingSenderId: "1385628927398",
+          appId: "1:385628927398:web:00239f1b2acebd6e790b67"
+        };
+        // ------------------------------------
+
+        // --- 3. 初始化 Firebase ---
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        // ------------------------
         
-        const KVDB_GUARD_KEY = "Guard_Alert";
-        const KVDB_GUARD_URL = `${KVDB_BUCKET_URL}/${KVDB_GUARD_KEY}`;
-
-        let KVDB_CLASS_URL = "";
+        const KVDB_GUARD_KEY = "alerts"; // 警衛室的 Key
+        let classQueueRef = null; // 班級佇列的引用
         
-        const POLLING_INTERVAL = 1000; // 1 秒
-        let lastKnownTimestamp = null;
-        let currentStudentName = "";
-        let currentStudentClass = "";
-        
-        let pollingTimer = null;
+        let currentStudentData = null; // 儲存目前正在處理的學生資料
+        let studentQueue = []; // 儲存待處理的學生佇列
 
-        async function fetchData() {
-            if (!KVDB_CLASS_URL) return; 
-
-            try {
-                const cacheBuster = `?t=${new Date().getTime()}`;
-                const urlToFetch = KVDB_CLASS_URL + cacheBuster;
-
-                const response = await fetch(urlToFetch, {
-                    method: 'GET',
-                    cache: 'no-cache' 
-                });
-                
-                if (response.status === 404) {
-                    console.log("資料尚未建立，等待掃描...");
-                    updateDisplay(null, currentStudentClass); 
-                    return;
-                }
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`讀取失敗: ${errorText}`);
-                }
-                
-                const data = await response.json(); 
-
-                if (data && data.timestamp && data.timestamp !== lastKnownTimestamp) {
-                    console.log("偵測到新資料:", data);
-                    lastKnownTimestamp = data.timestamp; 
-                    
-                    if (pollingTimer) {
-                        clearInterval(pollingTimer);
-                        pollingTimer = null;
-                        console.log("偵測到新學生，停止輪詢。");
-                    }
-                    
-                    updateDisplay(data);
-                }
-            } catch (err) {
-                if (err instanceof SyntaxError) {
-                    console.log("資料格式錯誤或為空，等待掃描...");
-                    updateDisplay(null, currentStudentClass); 
-                } else {
-                    console.error("輪詢失敗:", err);
-                    const messageElement = document.getElementById('welcome-message');
-                    messageElement.textContent = '連線錯誤';
-                    if (pollingTimer) clearInterval(pollingTimer);
-                } 
-            }
-        }
-
-        // --- [已修改] ---
-        // 修改這裡的文字
-        function updateDisplay(data, defaultClassName = '') {
+        function updateDisplay() {
             const messageElement = document.getElementById('welcome-message');
             const idElement = document.getElementById('student-id');
             const buttonsElement = document.getElementById('status-buttons');
 
-            if (data && data.name && data.id !== "init") {
-                // [修改] 更新為你想要的文字
-                messageElement.textContent = `${data.name}同學 (${data.class})`;
+            if (studentQueue.length > 0) {
+                currentStudentData = studentQueue[0];
+                
+                messageElement.textContent = `${currentStudentData.name}同學 (${currentStudentData.class})`;
                 idElement.textContent = `家長來接囉`;
-                // ---------------------
 
-                currentStudentName = data.name; 
-                currentStudentClass = data.class; 
                 buttonsElement.style.display = 'block'; 
                 
                 document.querySelectorAll('#status-buttons button').forEach(btn => {
@@ -146,21 +102,21 @@
                 });
 
             } else {
-                const classNameToShow = currentStudentClass || defaultClassName;
-                messageElement.textContent = `班級 ${classNameToShow} - 等待掃描中...`;
+                currentStudentData = null;
+                messageElement.textContent = `等待掃描中...`;
                 idElement.textContent = '請在掃描裝置上開始掃描';
                 buttonsElement.style.display = 'none'; 
             }
         }
         
         async function sendToGuard(statusMessage) {
-            if (!currentStudentName) return;
+            if (!currentStudentData) return;
 
-            console.log(`傳送訊息給警衛室: ${currentStudentName} (${currentStudentClass}) - ${statusMessage}`);
+            console.log(`傳送訊息給警衛室: ${currentStudentData.name} (${currentStudentData.class}) - ${statusMessage}`);
 
             const guardData = {
-                name: currentStudentName,
-                class: currentStudentClass, 
+                name: currentStudentData.name,
+                class: currentStudentData.class, 
                 status: statusMessage,
                 timestamp: new Date().toISOString()
             };
@@ -170,19 +126,12 @@
             clickedButton.disabled = true;
 
             try {
-                const response = await fetch(KVDB_GUARD_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(guardData)
-                });
-
-                if (!response.ok) {
-                    throw new Error('伺服器錯誤');
-                }
+                const alertsRef = database.ref(KVDB_GUARD_KEY);
+                await alertsRef.push(guardData);
                 
                 console.log("訊息成功傳送到警衛室");
                 
-                clearAndRestartPolling();
+                clearAndRestartPolling(); 
 
             } catch (err) {
                 console.error("傳送失敗:", err);
@@ -193,15 +142,22 @@
         }
 
         function clearAndRestartPolling() {
-            console.log("處理完畢，重新開始輪詢...");
-            updateDisplay(null, currentStudentClass); 
+            if (!currentStudentData) return;
+
+            console.log(`處理完畢: ${currentStudentData.name}，正在移除佇列...`);
             
-            if (!pollingTimer) {
-                setTimeout(() => {
-                    fetchData(); 
-                    pollingTimer = setInterval(fetchData, POLLING_INTERVAL);
-                }, 1000);
-            }
+            classQueueRef.child(currentStudentData.key).remove()
+                .then(() => {
+                    console.log("成功從 Firebase 移除");
+                    
+                    studentQueue.shift(); 
+                    
+                    updateDisplay();
+                })
+                .catch(err => {
+                    console.error("從 Firebase 移除失敗:", err);
+                    alert("處理失敗，請重試");
+                });
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -215,14 +171,32 @@
                 return;
             }
             
-            const classKey = "Class_" + className;
-            KVDB_CLASS_URL = `${KVDB_BUCKET_URL}/${classKey}`;
-            currentStudentClass = className; 
+            classQueueRef = database.ref(`queues/${className}`);
             
-            messageElement.textContent = `班級 ${className} - 等待掃描中...`;
+            messageElement.textContent = `班級 ${className} - 載入中...`;
 
-            fetchData();
-            pollingTimer = setInterval(fetchData, POLLING_INTERVAL);
+            classQueueRef.on('child_added', (snapshot) => {
+                const studentData = snapshot.val();
+                studentData.key = snapshot.key; 
+
+                console.log("收到新學生:", studentData.name);
+                
+                studentQueue.push(studentData);
+                
+                if (studentQueue.length === 1) {
+                    updateDisplay();
+                }
+            });
+            
+            classQueueRef.on('child_removed', (snapshot) => {
+                console.log(`學生 ${snapshot.val().name} 已被移除`);
+                if (studentQueue.length > 0 && studentQueue[0].key === snapshot.key) {
+                    studentQueue.shift();
+                    updateDisplay();
+                }
+            });
+
+            updateDisplay();
         });
     </script>
 </body>
