@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>警衛室管理(即時顯示)</title>
+    <title>警衛室即時顯示</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
@@ -32,30 +32,36 @@
             display: flex;
             flex-direction: column;
             justify-content: center;
+            line-height: 1.5; /* [新] 增加行高 */
         }
         .placeholder {
             /* [新] 用於空白格子的樣式 */
             background-color: #fdfdfd;
             border: 1px dashed #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            color: #ccc;
         }
         
+        /* [修改] 放大字體 */
         .alert-message {
-            font-size: 1.2em; /* 調整字體大小以適應格子 */
+            font-size: 1.4em; /* 放大 */
             color: #333; 
             font-weight: bold; 
-            line-height: 1.4;
         }
         .alert-message .student-name {
             color: #005a9c; 
-            display: block; /* 換行 */
-            font-size: 1.2em;
-            margin-bottom: 5px;
+            display: block; 
+            font-size: 1.3em; /* 放大 */
+            margin-bottom: 8px;
         }
         .alert-message .status {
             color: #d84315; 
         }
         .alert-time {
-            font-size: 0.9em;
+            font-size: 1em; /* 放大 */
             color: #777;
             margin-top: 10px;
             display: block;
@@ -111,11 +117,12 @@
         // ------------------------
 
         const GUARD_ALERTS_KEY = "alerts"; 
+        const QUEUES_KEY = "queues"; // [新] 班級佇列的 Key
         const alertsRef = database.ref(GUARD_ALERTS_KEY);
+        const queuesRef = database.ref(QUEUES_KEY); // [新]
         
-        const MAX_ALERTS = 15; // [新] 總共 15 格
-        let alertHistory = []; // 儲存所有資料 (用於匯出)
-        let displayedAlerts = {}; // 儲存畫面上顯示的資料 (用於清除)
+        const MAX_ALERTS = 15; // 15 格
+        let alertHistory = []; 
 
         // [修改] 重新渲染整個網格
         function renderGrid() {
@@ -143,26 +150,26 @@
                 } else {
                     // 如果沒有資料，顯示為空格子
                     cell.classList.add('placeholder');
+                    cell.textContent = '---'; // 顯示 ---
                 }
                 gridElement.appendChild(cell);
             }
         }
 
-        // [修改] 清除畫面的函式
+        // [修改] 清除「所有」資料庫
         function clearAlerts() {
-            if (!confirm("確定要清除所有警衛室訊息嗎？(這會同時清空資料庫)")) {
+            if (!confirm("確定要清除所有警衛室和班級的資料嗎？(這會清空資料庫)")) {
                 return;
             }
-            console.log("正在清除所有警報...");
+            console.log("正在清除所有警報和佇列...");
             
-            alertsRef.remove()
-                .then(() => {
-                    console.log("Firebase 資料庫已清空");
-                    // 本地端會由 'value' 事件監聽器自動清除
-                })
-                .catch(err => {
-                    alert(`清除失敗: ${err.message}`);
-                });
+            // 1. 從 Firebase 刪除 "alerts" 節點
+            alertsRef.remove().catch(err => alert(`清除 [alerts] 失敗: ${err.message}`));
+            
+            // 2. [新] 從 Firebase 刪除 "queues" 節點
+            queuesRef.remove().catch(err => alert(`清除 [queues] 失敗: ${err.message}`));
+            
+            // (本地端會由 'value' 事件監聽器自動清除)
         }
         
         function exportReport() {
@@ -199,17 +206,19 @@
                 alertData.key = snapshot.key; 
                 console.log("收到新警報:", alertData.name);
                 
+                // [修改] 只儲存最新的 15 筆
                 alertHistory.push(alertData); 
-                displayedAlerts[alertData.key] = alertData; // 存入顯示列表
+                if (alertHistory.length > MAX_ALERTS) {
+                    alertHistory.shift(); // 移除最舊的一筆
+                }
                 renderGrid(); // 重新渲染網格
             });
 
             // [修改] 監聽清除事件
             alertsRef.on('value', (snapshot) => {
                 if (!snapshot.exists()) {
-                    console.log("Firebase 資料庫已清空");
+                    console.log("Firebase 資料庫 (alerts) 已清空");
                     alertHistory = [];
-                    displayedAlerts = {};
                     renderGrid(); // 渲染空格子
                 }
             });
