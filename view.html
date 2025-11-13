@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>警衛室 (即時顯示)</title>
+    
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #fff8f0; display: flex; justify-content: center; align-items: center; flex-direction: column; height: 100vh; margin: 0; color: #5d4037; }
+        .container { text-align: center; background-color: #ffffff; padding: 40px 60px; border-radius: 12px; box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1); width: 80%; max-width: 600px; }
+        h1 { font-size: 2.5em; margin: 0; color: #d84315; }
+        
+        /* [修改] 讓訊息更清楚 */
+        #alert-message {
+            font-size: 1.8em; 
+            margin-top: 20px;
+            color: #333; 
+            font-weight: bold; 
+            line-height: 1.5;
+        }
+        #alert-message .student-name {
+            color: #005a9c; /* 學生姓名用藍色 */
+        }
+        #alert-message .status {
+            color: #d84315; /* 狀態用紅色 */
+        }
+
+        span {
+            font-size: 1.1em;
+            color: #777;
+            margin-top: 15px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>警衛室即時訊息</h1>
+        <p id="alert-message">--- 等待班級回傳訊息 ---</p>
+        <span id="alert-time"></span>
+    </div>
+
+    <script>
+        // --- 1. 你的 kvdb.io 設定 (已填入) ---
+        const KVDB_BUCKET_URL = "https://kvdb.io/LTmqS13egNm2VPndi8sQWR"; 
+
+        // [新功能] 警衛室的 Key
+        const KVDB_GUARD_KEY = "Guard_Alert";
+        const KVDB_API_URL = `${KVDB_BUCKET_URL}/${KVDB_GUARD_KEY}`;
+        // ------------------------------------
+
+        const POLLING_INTERVAL = 1000; // 1 秒
+        let lastKnownTimestamp = null;
+
+        async function fetchData() {
+            try {
+                // [修改] 強制禁止快取
+                const cacheBuster = `?t=${new Date().getTime()}`;
+                const urlToFetch = KVDB_API_URL + cacheBuster;
+
+                const response = await fetch(urlToFetch, {
+                    method: 'GET',
+                    cache: 'no-cache' 
+                });
+                
+                if (response.status === 404) {
+                    console.log("警衛室資料尚未建立...");
+                    updateDisplay(null); 
+                    return;
+                }
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`讀取失敗: ${errorText}`);
+                }
+                
+                const data = await response.json(); 
+
+                if (data && data.timestamp && data.timestamp !== lastKnownTimestamp) {
+                    console.log("偵測到新資料:", data);
+                    lastKnownTimestamp = data.timestamp; 
+                    updateDisplay(data);
+                }
+            } catch (err) {
+                if (err instanceof SyntaxError) {
+                    console.log("資料格式錯誤或為空...");
+                    updateDisplay(null);
+                } else {
+                    console.error("輪詢失敗:", err);
+                    const messageElement = document.getElementById('alert-message');
+                    messageElement.textContent = '連線錯誤';
+                    clearInterval(pollingTimer);
+                } 
+            }
+        }
+
+        function updateDisplay(data) {
+            const messageElement = document.getElementById('alert-message');
+            const timeElement = document.getElementById('alert-time');
+
+            if (data && data.name) {
+                // [修改] 組合更清楚的訊息
+                messageElement.innerHTML = `
+                    <span class="student-name">${data.name} (${data.class})</span>
+                    <span class="status">${data.status}</span>
+                `;
+                
+                // 顯示時間
+                const localTime = new Date(data.timestamp).toLocaleString('zh-TW');
+                timeElement.textContent = `(時間: ${localTime})`;
+
+            } else {
+                messageElement.innerHTML = '--- 等待班級回傳訊息 ---';
+                timeElement.textContent = '';
+            }
+        }
+
+        let pollingTimer;
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchData();
+            pollingTimer = setInterval(fetchData, POLLING_INTERVAL);
+        });
+    </script>
+</body>
+</html>
