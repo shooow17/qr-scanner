@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>老師管理介面</title>
+    <title>班級回應介面</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
@@ -52,7 +52,6 @@
             <button onclick="sendToGuard(event, '收拾書包前往警衛室')">收拾書包前往警衛室</button>
             <button onclick="sendToGuard(event, '上廁所請稍候')">上廁所請稍候</button>
             <button onclick="sendToGuard(event, '班級在室外活動')">班級在室外活動</button>
-            
             <button id="btn-clear" onclick="processNextStudent()">處理完畢 (下一位)</button>
         </div>
     </div>
@@ -77,18 +76,16 @@
         const database = firebase.database();
         // ------------------------
         
-        const GUARD_ALERTS_KEY = "alerts"; // 警衛室的 Key
+        const GUARD_ALERTS_KEY = "alerts"; 
         let classQueueRef = null; 
         
         let currentStudentData = null; 
         let studentQueue = []; 
         let currentClassName = ""; 
 
-        // [新] 播放音效的函式
         function playNotificationSound() {
             const sound = document.getElementById('notification-sound');
             if (sound) {
-                // 為了讓瀏覽器允許播放，我們在第一次點擊時 "解鎖" 音效
                 sound.play().catch(error => {
                     console.warn("音效播放失敗 (瀏覽器可能需要使用者先點擊一次頁面):", error);
                 });
@@ -121,6 +118,95 @@
             }
         }
         
-        // [修正] 接收 event 物件
         async function sendToGuard(event, statusMessage) {
-            if
+            if (!currentStudentData) return;
+
+            console.log(`傳送訊息給警衛室: ${currentStudentData.name} (${currentStudentData.class}) - ${statusMessage}`);
+
+            const guardData = {
+                name: currentStudentData.name,
+                class: currentStudentData.class, 
+                status: statusMessage,
+                timestamp: new Date().toISOString()
+            };
+            
+            const clickedButton = event.target;
+            clickedButton.classList.add('sent');
+            clickedButton.disabled = true;
+
+            try {
+                const alertsRef = database.ref(GUARD_ALERTS_KEY);
+                await alertsRef.push(guardData);
+                console.log("訊息成功傳送到警衛室");
+                
+                processNextStudent(); 
+
+            } catch (err) {
+                console.error("傳送失敗:", err);
+                alert(`傳送失敗: ${err.message}`);
+                clickedButton.classList.remove('sent'); 
+                clickedButton.disabled = false;
+            }
+        }
+
+        function processNextStudent() {
+            if (!currentStudentData) return;
+
+            console.log(`處理完畢: ${currentStudentData.name}，正在移除佇列...`);
+            
+            const keyToRemove = currentStudentData.key;
+            
+            studentQueue.shift(); 
+            updateDisplay();
+
+            if (classQueueRef) {
+                classQueueRef.child(keyToRemove).remove()
+                    .then(() => {
+                        console.log(`成功從 Firebase 移除 Key: ${keyToRemove}`);
+                    })
+                    .catch(err => {
+                        console.error(`從 Firebase 移除 Key: ${keyToRemove} 失敗:`, err);
+                    });
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            const className = urlParams.get('class');
+            const messageElement = document.getElementById('welcome-message');
+
+            if (!className) {
+                messageElement.innerHTML = "<b>設定錯誤：</b><br>請在網址列指定班級<br>(例如: .../welcome.html<b>?class=ClassA</b>)";
+                return;
+            }
+            
+            classQueueRef = database.ref(`queues/${className}`);
+            currentClassName = className; 
+            messageElement.textContent = `班級 ${className} - 載入中...`;
+
+            classQueueRef.on('child_added', (snapshot) => {
+                const studentData = snapshot.val();
+                studentData.key = snapshot.key; 
+                console.log("收到新學生:", studentData.name);
+                studentQueue.push(studentData);
+                
+                if (studentQueue.length === 1) {
+                    updateDisplay();
+                    playNotificationSound(); 
+                }
+            });
+            
+            classQueueRef.on('child_removed', (snapshot) => {
+                console.log(`學生 ${snapshot.val().name} 已被移除`);
+                if (studentQueue.length > 0 && studentQueue[0].key === snapshot.key) {
+                    studentQueue.shift(); 
+                    updateDisplay(); 
+                }
+            });
+
+            updateDisplay();
+        });
+    </script>
+</body>
+</html>
