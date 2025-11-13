@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>較師回應介面</title>
+    <title>班級即時顯示</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
@@ -56,6 +56,8 @@
             background-color: #0056b3;
         }
         
+        /* [修改] 移除 #btn-clear 的樣式 */
+        
         #status-buttons button.sent,
         #status-buttons button:disabled { 
             background-color: #28a745; 
@@ -77,6 +79,7 @@
             <button onclick="sendToGuard('收拾書包前往警衛室')">收拾書包前往警衛室</button>
             <button onclick="sendToGuard('上廁所請稍候')">上廁所請稍候</button>
             <button onclick="sendToGuard('班級在室外活動')">班級在室外活動</button>
+            
             <button onclick="sendToGuard('老師另外連絡家長')">老師另外連絡家長</button>
         </div>
     </div>
@@ -107,11 +110,11 @@
         let currentStudentData = null; 
         let studentQueue = []; 
         let currentClassName = ""; 
+        let sound; // [新] 音效物件
 
         function playNotificationSound() {
-            const sound = document.getElementById('notification-sound');
             if (sound) {
-                // 嘗試播放
+                sound.currentTime = 0; // 倒帶
                 sound.play().catch(error => {
                     console.warn("音效播放失敗:", error);
                 });
@@ -152,10 +155,10 @@
             }
         }
         
+        // [修改] 移除 "event" 參數
         async function sendToGuard(statusMessage) {
             if (!currentStudentData) return;
             
-            // [修改] 點擊任何按鈕，都會鎖定所有按鈕
             setButtonsDisabled(true);
 
             console.log(`傳送訊息給警衛室: ${currentStudentData.name} (${currentStudentData.class}) - ${statusMessage}`);
@@ -178,13 +181,18 @@
             } catch (err) {
                 console.error("傳送失敗:", err);
                 alert(`傳送失敗: ${err.message}`);
-                // [修改] 失敗時，解鎖所有按鈕
                 setButtonsDisabled(false);
             }
         }
 
         // [修改] 這個函式現在只會在 sendToGuard 成功後被呼叫
-        function processNextStudent() {
+        // 或是 "老師另外連絡家長" 被點擊時
+        function processNextStudent(event) {
+            // 如果是按鈕點擊，也鎖定按鈕
+            if (event) {
+                setButtonsDisabled(true);
+            }
+
             if (!currentStudentData) return;
             console.log(`處理完畢: ${currentStudentData.name}，正在移除佇列...`);
             
@@ -210,19 +218,15 @@
             document.getElementById('start-overlay').style.display = 'none';
             document.getElementById('main-container').style.display = 'block';
 
-            // 2. 嘗試播放音效來 "解鎖" 瀏覽器
-            const sound = document.getElementById('notification-sound');
-            if (sound) {
-                sound.muted = true; // 靜音播放
-                sound.play().then(() => {
-                    sound.pause();
-                    sound.currentTime = 0;
-                    sound.muted = false; // 取消靜音
-                    console.log("音效已成功解鎖");
-                }).catch(err => {
-                    console.warn("音效解鎖失敗，可能需要再次點擊", err);
-                });
-            }
+            // 2. [關鍵] 初始化並 "解鎖" 音效
+            sound = new Audio(document.getElementById('notification-sound').src);
+            sound.play().then(() => {
+                sound.pause();
+                sound.currentTime = 0;
+                console.log("音效已成功解鎖");
+            }).catch(err => {
+                console.warn("音效解鎖失敗，可能需要再次點擊", err);
+            });
             
             // 3. 讀取網址參數
             const urlParams = new URLSearchParams(window.location.search);
