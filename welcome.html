@@ -3,47 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>歡迎 (即時顯示)</title>
+    <title>班級即時顯示</title>
     
     <style>
-        body { font-family: Arial, sans-serif; background-color: #e8f5e9; display: flex; justify-content: center; align-items: center; flex-direction: column; height: 100vh; margin: 0; color: #2e7d32; }
-        .welcome-container { text-align: center; background-color: #ffffff; padding: 40px 60px; border-radius: 12px; box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1); }
-        h1 { font-size: 2.5em; margin: 0; }
+        body { font-family: Arial, sans-serif; background-color: #f0f8ff; display: flex; justify-content: center; align-items: center; flex-direction: column; height: 100vh; margin: 0; color: #333; }
+        .container { text-align: center; background-color: #ffffff; padding: 40px 60px; border-radius: 12px; box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1); }
+        h1 { font-size: 2.5em; margin: 0; color: #005a9c; }
         p { font-size: 1.4em; margin-top: 10px; color: #555; }
+        #status-buttons {
+            margin-top: 30px;
+            display: none; /* 預設隱藏，直到有學生被掃描 */
+        }
+        #status-buttons button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            margin: 5px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            cursor: pointer;
+        }
+        #status-buttons button:hover {
+            background-color: #0056b3;
+        }
+        #status-buttons button.sent {
+            background-color: #28a745; /* 綠色 */
+        }
     </style>
 </head>
 <body>
 
-    <div class="welcome-container">
+    <div class="container">
         <h1 id="welcome-message">等待掃描中...</h1>
         <p id="student-id">請在掃描裝置上開始掃描</p>
+        
+        <div id="status-buttons">
+            <button onclick="sendToGuard('收拾書包前往警衛室')">收拾書包前往警衛室</button>
+            <button onclick="sendToGuard('上廁所請稍候')">上廁所請稍候</button>
+            <button onclick="sendToGuard('班級在室外活動')">班級在室外活動</button>
+        </div>
     </div>
 
     <script>
         // --- 1. 你的 kvdb.io 設定 (已填入) ---
         const KVDB_BUCKET_URL = "https://kvdb.io/LTmqS13egNm2VPndi8sQWR"; 
-
-        const KVDB_KEY = "currentStudent";
-        const KVDB_API_URL = `${KVDB_BUCKET_URL}/${KVDB_KEY}`;
-        // ------------------------------------
-
-        // --- 更新間隔 (1000 毫秒 = 1 秒) ---
-        const POLLING_INTERVAL = 1000; 
         
+        // [新功能] 警衛室的 Key
+        const KVDB_GUARD_KEY = "Guard_Alert";
+        const KVDB_GUARD_URL = `${KVDB_BUCKET_URL}/${KVDB_GUARD_KEY}`;
+
+        // [新功能] 動態取得班級 Key
+        let KVDB_CLASS_URL = "";
+        
+        const POLLING_INTERVAL = 1000; // 1 秒
         let lastKnownTimestamp = null;
+        let currentStudentName = ""; // 用來儲存目前學生的名字
+        let currentStudentClass = ""; // 用來儲存目前學生的班級
 
         async function fetchData() {
-            try {
-                // --- [修正] ---
-                // 為了防止瀏覽器快取 (cache)，我們在網址後面加上一個隨機的時間戳
-                // 這會強制瀏覽器每次都去伺服器抓取新資料
-                const cacheBuster = `?t=${new Date().getTime()}`;
-                const urlToFetch = KVDB_API_URL + cacheBuster;
-                // ---------------
+            if (!KVDB_CLASS_URL) return; // 如果沒有班級網址，就停止
 
-                const response = await fetch(urlToFetch, { // <-- 使用新的網址
+            try {
+                // [修改] 強制禁止快取
+                const cacheBuster = `?t=${new Date().getTime()}`;
+                const urlToFetch = KVDB_CLASS_URL + cacheBuster;
+
+                const response = await fetch(urlToFetch, {
                     method: 'GET',
-                    cache: 'no-cache' // 雖然有了 cacheBuster，這個還是保留
+                    cache: 'no-cache' 
                 });
                 
                 if (response.status === 404) {
@@ -80,18 +108,89 @@
         function updateDisplay(data) {
             const messageElement = document.getElementById('welcome-message');
             const idElement = document.getElementById('student-id');
+            const buttonsElement = document.getElementById('status-buttons');
 
             if (data && data.name && data.id !== "init") {
-                messageElement.textContent = ` ${data.name}同學，請到警衛室，家人來接`;
+                messageElement.textContent = `歡迎, ${data.name}!`;
                 idElement.textContent = `(ID: ${data.id})`;
+                currentStudentName = data.name; // 儲存目前學生的名字
+                currentStudentClass = data.class; // 儲存目前學生的班級
+                buttonsElement.style.display = 'block'; // 顯示按鈕
+                
+                // 重置按鈕樣式
+                document.querySelectorAll('#status-buttons button').forEach(btn => {
+                    btn.classList.remove('sent');
+                    btn.disabled = false;
+                });
+
             } else {
-                messageElement.textContent = '等待掃描中...';
+                // 保持顯示班級名稱，但清除學生資料
+                messageElement.textContent = `班級 ${currentStudentClass} - 等待掃描中...`;
                 idElement.textContent = '請在掃描裝置上開始掃描';
+                buttonsElement.style.display = 'none'; // 隱藏按鈕
+            }
+        }
+        
+        // [新功能] 回傳訊息給警衛室
+        async function sendToGuard(statusMessage) {
+            if (!currentStudentName) return; // 如果沒有學生名字，不執行
+
+            console.log(`傳送訊息給警衛室: ${currentStudentName} (${currentStudentClass}) - ${statusMessage}`);
+
+            const guardData = {
+                name: currentStudentName,
+                class: currentStudentClass, // [新] 附上學生的班級
+                status: statusMessage,
+                timestamp: new Date().toISOString()
+            };
+            
+            // 讓按鈕變綠色，並暫時禁用
+            const clickedButton = event.target;
+            clickedButton.classList.add('sent');
+            clickedButton.disabled = true;
+
+            try {
+                const response = await fetch(KVDB_GUARD_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(guardData)
+                });
+
+                if (!response.ok) {
+                    throw new Error('伺服器錯誤');
+                }
+                
+                console.log("訊息成功傳送到警衛室");
+
+            } catch (err) {
+                console.error("傳送失敗:", err);
+                alert(`傳送失敗: ${err.message}`);
+                clickedButton.classList.remove('sent'); // 恢復按鈕
+                clickedButton.disabled = false;
             }
         }
 
         let pollingTimer;
         document.addEventListener('DOMContentLoaded', () => {
+            
+            // [新功能] 讀取網址列的班級 ?class=...
+            const urlParams = new URLSearchParams(window.location.search);
+            const className = urlParams.get('class');
+
+            const messageElement = document.getElementById('welcome-message');
+
+            if (!className) {
+                messageElement.innerHTML = "<b>設定錯誤：</b><br>請在網址列指定班級<br>(例如: .../welcome.html<b>?class=ClassA</b>)";
+                return;
+            }
+            
+            // 設定此頁面要監聽的正確網址
+            const classKey = "Class_" + className;
+            KVDB_CLASS_URL = `${KVDB_BUCKET_URL}/${classKey}`;
+            currentStudentClass = className; // 先儲存班級名稱
+            
+            messageElement.textContent = `班級 ${className} - 等待掃描中...`;
+
             fetchData();
             pollingTimer = setInterval(fetchData, POLLING_INTERVAL);
         });
