@@ -10,9 +10,10 @@
         .container { text-align: center; background-color: #ffffff; padding: 40px 60px; border-radius: 12px; box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1); }
         h1 { font-size: 2.5em; margin: 0; color: #005a9c; }
         p { font-size: 1.4em; margin-top: 10px; color: #555; }
+        
         #status-buttons {
-            margin-top: 30px;
-            display: none; /* 預設隱藏，直到有學生被掃描 */
+            margin-top: 25px;
+            display: none; /* 預設隱藏 */
         }
         #status-buttons button {
             background-color: #007bff;
@@ -27,9 +28,18 @@
         #status-buttons button:hover {
             background-color: #0056b3;
         }
-        #status-buttons button.sent {
-            background-color: #28a745; /* 綠色 */
+        
+        #btn-clear {
+            background-color: #6c757d; 
         }
+        #btn-clear:hover {
+            background-color: #5a6268;
+        }
+        #btn-clear.sent,
+        #status-buttons button.sent {
+            background-color: #28a745; 
+        }
+
     </style>
 </head>
 <body>
@@ -42,6 +52,8 @@
             <button onclick="sendToGuard('收拾書包前往警衛室')">收拾書包前往警衛室</button>
             <button onclick="sendToGuard('上廁所請稍候')">上廁所請稍候</button>
             <button onclick="sendToGuard('班級在室外活動')">班級在室外活動</button>
+            
+            <button id="btn-clear" onclick="clearAndRestartPolling()">處理完畢 (下一位)</button>
         </div>
     </div>
 
@@ -49,23 +61,22 @@
         // --- 1. 你的 kvdb.io 設定 (已填入) ---
         const KVDB_BUCKET_URL = "https://kvdb.io/LTmqS13egNm2VPndi8sQWR"; 
         
-        // [新功能] 警衛室的 Key
         const KVDB_GUARD_KEY = "Guard_Alert";
         const KVDB_GUARD_URL = `${KVDB_BUCKET_URL}/${KVDB_GUARD_KEY}`;
 
-        // [新功能] 動態取得班級 Key
         let KVDB_CLASS_URL = "";
         
         const POLLING_INTERVAL = 1000; // 1 秒
         let lastKnownTimestamp = null;
-        let currentStudentName = ""; // 用來儲存目前學生的名字
-        let currentStudentClass = ""; // 用來儲存目前學生的班級
+        let currentStudentName = "";
+        let currentStudentClass = "";
+        
+        let pollingTimer = null;
 
         async function fetchData() {
-            if (!KVDB_CLASS_URL) return; // 如果沒有班級網址，就停止
+            if (!KVDB_CLASS_URL) return; 
 
             try {
-                // [修改] 強制禁止快取
                 const cacheBuster = `?t=${new Date().getTime()}`;
                 const urlToFetch = KVDB_CLASS_URL + cacheBuster;
 
@@ -76,7 +87,7 @@
                 
                 if (response.status === 404) {
                     console.log("資料尚未建立，等待掃描...");
-                    updateDisplay(null); 
+                    updateDisplay(null, currentStudentClass); 
                     return;
                 }
 
@@ -90,61 +101,70 @@
                 if (data && data.timestamp && data.timestamp !== lastKnownTimestamp) {
                     console.log("偵測到新資料:", data);
                     lastKnownTimestamp = data.timestamp; 
+                    
+                    if (pollingTimer) {
+                        clearInterval(pollingTimer);
+                        pollingTimer = null;
+                        console.log("偵測到新學生，停止輪詢。");
+                    }
+                    
                     updateDisplay(data);
                 }
             } catch (err) {
                 if (err instanceof SyntaxError) {
                     console.log("資料格式錯誤或為空，等待掃描...");
-                    updateDisplay(null);
+                    updateDisplay(null, currentStudentClass); 
                 } else {
                     console.error("輪詢失敗:", err);
                     const messageElement = document.getElementById('welcome-message');
                     messageElement.textContent = '連線錯誤';
-                    clearInterval(pollingTimer);
+                    if (pollingTimer) clearInterval(pollingTimer);
                 } 
             }
         }
 
-        function updateDisplay(data) {
+        // --- [已修改] ---
+        // 修改這裡的文字
+        function updateDisplay(data, defaultClassName = '') {
             const messageElement = document.getElementById('welcome-message');
             const idElement = document.getElementById('student-id');
             const buttonsElement = document.getElementById('status-buttons');
 
             if (data && data.name && data.id !== "init") {
-                messageElement.textContent = `歡迎, ${data.name}!`;
-                idElement.textContent = `(ID: ${data.id})`;
-                currentStudentName = data.name; // 儲存目前學生的名字
-                currentStudentClass = data.class; // 儲存目前學生的班級
-                buttonsElement.style.display = 'block'; // 顯示按鈕
+                // [修改] 更新為你想要的文字
+                messageElement.textContent = `${data.name}同學 (${data.class})`;
+                idElement.textContent = `家長來接囉`;
+                // ---------------------
+
+                currentStudentName = data.name; 
+                currentStudentClass = data.class; 
+                buttonsElement.style.display = 'block'; 
                 
-                // 重置按鈕樣式
                 document.querySelectorAll('#status-buttons button').forEach(btn => {
                     btn.classList.remove('sent');
                     btn.disabled = false;
                 });
 
             } else {
-                // 保持顯示班級名稱，但清除學生資料
-                messageElement.textContent = `班級 ${currentStudentClass} - 等待掃描中...`;
+                const classNameToShow = currentStudentClass || defaultClassName;
+                messageElement.textContent = `班級 ${classNameToShow} - 等待掃描中...`;
                 idElement.textContent = '請在掃描裝置上開始掃描';
-                buttonsElement.style.display = 'none'; // 隱藏按鈕
+                buttonsElement.style.display = 'none'; 
             }
         }
         
-        // [新功能] 回傳訊息給警衛室
         async function sendToGuard(statusMessage) {
-            if (!currentStudentName) return; // 如果沒有學生名字，不執行
+            if (!currentStudentName) return;
 
             console.log(`傳送訊息給警衛室: ${currentStudentName} (${currentStudentClass}) - ${statusMessage}`);
 
             const guardData = {
                 name: currentStudentName,
-                class: currentStudentClass, // [新] 附上學生的班級
+                class: currentStudentClass, 
                 status: statusMessage,
                 timestamp: new Date().toISOString()
             };
             
-            // 讓按鈕變綠色，並暫時禁用
             const clickedButton = event.target;
             clickedButton.classList.add('sent');
             clickedButton.disabled = true;
@@ -161,22 +181,33 @@
                 }
                 
                 console.log("訊息成功傳送到警衛室");
+                
+                clearAndRestartPolling();
 
             } catch (err) {
                 console.error("傳送失敗:", err);
                 alert(`傳送失敗: ${err.message}`);
-                clickedButton.classList.remove('sent'); // 恢復按鈕
+                clickedButton.classList.remove('sent'); 
                 clickedButton.disabled = false;
             }
         }
 
-        let pollingTimer;
+        function clearAndRestartPolling() {
+            console.log("處理完畢，重新開始輪詢...");
+            updateDisplay(null, currentStudentClass); 
+            
+            if (!pollingTimer) {
+                setTimeout(() => {
+                    fetchData(); 
+                    pollingTimer = setInterval(fetchData, POLLING_INTERVAL);
+                }, 1000);
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             
-            // [新功能] 讀取網址列的班級 ?class=...
             const urlParams = new URLSearchParams(window.location.search);
             const className = urlParams.get('class');
-
             const messageElement = document.getElementById('welcome-message');
 
             if (!className) {
@@ -184,10 +215,9 @@
                 return;
             }
             
-            // 設定此頁面要監聽的正確網址
             const classKey = "Class_" + className;
             KVDB_CLASS_URL = `${KVDB_BUCKET_URL}/${classKey}`;
-            currentStudentClass = className; // 先儲存班級名稱
+            currentStudentClass = className; 
             
             messageElement.textContent = `班級 ${className} - 等待掃描中...`;
 
