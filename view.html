@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>警衛室即時顯示</title>
+    <title>警衛室畫面(即時顯示)</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
@@ -122,7 +122,8 @@
         const queuesRef = database.ref(QUEUES_KEY); // [新]
         
         const MAX_ALERTS = 15; // 15 格
-        let alertHistory = []; 
+        let alertHistory = []; // 儲存所有資料 (用於匯出)
+        let displayedAlerts = {}; // 儲存畫面上顯示的資料 (用於清除)
 
         // [修改] 重新渲染整個網格
         function renderGrid() {
@@ -183,6 +184,7 @@
             let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
             csvContent += "時間,班級,學生姓名,狀態\r\n";
 
+            // [修改] 從 alertHistory 匯出
             [...alertHistory].reverse().forEach(item => {
                 const time = new Date(item.timestamp).toLocaleString('zh-TW');
                 const row = `"${time}","${item.class}","${item.name}","${item.status}"`;
@@ -223,7 +225,6 @@
                 }
             });
 
-            // (移除 'child_removed' 監聽，因為 'value' 會處理清空)
             // 第一次載入時，渲染一次
             renderGrid();
         });
