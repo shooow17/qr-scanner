@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>班級即時顯示</title>
+    <title>老師管理介面</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
@@ -49,9 +49,9 @@
         <p id="student-id">請在掃描裝置上開始掃描</p>
         
         <div id="status-buttons">
-            <button onclick="sendToGuard('收拾書包前往警衛室')">收拾書包前往警衛室</button>
-            <button onclick="sendToGuard('上廁所請稍候')">上廁所請稍候</button>
-            <button onclick="sendToGuard('班級在室外活動')">班級在室外活動</button>
+            <button onclick="sendToGuard(event, '收拾書包前往警衛室')">收拾書包前往警衛室</button>
+            <button onclick="sendToGuard(event, '上廁所請稍候')">上廁所請稍候</button>
+            <button onclick="sendToGuard(event, '班級在室外活動')">班級在室外活動</button>
             
             <button id="btn-clear" onclick="processNextStudent()">處理完畢 (下一位)</button>
         </div>
@@ -82,12 +82,13 @@
         
         let currentStudentData = null; 
         let studentQueue = []; 
-        let currentClassName = ""; // 儲存班級名稱
+        let currentClassName = ""; 
 
         // [新] 播放音效的函式
         function playNotificationSound() {
             const sound = document.getElementById('notification-sound');
             if (sound) {
+                // 為了讓瀏覽器允許播放，我們在第一次點擊時 "解鎖" 音效
                 sound.play().catch(error => {
                     console.warn("音效播放失敗 (瀏覽器可能需要使用者先點擊一次頁面):", error);
                 });
@@ -120,114 +121,6 @@
             }
         }
         
-        async function sendToGuard(statusMessage) {
-            if (!currentStudentData) return;
-
-            console.log(`傳送訊息給警衛室: ${currentStudentData.name} (${currentStudentData.class}) - ${statusMessage}`);
-
-            const guardData = {
-                name: currentStudentData.name,
-                class: currentStudentData.class, 
-                status: statusMessage,
-                timestamp: new Date().toISOString()
-            };
-            
-            const clickedButton = event.target;
-            clickedButton.classList.add('sent');
-            clickedButton.disabled = true;
-
-            try {
-                const alertsRef = database.ref(GUARD_ALERTS_KEY);
-                await alertsRef.push(guardData);
-                console.log("訊息成功傳送到警衛室");
-                
-                // [修正] 傳送成功後，呼叫「處理下一位」
-                processNextStudent(); 
-
-            } catch (err) {
-                console.error("傳送失敗:", err);
-                alert(`傳送失敗: ${err.message}`);
-                clickedButton.classList.remove('sent'); 
-                clickedButton.disabled = false;
-            }
-        }
-
-        // [修正] "處理完畢" 按鈕的函式
-        function processNextStudent() {
-            if (!currentStudentData) return;
-
-            console.log(`處理完畢: ${currentStudentData.name}，正在移除佇列...`);
-            
-            // [關鍵修正] 
-            // 為了防止 10 秒後連線失效導致 .remove() 失敗，
-            // 我們「立即」從本地端移除，並更新畫面。
-            // 這樣即使 .remove() (背景) 失敗，使用者介面也是正確的。
-            
-            const keyToRemove = currentStudentData.key;
-            
-            // 1. 立即從本地佇列移除
-            studentQueue.shift(); 
-            
-            // 2. 立即更新畫面 (顯示下一位，或顯示「等待中」)
-            updateDisplay();
-
-            // 3. 在背景嘗試從 Firebase 刪除 (fire-and-forget)
-            // (我們確保 classQueueRef 是有被定義的)
-            if (classQueueRef) {
-                classQueueRef.child(keyToRemove).remove()
-                    .then(() => {
-                        console.log(`成功從 Firebase 移除 Key: ${keyToRemove}`);
-                    })
-                    .catch(err => {
-                        // 即使刪除失敗 (例如網路斷線)，本地也已經處理完畢
-                        // 下次重新載入時，Firebase 的 on('child_added') 會重新同步
-                        console.error(`從 Firebase 移除 Key: ${keyToRemove} 失敗:`, err);
-                    });
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            
-            const urlParams = new URLSearchParams(window.location.search);
-            const className = urlParams.get('class');
-            const messageElement = document.getElementById('welcome-message');
-
-            if (!className) {
-                messageElement.innerHTML = "<b>設定錯誤：</b><br>請在網址列指定班級<br>(例如: .../welcome.html<b>?class=ClassA</b>)";
-                return;
-            }
-            
-            classQueueRef = database.ref(`queues/${className}`);
-            currentClassName = className; // 儲存班級名稱
-            messageElement.textContent = `班級 ${className} - 載入中...`;
-
-            // 監聽新加入的學生 (推播)
-            classQueueRef.on('child_added', (snapshot) => {
-                const studentData = snapshot.val();
-                studentData.key = snapshot.key; 
-                console.log("收到新學生:", studentData.name);
-                studentQueue.push(studentData);
-                
-                // 只有当這是佇列中的第一位時，才更新畫面並播放音效
-                if (studentQueue.length === 1) {
-                    updateDisplay();
-                    playNotificationSound(); // [新] 播放音效
-                }
-            });
-            
-            // 監聽被移除的學生 (推播)
-            classQueueRef.on('child_removed', (snapshot) => {
-                console.log(`學生 ${snapshot.val().name} 已被遠端移除`);
-                // 如果本地佇列的第一個 key 和被移除的 key 相同
-                if (studentQueue.length > 0 && studentQueue[0].key === snapshot.key) {
-                    studentQueue.shift(); // 移除本地
-                    updateDisplay(); // 更新畫面
-                }
-            });
-
-            // 第一次載入時，更新一次畫面
-            updateDisplay();
-        });
-    </script>
-</body>
-</html>
+        // [修正] 接收 event 物件
+        async function sendToGuard(event, statusMessage) {
+            if
