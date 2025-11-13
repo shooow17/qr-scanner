@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>班級回應介面</title>
+    <title>班級回應系統</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
@@ -37,9 +37,14 @@
         #btn-clear:hover {
             background-color: #5a6268;
         }
+        
+        /* [修改] 統一 sent 和 disabled 樣式 */
         #btn-clear.sent,
-        #status-buttons button.sent {
+        #status-buttons button.sent,
+        #status-buttons button:disabled {
             background-color: #28a745; 
+            opacity: 0.7;
+            cursor: not-allowed;
         }
     </style>
 </head>
@@ -49,9 +54,9 @@
         <p id="student-id">請在掃描裝置上開始掃描</p>
         
         <div id="status-buttons">
-            <button onclick="sendToGuard(event, '收拾書包前往警衛室')">收拾書包前往警衛室</button>
-            <button onclick="sendToGuard(event, '上廁所請稍候')">上廁所請稍候</button>
-            <button onclick="sendToGuard(event, '班級在室外活動')">班級在室外活動</button>
+            <button onclick="sendToGuard('收拾書包前往警衛室')">收拾書包前往警衛室</button>
+            <button onclick="sendToGuard('上廁所請稍候')">上廁所請稍候</button>
+            <button onclick="sendToGuard('班級在室外活動')">班級在室外活動</button>
             <button id="btn-clear" onclick="processNextStudent()">處理完畢 (下一位)</button>
         </div>
     </div>
@@ -91,6 +96,16 @@
                 });
             }
         }
+        
+        // [新] 輔助函式：鎖定所有按鈕
+        function disableAllButtons(disabled = true) {
+            document.querySelectorAll('#status-buttons button').forEach(btn => {
+                btn.disabled = disabled;
+                if (disabled) {
+                    btn.classList.add('sent'); // 顯示為處理中
+                }
+            });
+        }
 
         function updateDisplay() {
             const messageElement = document.getElementById('welcome-message');
@@ -105,6 +120,7 @@
 
                 buttonsElement.style.display = 'block'; 
                 
+                // [修改] 啟用所有按鈕並移除 'sent' 樣式
                 document.querySelectorAll('#status-buttons button').forEach(btn => {
                     btn.classList.remove('sent');
                     btn.disabled = false;
@@ -118,8 +134,12 @@
             }
         }
         
-        async function sendToGuard(event, statusMessage) {
+        // [修正] 移除 event 參數
+        async function sendToGuard(statusMessage) {
             if (!currentStudentData) return;
+            
+            // [修正] 立即鎖定所有按鈕
+            disableAllButtons(true);
 
             console.log(`傳送訊息給警衛室: ${currentStudentData.name} (${currentStudentData.class}) - ${statusMessage}`);
 
@@ -129,23 +149,19 @@
                 status: statusMessage,
                 timestamp: new Date().toISOString()
             };
-            
-            const clickedButton = event.target;
-            clickedButton.classList.add('sent');
-            clickedButton.disabled = true;
 
             try {
                 const alertsRef = database.ref(GUARD_ALERTS_KEY);
                 await alertsRef.push(guardData);
                 console.log("訊息成功傳送到警衛室");
                 
-                processNextStudent(); 
+                processNextStudent(); // 直接呼叫下一位
 
             } catch (err) {
                 console.error("傳送失敗:", err);
                 alert(`傳送失敗: ${err.message}`);
-                clickedButton.classList.remove('sent'); 
-                clickedButton.disabled = false;
+                // [修正] 失敗時，解鎖所有按鈕
+                disableAllButtons(false);
             }
         }
 
@@ -154,6 +170,9 @@
 
             console.log(`處理完畢: ${currentStudentData.name}，正在移除佇列...`);
             
+            // [修正] 立即鎖定所有按鈕
+            disableAllButtons(true);
+
             const keyToRemove = currentStudentData.key;
             
             studentQueue.shift(); 
