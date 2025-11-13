@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>歡迎2(即時顯示)</title>
+    <title>歡迎 (即時顯示)</title>
     
     <style>
         body { font-family: Arial, sans-serif; background-color: #e8f5e9; display: flex; justify-content: center; align-items: center; flex-direction: column; height: 100vh; margin: 0; color: #2e7d32; }
@@ -27,18 +27,23 @@
         const KVDB_API_URL = `${KVDB_BUCKET_URL}/${KVDB_KEY}`;
         // ------------------------------------
 
-        // --- [已修改] ---
-        // 更新間隔 (1000 毫秒 = 1 秒)
+        // --- 更新間隔 (1000 毫秒 = 1 秒) ---
         const POLLING_INTERVAL = 1000; 
-        // ----------------
-
+        
         let lastKnownTimestamp = null;
 
         async function fetchData() {
             try {
-                const response = await fetch(KVDB_API_URL, {
+                // --- [修正] ---
+                // 為了防止瀏覽器快取 (cache)，我們在網址後面加上一個隨機的時間戳
+                // 這會強制瀏覽器每次都去伺服器抓取新資料
+                const cacheBuster = `?t=${new Date().getTime()}`;
+                const urlToFetch = KVDB_API_URL + cacheBuster;
+                // ---------------
+
+                const response = await fetch(urlToFetch, { // <-- 使用新的網址
                     method: 'GET',
-                    cache: 'no-cache' 
+                    cache: 'no-cache' // 雖然有了 cacheBuster，這個還是保留
                 });
                 
                 if (response.status === 404) {
