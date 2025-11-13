@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>警衛室管理介面 (即時顯示)</title>
+    <title>警衛室看板 (即時顯示)</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
@@ -46,6 +46,25 @@
             margin-top: 5px;
             display: block;
         }
+        /* [新] 按鈕區域 */
+        .controls {
+            margin-top: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+        }
+        .controls button {
+            background-color: #d84315;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+         .controls button#btn-export {
+            background-color: #00796b;
+        }
     </style>
 </head>
 <body>
@@ -53,6 +72,11 @@
         <h1>警衛室即時訊息</h1>
         <div id="alert-list">
             <p id="placeholder">--- 等待班級回傳訊息 ---</p>
+        </div>
+
+        <div class="controls">
+            <button id="btn-clear" onclick="clearAlerts()">清除畫面 (並清空資料庫)</button>
+            <button id="btn-export" onclick="exportReport()">匯出報表 (CSV)</button>
         </div>
     </div>
 
@@ -74,9 +98,13 @@
         const database = firebase.database();
         // ------------------------
 
-        const KVDB_GUARD_KEY = "alerts"; // 警衛室的 Key
+        const GUARD_ALERTS_KEY = "alerts"; 
+        const alertsRef = database.ref(GUARD_ALERTS_KEY);
+        
+        // [新] 用來儲存報表資料
+        let alertHistory = [];
 
-        function updateDisplay(data) {
+        function updateDisplay(data, key) {
             const listElement = document.getElementById('alert-list');
             const placeholder = document.getElementById('placeholder');
             
@@ -87,6 +115,8 @@
             if (data && data.name) {
                 const newItem = document.createElement('div');
                 newItem.className = 'alert-item';
+                // [新] 加上 ID 以便移除
+                newItem.id = `alert-${key}`;
                 
                 const localTime = new Date(data.timestamp).toLocaleString('zh-TW');
 
@@ -102,13 +132,85 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const alertsRef = database.ref(KVDB_GUARD_KEY);
+        // [新] 清除畫面的函式
+        function clearAlerts() {
+            if (!confirm("確定要清除所有警衛室訊息嗎？(這會同時清空資料庫)")) {
+                return;
+            }
+            console.log("正在清除所有警報...");
             
-            alertsRef.limitToLast(10).on('child_added', (snapshot) => {
+            // 1. 從 Firebase 刪除 "alerts" 節點
+            alertsRef.remove()
+                .then(() => {
+                    console.log("Firebase 資料庫已清空");
+                    // 2. 清空本地畫面
+                    const listElement = document.getElementById('alert-list');
+                    listElement.innerHTML = '<p id="placeholder">--- 等待班級回傳訊息 ---</p>';
+                    // 3. 清空本地歷史紀錄
+                    alertHistory = [];
+                })
+                .catch(err => {
+                    alert(`清除失敗: ${err.message}`);
+                });
+        }
+        
+        // [新] 匯出報表的函式
+        function exportReport() {
+            if (alertHistory.length === 0) {
+                alert("目前沒有資料可匯出。");
+                return;
+            }
+
+            console.log("正在產生報表...");
+            
+            // 1. 建立 CSV 標頭
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // \uFEFF 是 CSV 在 Excel 中開啟中文的BOM標頭
+            csvContent += "時間,班級,學生姓名,狀態\r\n";
+
+            // 2. 遍歷所有歷史資料
+            // 我們反轉 (reverse) 陣列，讓匯出的資料是從舊到新
+            [...alertHistory].reverse().forEach(item => {
+                const time = new Date(item.timestamp).toLocaleString('zh-TW');
+                const row = `"${time}","${item.class}","${item.name}","${item.status}"`;
+                csvContent += row + "\r\n";
+            });
+
+            // 3. 建立並觸發下載
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `警衛室報表_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link); 
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (firebaseConfig.apiKey === "YOUR_API_KEY") {
+                const listElement = document.getElementById('alert-list');
+                listElement.innerHTML = "<p><b>設定錯誤：</b><br>請先在 view.html 中填入你的 firebaseConfig。</p>";
+                return;
+            }
+
+            // [修改] 監聽最新的 12 筆
+            alertsRef.limitToLast(12).on('child_added', (snapshot) => {
                 const alertData = snapshot.val();
+                alertData.key = snapshot.key; // 儲存 Key
                 console.log("收到新警報:", alertData.name);
-                updateDisplay(alertData);
+                
+                alertHistory.push(alertData); // 存入歷史紀錄
+                updateDisplay(alertData, alertData.key);
+            });
+
+            // [新] 監聽移除事件 (為了 "清除畫面" 按鈕)
+            alertsRef.on('child_removed', (snapshot) => {
+                const keyToRemove = snapshot.key;
+                const elementToRemove = document.getElementById(`alert-${keyToRemove}`);
+                if (elementToRemove) {
+                    elementToRemove.remove();
+                }
+                // 同時從歷史紀錄中移除
+                alertHistory = alertHistory.filter(item => item.key !== keyToRemove);
             });
         });
     </script>
