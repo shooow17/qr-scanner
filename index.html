@@ -34,15 +34,12 @@
     </div>
 
     <script>
-        // --- 1. 你的 kvdb.io 設定 (我已幫你填入) ---
+        // --- 1. 你的 kvdb.io 設定 (已填入) ---
         const KVDB_BUCKET_URL = "https://kvdb.io/LTmqS13egNm2VPndi8sQWR"; 
         
-        // 我們將把資料存在這個 "key" 底下
-        const KVDB_KEY = "currentStudent";
-        const KVDB_API_URL = `${KVDB_BUCKET_URL}/${KVDB_KEY}`;
-        // ------------------------------------
-
+        // --- [修改] 學生資料庫 (將儲存物件) ---
         let studentDatabase = new Map();
+
         let html5Qrcode;
         const cameraSelect = document.getElementById('camera-select');
         const startScanBtn = document.getElementById('start-scan-btn');
@@ -60,18 +57,34 @@
             console.log(`掃描成功，內容 = ${decodedText}`);
 
             if (studentDatabase.has(decodedText)) {
-                const studentName = studentDatabase.get(decodedText);
+                
+                // [修改] 取得學生資料 (包含班級)
+                const studentInfo = studentDatabase.get(decodedText); // e.g. { name: "陳小明", class: "ClassA" }
+                const studentName = studentInfo.name;
+                const studentClass = studentInfo.class;
+
+                if (!studentClass) {
+                    showMessage(`錯誤：學生 (ID: ${decodedText}) 在 CSV 中沒有班級！`);
+                    return;
+                }
+
+                // [修改] 準備上傳到班級專屬的 Key
+                // 我們使用 "Class_" 作為前綴，以避免與 "Guard_Alert" 等其他 Key 衝突
+                const classKey = "Class_" + studentClass;
+                const KVDB_CLASS_URL = `${KVDB_BUCKET_URL}/${classKey}`;
+
                 const studentData = {
                     id: decodedText,
                     name: studentName,
+                    class: studentClass,
                     timestamp: new Date().toISOString()
                 };
 
-                showMessage("正在傳送資料...", true);
+                showMessage(`正在傳送資料到 ${studentClass}...`, true);
+                
                 try {
-                    // kvdb.io 使用 POST 來覆蓋資料
-                    const response = await fetch(KVDB_API_URL, {
-                        method: 'POST', // 使用 POST
+                    const response = await fetch(KVDB_CLASS_URL, {
+                        method: 'POST', 
                         headers: {
                             'Content-Type': 'application/json'
                         },
@@ -79,7 +92,7 @@
                     });
 
                     if (!response.ok) {
-                        const errorText = await response.text();
+                        const errorText = await response.text(); 
                         throw new Error(`伺服器錯誤: ${errorText}`);
                     }
                     
@@ -105,6 +118,7 @@
         document.addEventListener("DOMContentLoaded", () => {
             html5Qrcode = new Html5Qrcode("qr-reader");
 
+            // [修改] 讀取新的 CSV 格式
             fetch('students.csv')
                 .then(response => {
                     if (!response.ok) {
@@ -117,16 +131,22 @@
                     for (const row of rows) {
                         const trimmedRow = row.trim();
                         if (trimmedRow === '') continue;
-                        const splitIndex = trimmedRow.indexOf(','); 
-                        if (splitIndex === -1) continue; 
-                        const id = trimmedRow.substring(0, splitIndex).trim();
-                        const name = trimmedRow.substring(splitIndex + 1).trim();
-                        if (id && name) {
-                            studentDatabase.set(id, name);
+                        
+                        // [修改] 分割 3 欄
+                        const columns = trimmedRow.split(','); 
+                        if (columns.length < 3) continue; // 至少要有 3 欄
+
+                        const id = columns[0].trim();
+                        const name = columns[1].trim();
+                        const studentClass = columns[2].trim(); // 第 3 欄是班級
+
+                        if (id && name && studentClass) {
+                            // 將學生資料存為一個物件
+                            studentDatabase.set(id, { name: name, class: studentClass });
                         }
                     }
                     if (studentDatabase.size === 0) {
-                        throw new Error("CSV 檔案為空或格式錯誤");
+                        throw new Error("CSV 檔案為空或格式錯誤 (請確保格式為 ID,姓名,班級ID)");
                     }
                     console.log(`學生資料庫載入成功，共 ${studentDatabase.size} 筆資料`);
                     initializeCamera();
