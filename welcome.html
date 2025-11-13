@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>老師回應介面</title>
+    <title>教師回應系統更新</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
@@ -31,10 +31,15 @@
             background-color: #0056b3;
         }
         
-        /* [修改] 移除 #btn-clear 的樣式 */
+        #btn-clear {
+            background-color: #6c757d; 
+        }
+        #btn-clear:hover {
+            background-color: #5a6268;
+        }
         
         #status-buttons button.sent,
-        #status-buttons button:disabled { /* [修改] 統一鎖定樣式 */
+        #status-buttons button:disabled { 
             background-color: #28a745; 
             opacity: 0.7;
             cursor: not-allowed;
@@ -51,7 +56,8 @@
             <button onclick="sendToGuard('上廁所請稍候')">上廁所請稍候</button>
             <button onclick="sendToGuard('班級在室外活動')">班級在室外活動</button>
             
-            </div>
+            <button id="btn-clear" onclick="processNextStudent()">處理完畢 (下一位)</button>
+        </div>
     </div>
 
     <audio id="notification-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-message-pop-alert-2354.mp3" preload="auto"></audio>
@@ -90,12 +96,11 @@
             }
         }
 
-        // [新] 輔助函式：鎖定/解鎖所有按鈕
         function setButtonsDisabled(disabled = true) {
             document.querySelectorAll('#status-buttons button').forEach(btn => {
                 btn.disabled = disabled;
                 if (disabled) {
-                    btn.classList.add('sent'); // 顯示為處理中
+                    btn.classList.add('sent'); 
                 } else {
                     btn.classList.remove('sent');
                 }
@@ -115,7 +120,6 @@
 
                 buttonsElement.style.display = 'block'; 
                 
-                // [修改] 解鎖所有按鈕
                 setButtonsDisabled(false); 
 
             } else {
@@ -128,8 +132,7 @@
         
         async function sendToGuard(statusMessage) {
             if (!currentStudentData) return;
-
-            // [修改] 立即鎖定所有按鈕
+            
             setButtonsDisabled(true);
 
             console.log(`傳送訊息給警衛室: ${currentStudentData.name} (${currentStudentData.class}) - ${statusMessage}`);
@@ -146,32 +149,26 @@
                 await alertsRef.push(guardData);
                 console.log("訊息成功傳送到警衛室");
                 
-                // [修改] 傳送成功後，呼叫「處理下一位」
                 processNextStudent(); 
 
             } catch (err) {
                 console.error("傳送失敗:", err);
                 alert(`傳送失敗: ${err.message}`);
-                // [修改] 失敗時，解鎖所有按鈕
                 setButtonsDisabled(false);
             }
         }
 
-        // [修改] 這個函式現在只會在 sendToGuard 成功後被呼叫
         function processNextStudent() {
             if (!currentStudentData) return;
-
+            
+            setButtonsDisabled(true);
             console.log(`處理完畢: ${currentStudentData.name}，正在移除佇列...`);
             
             const keyToRemove = currentStudentData.key;
             
-            // 1. 立即從本地佇列移除
             studentQueue.shift(); 
-            
-            // 2. 立即更新畫面 (顯示下一位，或顯示「等待中」)
             updateDisplay();
 
-            // 3. 在背景嘗試從 Firebase 刪除
             if (classQueueRef) {
                 classQueueRef.child(keyToRemove).remove()
                     .then(() => {
@@ -198,13 +195,34 @@
             currentClassName = className; 
             messageElement.textContent = `班級 ${className} - 載入中...`;
 
+            // --- [關鍵修改] ---
+            // 監聽新加入的學生 (推播)
             classQueueRef.on('child_added', (snapshot) => {
                 const studentData = snapshot.val();
+                if (!studentData || !studentData.id) return; // 略過無效資料
                 studentData.key = snapshot.key; 
-                console.log("收到新學生:", studentData.name);
+                
+                console.log("Firebase 偵測到新資料:", studentData.name, studentData.id);
+
+                // 1. 檢查是否「正在顯示」的就是這位學生
+                if (currentStudentData && currentStudentData.id === studentData.id) {
+                    console.log(`忽略： ${studentData.name} 已顯示在畫面上。`);
+                    return; 
+                }
+                
+                // 2. 檢查是否「已在佇列中」
+                const alreadyInQueue = studentQueue.some(student => student.id === studentData.id);
+                if (alreadyInQueue) {
+                    console.log(`忽略： ${studentData.name} 已在等待佇列中。`);
+                    return;
+                }
+
+                // 3. 這是新學生，加入佇列
+                console.log(`[新] 將 ${studentData.name} 加入佇列。`);
                 studentQueue.push(studentData);
                 
-                if (studentQueue.length === 1) {
+                // 如果目前沒有學生顯示在畫面上 (佇列剛從 0 變 1)
+                if (!currentStudentData) {
                     updateDisplay();
                     playNotificationSound(); 
                 }
@@ -212,9 +230,15 @@
             
             classQueueRef.on('child_removed', (snapshot) => {
                 console.log(`學生 ${snapshot.val().name} 已被移除`);
+                
+                // [修改] 修正移除邏輯：
+                // 檢查佇列中的第一筆是否是被移除的那筆
                 if (studentQueue.length > 0 && studentQueue[0].key === snapshot.key) {
                     studentQueue.shift(); 
                     updateDisplay(); 
+                } else {
+                    // 如果被移除的不是第一筆 (理論上不該發生)，也從佇列中清掉
+                    studentQueue = studentQueue.filter(student => student.key !== snapshot.key);
                 }
             });
 
