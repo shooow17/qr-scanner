@@ -3,6 +3,286 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>班級即時顯示2</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f0f8ff; display: flex; justify-content: center; align-items: center; flex-direction: column; height: 100vh; margin: 0; color: #333; }
+        
+        #start-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #005a9c;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2em;
+            cursor: pointer;
+            z-index: 100;
+        }
+
+        .container { 
+            text-align: center; 
+            background-color: #ffffff; 
+            padding: 40px 60px; 
+            border-radius: 12px; 
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1); 
+            display: none; 
+        }
+        h1 { font-size: 2.5em; margin: 0; color: #005a9c; }
+        p { font-size: 1.4em; margin-top: 10px; color: #555; }
+        
+        #status-buttons {
+            margin-top: 25px;
+            display: none; 
+        }
+        #status-buttons button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            margin: 5px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            cursor: pointer;
+        }
+        #status-buttons button:hover {
+            background-color: #0056b3;
+        }
+        
+        #status-buttons button.sent,
+        #status-buttons button:disabled { 
+            background-color: #28a745; 
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div id="start-overlay" onclick="startApp()">
+        點擊此處開始監聽班級
+    </div>
+
+    <div class="container" id="main-container">
+        <h1 id="welcome-message">等待掃描中...</h1>
+        <p id="student-id">請在掃描裝置上開始掃描</p>
+        
+        <div id="status-buttons">
+            <button onclick="sendToGuard('收拾書包前往警衛室')">收拾書包前往警衛室</button>
+            <button onclick="sendToGuard('上廁所請稍候')">上廁所請稍候</button>
+            <button onclick="sendToGuard('班級在室外活動')">班級在室外活動</button>
+            <button onclick="sendToGuard('老師另外連絡家長')">老師另外連絡家長</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 2. 你的 Firebase 設定 (我已幫你貼上) ---
+        const firebaseConfig = {
+          apiKey: "AIzaSyB_-fHCMhi-URwyBqzAIipmffWwvNgzJJc",
+          authDomain: "qr-scanner-app-2c73d.firebaseapp.com",
+          databaseURL: "https://qr-scanner-app-2c73d-default-rtdb.asia-southeast1.firebasedatabase.app",
+          projectId: "qr-scanner-app-2c73d",
+          storageBucket: "qr-scanner-app-2c73d.firebasestorage.app",
+          messagingSenderId: "385628927398",
+          appId: "1:385628927398:web:00239f1b2acebd6e790b67"
+        };
+        // ------------------------------------
+
+        // --- 3. 初始化 Firebase ---
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        // ------------------------
+        
+        // Base64 內嵌音效 (叮咚聲)
+        const B64_SOUND = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABgAAABkYXRhAgAAAEhEsDzQb/Rh9mH8YfRh/2H6Yfth/WH9Yf5h/mH+Yf9hAmIDYgJiA2IDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiA2IDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBgBEEIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgAgeA=";
+        
+        const GUARD_ALERTS_KEY = "alerts"; 
+        let classQueueRef = null; 
+        
+        let currentStudentData = null; 
+        let studentQueue = []; 
+        let currentClassName = ""; 
+        let sound; // [新] 音效物件
+
+        function playNotificationSound() {
+            if (sound) {
+                sound.currentTime = 0; // 倒帶
+                sound.play().catch(error => {
+                    console.warn("音效播放失敗:", error);
+                });
+            }
+        }
+
+        // 鎖定/解鎖所有按鈕
+        function setButtonsDisabled(disabled = true) {
+            document.querySelectorAll('#status-buttons button').forEach(btn => {
+                btn.disabled = disabled;
+                if (disabled) {
+                    btn.classList.add('sent'); 
+                } else {
+                    btn.classList.remove('sent');
+                }
+            });
+        }
+        
+        function updateDisplay() {
+            const messageElement = document.getElementById('welcome-message');
+            const idElement = document.getElementById('student-id');
+            const buttonsElement = document.getElementById('status-buttons');
+
+            if (studentQueue.length > 0) {
+                currentStudentData = studentQueue[0];
+                
+                messageElement.textContent = `${currentStudentData.name}同學 (${currentStudentData.class})`;
+                idElement.textContent = `家長來接囉`;
+
+                buttonsElement.style.display = 'block'; 
+                setButtonsDisabled(false); 
+
+            } else {
+                currentStudentData = null;
+                messageElement.textContent = `班級 ${currentClassName} - 等待掃描中...`;
+                idElement.textContent = '請在掃描裝置上開始掃描';
+                buttonsElement.style.display = 'none'; 
+            }
+        }
+        
+        async function sendToGuard(statusMessage) {
+            if (!currentStudentData) return;
+            
+            setButtonsDisabled(true);
+
+            console.log(`傳送訊息給警衛室: ${currentStudentData.name} (${currentStudentData.class}) - ${statusMessage}`);
+
+            const guardData = {
+                name: currentStudentData.name,
+                class: currentStudentData.class, 
+                status: statusMessage,
+                timestamp: new Date().toISOString()
+            };
+
+            try {
+                const alertsRef = database.ref(GUARD_ALERTS_KEY);
+                await alertsRef.push(guardData);
+                console.log("訊息成功傳送到警衛室");
+                
+                processNextStudent(); 
+
+            } catch (err) {
+                console.error("傳送失敗:", err);
+                alert(`傳送失敗: ${err.message}`);
+                setButtonsDisabled(false);
+            }
+        }
+
+        // [修改] 移除 event 參數
+        function processNextStudent() {
+            if (!currentStudentData) return;
+            
+            // [修改] 只有在按鈕還沒被鎖定時才鎖定
+            // (防止 sendToGuard 呼叫時重複鎖定)
+            if (event && event.target) {
+                 setButtonsDisabled(true);
+            }
+            console.log(`處理完畢: ${currentStudentData.name}，正在移除佇列...`);
+            
+            const keyToRemove = currentStudentData.key;
+            
+            studentQueue.shift(); 
+            updateDisplay();
+
+            if (classQueueRef) {
+                classQueueRef.child(keyToRemove).remove()
+                    .then(() => {
+                        console.log(`成功從 Firebase 移除 Key: ${keyToRemove}`);
+                    })
+                    .catch(err => {
+                        console.error(`從 Firebase 移除 Key: ${keyToRemove} 失敗:`, err);
+                    });
+            }
+        }
+        
+        // [新] 啟動 App 的函式
+        function startApp() {
+            // 1. 隱藏啟動畫面，顯示主畫面
+            document.getElementById('start-overlay').style.display = 'none';
+            document.getElementById('main-container').style.display = 'block';
+
+            // 2. [關鍵] 初始化並 "解鎖" 音效
+            sound = new Audio(B64_SOUND); // <-- 這次 100% 貼上了
+            sound.play().then(() => {
+                sound.pause();
+                sound.currentTime = 0;
+                console.log("音效已成功解鎖");
+            }).catch(err => {
+                console.warn("音效解鎖失敗，可能需要再次點擊", err);
+            });
+            
+            // 3. 讀取網址參數
+            const urlParams = new URLSearchParams(window.location.search);
+            const className = urlParams.get('class');
+            const messageElement = document.getElementById('welcome-message');
+
+            if (!className) {
+                messageElement.innerHTML = "<b>設定錯誤：</b><br>請在網址列指定班級<br>(例如: .../welcome.html<b>?class=ClassA</b>)";
+                return;
+            }
+            
+            classQueueRef = database.ref(`queues/${className}`);
+            currentClassName = className; 
+            messageElement.textContent = `班級 ${className} - 載入中...`;
+
+            // 4. [修改] 在點擊後才開始監聽
+            classQueueRef.on('child_added', (snapshot) => {
+                const studentData = snapshot.val();
+                if (!studentData || !studentData.id) return;
+                studentData.key = snapshot.key; 
+                
+                console.log("Firebase 偵測到新資料:", studentData.name, studentData.id);
+
+                const alreadyInQueue = studentQueue.some(student => student.id === studentData.id) ||
+                                     (currentStudentData && currentStudentData.id === studentData.id);
+                
+                if (alreadyInQueue) {
+                    console.log(`忽略： ${studentData.name} 已在佇列中或正在顯示。`);
+                    return; 
+                }
+
+                console.log(`[新] 將 ${studentData.name} 加入佇列。`);
+                studentQueue.push(studentData);
+                
+                if (studentQueue.length === 1 && !currentStudentData) {
+                    updateDisplay();
+                    playNotificationSound(); 
+                }
+            });
+            
+            classQueueRef.on('child_removed', (snapshot) => {
+                console.log(`學生 ${snapshot.val().name} 已被移除`);
+                if (studentQueue.length > 0 && studentQueue[0].key === snapshot.key) {
+                    studentQueue.shift(); 
+                    updateDisplay(); 
+                } else {
+                    studentQueue = studentQueue.filter(student => student.key !== snapshot.key);
+                }
+            });
+
+            updateDisplay();
+        }
+
+        // [修改] 我們不再使用 DOMContentLoaded，而是等待使用者點擊 #start-overlay
+    </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>警衛室 (即時顯示)</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
