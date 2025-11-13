@@ -20,9 +20,10 @@
     </div>
 
     <script>
-        // --- 1. 你的 jsonbin.io 設定 (已填入你的最新金鑰) ---
-        const JSONBIN_API_KEY = "$2a$10$bRv8yMS2auclsglHpzPJwuupssVoYSn2Xl0MLCllGBNUe2uaew6fi";
-        const JSONBIN_BIN_ID = "691579ceae596e708f563f95";
+        // --- 1. 你的 jsonbin.io 設定 (請貼上「金鑰 B」) ---
+        // !!! 貼上你在「步驟 2」取得的「DisplayKey (Read Key)」!!!
+        const JSONBIN_ACCESS_KEY = "$2a$10$yc0T8IPEHEI4zH8AAFHC4OWCeYI9dP5fSjMnF8Q61WWSdnQBnsw0a";
+        const JSONBIN_BIN_ID = "691579ceae596e708f563f95"; // 你的 Bin ID 保持不變
         // ------------------------------------
 
         const POLLING_INTERVAL = 2000; // 2 秒
@@ -34,7 +35,11 @@
                 const response = await fetch(JSONBIN_API_URL, {
                     method: 'GET',
                     headers: {
-                        'X-Master-Key': JSONBIN_API_KEY
+                         // --- [修正] ---
+                         // 我們不再使用 X-Master-Key
+                         // 改用權限較小的 X-Access-Key
+                        'X-Access-Key': JSONBIN_ACCESS_KEY
+                        // ----------------
                     },
                     cache: 'no-cache' 
                 });
@@ -63,7 +68,6 @@
             const idElement = document.getElementById('student-id');
 
             if (data && data.name) {
-                // 這是你第一次建立 Bin 時的初始資料，我們過濾掉它
                 if(data.id === "init" || data.id === "INITIAL") return; 
                 
                 messageElement.textContent = `歡迎, ${data.name}!`;
@@ -76,6 +80,13 @@
 
         let pollingTimer;
         document.addEventListener('DOMContentLoaded', () => {
+             // 檢查金鑰是否已填寫
+            if (JSONBIN_ACCESS_KEY.includes("YOUR") || JSONBIN_ACCESS_KEY.includes("在這裡")) {
+                const messageElement = document.getElementById('welcome-message');
+                messageElement.innerHTML = "<b>設定錯誤：</b><br>請在 welcome.html 中填入你的<br>jsonbin.io [Access Key B]。";
+                return;
+            }
+
             fetchData();
             pollingTimer = setInterval(fetchData, POLLING_INTERVAL);
         });
