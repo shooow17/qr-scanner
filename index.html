@@ -75,4 +75,119 @@
                             'X-Master-Key': JSONBIN_API_KEY,
                             'X-Bin-Versioning': 'false'
                         },
-                        body: JSON.stringify
+                        body: JSON.stringify(studentData)
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(`伺服器錯誤: ${errorData.message || response.statusText}`);
+                    }
+                    
+                    showMessage(`成功傳送: ${studentName}`, true);
+                    setTimeout(() => {
+                        scanMessageElement.style.display = 'none';
+                    }, 2000);
+
+                } catch (err) {
+                    showMessage(`上傳失敗: ${err.message}`);
+                    console.error("上傳失敗:", err);
+                }
+            } else {
+                showMessage(`錯誤：找不到學生 (ID: ${decodedText})`);
+                setTimeout(() => {
+                    scanMessageElement.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        function onScanFailure(error) { /* 持續掃描... */ }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            html5Qrcode = new Html5Qrcode("qr-reader");
+
+            fetch('students.csv')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`找不到 students.csv 檔案 (狀態: ${response.status})`);
+                    }
+                    return response.text();
+                })
+                .then(csvText => {
+                    const rows = csvText.split('\n');
+                    for (const row of rows) {
+                        const trimmedRow = row.trim();
+                        if (trimmedRow === '') continue;
+                        
+                        const splitIndex = trimmedRow.indexOf(','); 
+                        if (splitIndex === -1) continue; 
+                        
+                        const id = trimmedRow.substring(0, splitIndex).trim();
+                        const name = trimmedRow.substring(splitIndex + 1).trim();
+                        if (id && name) {
+                            studentDatabase.set(id, name);
+                        }
+                    }
+                    if (studentDatabase.size === 0) {
+                        throw new Error("CSV 檔案為空或格式錯誤");
+                    }
+                    console.log(`學生資料庫載入成功，共 ${studentDatabase.size} 筆資料`);
+                    initializeCamera();
+                })
+                .catch(err => {
+                    if (err instanceof TypeError) {
+                        showMessage(`錯誤：無法載入學生資料庫。<br>請檢查 students.csv 檔案是否存在，且編碼為 UTF-8。`);
+                    } else {
+                        showMessage(`錯誤：無法載入學生資料庫。<br>${err.message}`);
+                    }
+                    cameraControls.style.display = 'none';
+                });
+        });
+
+        function initializeCamera() {
+            Html5Qrcode.getCameras().then(cameras => {
+                if (cameras && cameras.length) {
+                    cameras.forEach(camera => {
+                        const option = document.createElement('option');
+                        option.value = camera.id;
+                        option.innerHTML = camera.label;
+                        cameraSelect.appendChild(option);
+                    });
+                    if (cameras.length > 1) {
+                        cameraSelect.selectedIndex = cameras.length - 1;
+                    }
+                } else {
+                    showMessage("錯誤：找不到任何攝影機設備。");
+                }
+            }).catch(err => {
+                let errorMsg = `<b>錯誤：無法取得攝影機列表。</b><br>${err.message}`;
+                showMessage(errorMsg);
+            });
+
+            startScanBtn.addEventListener('click', () => {
+                const selectedCameraId = cameraSelect.value;
+                if (!selectedCameraId) {
+                    showMessage("請先從下拉選單選擇一個鏡頭。");
+                    return;
+                }
+                
+                qrReaderElement.style.display = 'block';
+
+                html5Qrcode.start(
+                    selectedCameraId,
+                    { fps: 10, qrbox: { width: 250, height: 250 } },
+                    onScanSuccess,
+                    onScanFailure
+                ).then(() => {
+                    cameraControls.style.display = 'none';
+                    showMessage("掃描器已啟動", true);
+                    setTimeout(() => {
+                        scanMessageElement.style.display = 'none';
+                    }, 2000);
+                }).catch(err => {
+                    showMessage(`啟動掃描器失敗: ${err}`);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
