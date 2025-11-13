@@ -82,7 +82,7 @@
             const idElement = document.getElementById('student-id');
 
             if (data && data.name && data.id !== "init") {
-                messageElement.textContent = ` ${data.name}!，請到警衛室`;
+                messageElement.textContent = ` ${data.name}同學，請到警衛室，家人來接`;
                 idElement.textContent = `(ID: ${data.id})`;
             } else {
                 messageElement.textContent = '等待掃描中...';
