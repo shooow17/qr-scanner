@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>警衛室畫面(即時顯示)</title>
+    <title>警衛室 (即時顯示)</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
@@ -123,7 +123,6 @@
         
         const MAX_ALERTS = 15; // 15 格
         let alertHistory = []; // 儲存所有資料 (用於匯出)
-        let displayedAlerts = {}; // 儲存畫面上顯示的資料 (用於清除)
 
         // [修改] 重新渲染整個網格
         function renderGrid() {
