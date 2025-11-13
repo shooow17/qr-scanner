@@ -5,107 +5,47 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>學生 QR Code 掃描器</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
+    
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            padding-top: 20px;
-        }
-        .container {
-            background-color: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            padding: 25px;
-            width: 90%;
-            max-width: 500px;
-        }
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; display: flex; justify-content: center; align-items: center; flex-direction: column; padding-top: 20px; }
+        .container { background-color: #ffffff; border-radius: 10px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); padding: 25px; width: 90%; max-width: 500px; }
         h1 { text-align: center; color: #333; }
-
-        #qr-reader {
-            width: 100%;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            overflow: hidden;
-            display: none; /* 預設隱藏 */
-        }
-        
-        #camera-controls {
-            margin-bottom: 15px;
-        }
-        #camera-controls label {
-            font-weight: bold;
-            margin-right: 10px;
-        }
-        #camera-select {
-            padding: 5px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-        }
-        #start-scan-btn {
-            background-color: #007bff;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1em;
-            margin-left: 10px;
-        }
-        #start-scan-btn:hover {
-            background-color: #0056b3;
-        }
-
-        /* 這是顯示 "錯誤" 或 "提示" 結果的區域 */
-        #scan-message {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: #ffebee;
-            border: 1px solid #ffcdd2;
-            border-radius: 8px;
-            text-align: center;
-            font-size: 1.1em;
-            font-weight: bold;
-            color: #c62828;
-            line-height: 1.5;
-            display: none; /* 預設隱 還 */
-        }
-        #scan-message.info {
-            background-color: #e0f7fa;
-            border-color: #b2ebf2;
-            color: #00796b;
-        }
+        #qr-reader { width: 100%; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; display: none; }
+        #camera-controls { margin-bottom: 15px; }
+        #camera-controls label { font-weight: bold; margin-right: 10px; }
+        #camera-select { padding: 5px; border-radius: 5px; border: 1px solid #ccc; }
+        #start-scan-btn { background-color: #007bff; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-size: 1em; margin-left: 10px; }
+        #start-scan-btn:hover { background-color: #0056b3; }
+        #scan-message { margin-top: 20px; padding: 15px; background-color: #ffebee; border: 1px solid #ffcdd2; border-radius: 8px; text-align: center; font-size: 1.1em; font-weight: bold; color: #c62828; line-height: 1.5; display: none; }
+        #scan-message.info { background-color: #e0f7fa; border-color: #b2ebf2; color: #00796b; }
     </style>
 </head>
 <body>
 
     <div class="container">
         <h1>學生 QR Code 掃描器</h1>
-
         <div id="camera-controls">
             <label for="camera-select">選擇鏡頭:</label>
             <select id="camera-select"></select>
             <button id="start-scan-btn">開始掃描</button>
         </div>
-
         <div id="qr-reader"></div>
-        
         <div id="scan-message"></div>
     </div>
 
     <script>
-        // --- 我們的學生資料庫 ---
-        const studentDatabase = {
-            "S1001": "陳小明",
-            "S1002": "林美玲",
-            "S1003": "張偉",
-            "S1004": "王秀蘭",
-            "TEST001": "測試員"
-        };
-        // -------------------------
+        // --- 1. 貼上你的 jsonbin.io 設定 (保持不變) ---
+        // !!! 請將這裡替換成你自己的設定 !!!
+        const JSONBIN_API_KEY = "$2b$10$YOUR_API_KEY_HERE"; // 你的 Master API Key
+        const JSONBIN_BIN_ID = "66a123b4c5d6e7f8a9b0"; // 你的 Bin ID
+        // ------------------------------------
+
+        const JSONBIN_API_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
+
+        // --- 學生資料庫 (將從 CSV 檔案載入) ---
+        // 我們使用 'Map'，它在 'Key-Value' 查找時效能最好
+        let studentDatabase = new Map();
+        // ---------------------------------------
 
         let html5Qrcode;
         const cameraSelect = document.getElementById('camera-select');
@@ -114,26 +54,59 @@
         const scanMessageElement = document.getElementById('scan-message');
         const cameraControls = document.getElementById('camera-controls');
 
-        function onScanSuccess(decodedText) {
+        function showMessage(message, isInfo = false) {
+            scanMessageElement.innerHTML = message;
+            scanMessageElement.classList.toggle('info', isInfo);
+            scanMessageElement.style.display = 'block';
+        }
+
+        /**
+         * 掃描成功函式 (已修改為使用 Map)
+         */
+        async function onScanSuccess(decodedText) {
             console.log(`掃描成功，內容 = ${decodedText}`);
 
-            if (studentDatabase.hasOwnProperty(decodedText)) {
-                const studentName = studentDatabase[decodedText];
+            // 檢查從 CSV 載入的 studentDatabase (Map)
+            if (studentDatabase.has(decodedText)) { // 使用 .has()
+                // 找到了學生
+                const studentName = studentDatabase.get(decodedText); // 使用 .get()
                 
-                html5Qrcode.stop().then(() => {
-                    console.log("掃描器已停止。");
-                    // 注意：這裡的路徑是相對路徑，它會自動尋找同資料夾下的 welcome.html
-                    const targetUrl = `welcome.html?id=${encodeURIComponent(decodedText)}&name=${encodeURIComponent(studentName)}`;
-                    window.location.href = targetUrl;
-                }).catch(err => {
-                    console.error("停止掃描器失敗", err);
-                });
+                // 準備要上傳的資料
+                const studentData = {
+                    id: decodedText,
+                    name: studentName,
+                    timestamp: new Date().toISOString()
+                };
+
+                // 傳送到 jsonbin.io (此邏輯不變)
+                showMessage("正在傳送資料...", true);
+                try {
+                    const response = await fetch(JSONBIN_API_URL, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Master-Key': JSONBIN_API_KEY,
+                            'X-Bin-Versioning': 'false'
+                        },
+                        body: JSON.stringify(studentData)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`伺服器錯誤: ${response.statusText}`);
+                    }
+                    
+                    showMessage(`成功傳送: ${studentName}`, true);
+                    setTimeout(() => {
+                        scanMessageElement.style.display = 'none';
+                    }, 2000);
+
+                } catch (err) {
+                    showMessage(`上傳失敗: ${err.message}`);
+                }
 
             } else {
-                scanMessageElement.innerHTML = `錯誤：找不到學生 (ID: ${decodedText})`;
-                scanMessageElement.classList.remove('info');
-                scanMessageElement.style.display = 'block';
-                
+                // 在資料庫中找不到這個 ID
+                showMessage(`錯誤：找不到學生 (ID: ${decodedText})`);
                 setTimeout(() => {
                     scanMessageElement.style.display = 'none';
                 }, 3000);
@@ -143,98 +116,109 @@
         function onScanFailure(error) {
             // 持續掃描...不用顯示錯誤
         }
-        
-        // 顯示提示訊息的函式
-        function showMessage(message, isInfo = false) {
-            scanMessageElement.innerHTML = message;
-            if (isInfo) {
-                scanMessageElement.classList.add('info');
-            } else {
-                scanMessageElement.classList.remove('info');
-            }
-            scanMessageElement.style.display = 'block';
-        }
 
-        // --- 主程式開始 ---
+        // --- 主程式 (已修改為載入 CSV) ---
         document.addEventListener("DOMContentLoaded", () => {
-            
             html5Qrcode = new Html5Qrcode("qr-reader");
 
-            // 1. 取得可用的攝影機列表
+            // **[新步驟 1]** 載入學生資料庫 CSV
+            fetch('students.csv') // 抓取同資料夾的 students.csv
+                .then(response => {
+                    if (!response.ok) {
+                        // 確保 fetch 可以抓到檔案
+                        throw new Error(`找不到 students.csv 檔案 (狀態: ${response.status})`);
+                    }
+                    return response.text(); // 解析為純文字
+                })
+                .then(csvText => {
+                    // **[新步驟 2]** 解析 CSV 文字並存入 Map
+                    const rows = csvText.split('\n'); // 依換行符分割
+                    
+                    for (const row of rows) {
+                        const trimmedRow = row.trim();
+                        if (trimmedRow === '') continue; // 略過空行
+                        
+                        // 我們只取第一個逗號來分割，以防姓名中包含逗號 (雖然不常見)
+                        const splitIndex = trimmedRow.indexOf(',');
+                        if (splitIndex === -1) continue; // 略過格式不符的行
+
+                        const id = trimmedRow.substring(0, splitIndex).trim();
+                        const name = trimmedRow.substring(splitIndex + 1).trim();
+
+                        if (id && name) {
+                            studentDatabase.set(id, name);
+                        }
+                    }
+
+                    if (studentDatabase.size === 0) {
+                        throw new Error("CSV 檔案為空或格式錯誤");
+                    }
+
+                    console.log(`學生資料庫載入成功，共 ${studentDatabase.size} 筆資料`);
+                    
+                    // **[新步驟 3]** 只有在資料庫成功載入後，才初始化攝影機
+                    initializeCamera();
+                })
+                .catch(err => {
+                    // 致命錯誤：如果資料庫載入失敗，就無法掃描
+                    // 檢查是否因為檔案編碼 (非UTF-8) 導致讀取失敗
+                    if (err instanceof TypeError) {
+                        showMessage(`錯誤：無法載入學生資料庫。<br>請檢查 students.csv 檔案是否存在，且編碼為 UTF-8。`);
+                    } else {
+                        showMessage(`錯誤：無法載入學生資料庫。<br>${err.message}`);
+                    }
+                    cameraControls.style.display = 'none'; // 隱藏控制項
+                });
+        });
+
+        /**
+         * 攝影機初始化函式 (此函式內容沒有變動)
+         */
+        function initializeCamera() {
+            // 取得攝影機列表
             Html5Qrcode.getCameras().then(cameras => {
                 if (cameras && cameras.length) {
-                    // 將攝影機列表填充到下拉式選單
                     cameras.forEach(camera => {
                         const option = document.createElement('option');
                         option.value = camera.id;
                         option.innerHTML = camera.label;
                         cameraSelect.appendChild(option);
                     });
-                    
                     if (cameras.length > 1) {
-                        cameraSelect.selectedIndex = cameras.length - 1; // 預設選擇最後一個 (通常是外接)
+                        cameraSelect.selectedIndex = cameras.length - 1;
                     }
                 } else {
                     showMessage("錯誤：找不到任何攝影機設備。");
                 }
             }).catch(err => {
-                // --- 這裡是關鍵的錯誤處理 ---
-                console.error("取得攝影機列表失敗:", err);
-                let errorMsg = "<b>錯誤：無法取得攝影機列表。</b><br>";
-                
-                // 判斷是否為 HTTPS 問題 (在 GitHub Pages 上這通常不是問題)
-                if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-                    errorMsg += "存取攝影機需要 <b>HTTPS</b> 安全連線。<br>請使用 'https://' 或 'localhost' (本地伺服器) 存取此頁面。";
-                
-                // 判斷是否為權限問題
-                } else if (err.name === 'NotAllowedError') {
-                    errorMsg += "您已封鎖此頁面的攝影機權限。<br>請檢查瀏覽器網址列的「鎖頭」圖示，並允許攝影機存取。";
-                
-                // 判斷是否真的沒鏡頭
-                } else if (err.name === 'NotFoundError') {
-                    errorMsg += "系統中找不到任何可用的攝影機設備。";
-                } else {
-                    errorMsg += `詳細錯誤: ${err.message}`;
-                }
-                
+                let errorMsg = `<b>錯誤：無法取得攝影機列表。</b><br>${err.message}`;
                 showMessage(errorMsg);
             });
 
-            // 2. 綁定「開始掃描」按鈕的點擊事件
+            // 綁定「開始掃描」按鈕
             startScanBtn.addEventListener('click', () => {
                 const selectedCameraId = cameraSelect.value;
-                
                 if (!selectedCameraId) {
                     showMessage("請先從下拉選單選擇一個鏡頭。");
                     return;
                 }
-
-                console.log(`準備使用鏡頭: ${selectedCameraId}`);
                 qrReaderElement.style.display = 'block';
-                
                 html5Qrcode.start(
                     selectedCameraId,
-                    {
-                        fps: 10,
-                        qrbox: { width: 250, height: 250 }
-                    },
+                    { fps: 10, qrbox: { width: 250, height: 250 } },
                     onScanSuccess,
                     onScanFailure
                 ).then(() => {
-                    cameraControls.style.display = 'none'; // 隱藏控制項
-                    showMessage("掃描器已啟動", true); // 顯示 info 訊息
-                    
+                    cameraControls.style.display = 'none';
+                    showMessage("掃描器已啟動", true);
                     setTimeout(() => {
                         scanMessageElement.style.display = 'none';
                     }, 2000);
-
                 }).catch(err => {
-                    console.error("啟動掃描器失敗", err);
                     showMessage(`啟動掃描器失敗: ${err}`);
                 });
             });
-        });
+        }
     </script>
-
 </body>
 </html>
