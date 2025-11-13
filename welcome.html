@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>歡迎</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #e8f5e9; /* 柔和的綠色背景 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            height: 100vh;
+            margin: 0;
+            color: #2e7d32; /* 深綠色文字 */
+        }
+        .welcome-container {
+            text-align: center;
+            background-color: #ffffff;
+            padding: 40px 60px;
+            border-radius: 12px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            font-size: 2.5em;
+            margin: 0;
+        }
+        p {
+            font-size: 1.4em;
+            margin-top: 10px;
+            color: #555;
+        }
+        .back-link {
+            margin-top: 30px;
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="welcome-container">
+        <h1 id="welcome-message"></h1>
+        <p id="student-id"></p>
+        
+        <a href="index.html" class="back-link">返回掃描頁面</a>
+    </div>
+
+    <script>
+        // 當頁面載入完成時執行
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // 1. 建立 URLSearchParams 物件來解析 URL 參數
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            // 2. 從 URL 取得 'name' 和 'id' 參數
+            // 我們使用 decodeURIComponent 來將編碼過的中文姓名還原
+            const studentName = decodeURIComponent(urlParams.get('name'));
+            const studentId = decodeURIComponent(urlParams.get('id'));
+
+            // 3. 取得 HTML 元素
+            const messageElement = document.getElementById('welcome-message');
+            const idElement = document.getElementById('student-id');
+
+            // 4. 更新頁面內容
+            if (studentName && studentName !== 'null') {
+                messageElement.textContent = `歡迎, ${studentName}!`;
+                idElement.textContent = `(ID: ${studentId})`;
+            } else {
+                // 如果沒有傳遞姓名或 ID，顯示預設訊息
+                messageElement.textContent = '辨識成功';
+                idElement.textContent = '但未傳遞學生資料';
+            }
+        });
+    </script>
+
+</body>
+</html>
