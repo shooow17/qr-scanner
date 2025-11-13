@@ -52,9 +52,12 @@
             <button onclick="sendToGuard('收拾書包前往警衛室')">收拾書包前往警衛室</button>
             <button onclick="sendToGuard('上廁所請稍候')">上廁所請稍候</button>
             <button onclick="sendToGuard('班級在室外活動')">班級在室外活動</button>
+            
             <button id="btn-clear" onclick="processNextStudent()">處理完畢 (下一位)</button>
         </div>
     </div>
+
+    <audio id="notification-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-message-pop-alert-2354.mp3" preload="auto"></audio>
 
     <script>
         // --- 2. 你的 Firebase 設定 (我已幫你貼上) ---
@@ -78,8 +81,18 @@
         let classQueueRef = null; 
         
         let currentStudentData = null; 
-        let studentQueue = []; // 本地佇列
+        let studentQueue = []; 
         let currentClassName = ""; // 儲存班級名稱
+
+        // [新] 播放音效的函式
+        function playNotificationSound() {
+            const sound = document.getElementById('notification-sound');
+            if (sound) {
+                sound.play().catch(error => {
+                    console.warn("音效播放失敗 (瀏覽器可能需要使用者先點擊一次頁面):", error);
+                });
+            }
+        }
 
         function updateDisplay() {
             const messageElement = document.getElementById('welcome-message');
@@ -87,7 +100,6 @@
             const buttonsElement = document.getElementById('status-buttons');
 
             if (studentQueue.length > 0) {
-                // 顯示佇列中的第一位學生
                 currentStudentData = studentQueue[0];
                 
                 messageElement.textContent = `${currentStudentData.name}同學 (${currentStudentData.class})`;
@@ -101,7 +113,6 @@
                 });
 
             } else {
-                // 佇列是空的
                 currentStudentData = null;
                 messageElement.textContent = `班級 ${currentClassName} - 等待掃描中...`;
                 idElement.textContent = '請在掃描裝置上開始掃描';
@@ -161,19 +172,19 @@
             updateDisplay();
 
             // 3. 在背景嘗試從 Firebase 刪除 (fire-and-forget)
-            classQueueRef.child(keyToRemove).remove()
-                .then(() => {
-                    console.log(`成功從 Firebase 移除 Key: ${keyToRemove}`);
-                })
-                .catch(err => {
-                    // 即使刪除失敗 (例如網路斷線)，本地也已經處理完畢
-                    // 下次重新載入時，Firebase 的 on('child_added') 會重新同步
-                    console.error(`從 Firebase 移除 Key: ${keyToRemove} 失敗:`, err);
-                });
+            // (我們確保 classQueueRef 是有被定義的)
+            if (classQueueRef) {
+                classQueueRef.child(keyToRemove).remove()
+                    .then(() => {
+                        console.log(`成功從 Firebase 移除 Key: ${keyToRemove}`);
+                    })
+                    .catch(err => {
+                        // 即使刪除失敗 (例如網路斷線)，本地也已經處理完畢
+                        // 下次重新載入時，Firebase 的 on('child_added') 會重新同步
+                        console.error(`從 Firebase 移除 Key: ${keyToRemove} 失敗:`, err);
+                    });
+            }
         }
-        
-        // [修改] 重新命名 "clearAndRestartPolling" -> "processNextStudent"
-        // (因為我們不再 "polling"，而是用 "push")
 
         document.addEventListener('DOMContentLoaded', () => {
             
@@ -183,11 +194,6 @@
 
             if (!className) {
                 messageElement.innerHTML = "<b>設定錯誤：</b><br>請在網址列指定班級<br>(例如: .../welcome.html<b>?class=ClassA</b>)";
-                return;
-            }
-            
-            if (firebaseConfig.apiKey === "YOUR_API_KEY") {
-                messageElement.innerHTML = "<b>設定錯誤：</b><br>請先在 welcome.html 中貼入你的 firebaseConfig。";
                 return;
             }
             
@@ -201,14 +207,15 @@
                 studentData.key = snapshot.key; 
                 console.log("收到新學生:", studentData.name);
                 studentQueue.push(studentData);
-                // 只有當這是佇列中的第一位時，才更新畫面
+                
+                // 只有当這是佇列中的第一位時，才更新畫面並播放音效
                 if (studentQueue.length === 1) {
                     updateDisplay();
+                    playNotificationSound(); // [新] 播放音效
                 }
             });
             
             // 監聽被移除的學生 (推播)
-            // (這個監聽器是為了同步，以防 "processNextStudent" 的本地移除失敗)
             classQueueRef.on('child_removed', (snapshot) => {
                 console.log(`學生 ${snapshot.val().name} 已被遠端移除`);
                 // 如果本地佇列的第一個 key 和被移除的 key 相同
