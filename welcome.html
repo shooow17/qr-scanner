@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>班級即時顯示</title>
+    <title>班級即時提示顯示</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
@@ -80,8 +80,6 @@
         </div>
     </div>
 
-    <audio id="notification-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-message-pop-alert-2354.mp3" preload="auto"></audio>
-
     <script>
         // --- 2. 你的 Firebase 設定 (我已幫你貼上) ---
         const firebaseConfig = {
@@ -106,17 +104,36 @@
         let currentStudentData = null; 
         let studentQueue = []; 
         let currentClassName = ""; 
-        let sound; // [修改] 音效物件
+        
+        // [新] 音效 API
+        let audioCtx = null; // 音效的 Context (上下文)
 
+        // [新] 播放音效的函式 (使用你找到的 Web Audio API)
         function playNotificationSound() {
-            if (sound) {
-                sound.currentTime = 0; 
-                sound.play().catch(error => {
-                    console.warn("音效播放失敗:", error);
-                });
+            // 檢查 audioCtx 是否已在點擊時被初始化
+            if (!audioCtx) {
+                console.warn("AudioContext 尚未解鎖，請先點擊頁面。");
+                return;
             }
+            
+            // 使用你提供的程式碼來產生聲音
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(900, audioCtx.currentTime);     // 叮
+            osc.frequency.setValueAtTime(700, audioCtx.currentTime + 0.1); // 咚
+            gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start(audioCtx.currentTime);
+            osc.stop(audioCtx.currentTime + 0.4);
         }
 
+        // 鎖定/解鎖所有按鈕
         function setButtonsDisabled(disabled = true) {
             document.querySelectorAll('#status-buttons button').forEach(btn => {
                 btn.disabled = disabled;
@@ -181,9 +198,8 @@
         function processNextStudent() {
             if (!currentStudentData) return;
             
-            if (event && event.target) {
-                 setButtonsDisabled(true);
-            }
+            setButtonsDisabled(true);
+            
             console.log(`處理完畢: ${currentStudentData.name}，正在移除佇列...`);
             
             const keyToRemove = currentStudentData.key;
@@ -202,27 +218,29 @@
             }
         }
         
-        // [新] 啟動 App 的函式
+        // 啟動 App 的函式
         function startApp() {
+            // 1. 隱藏啟動畫面，顯示主畫面
             document.getElementById('start-overlay').style.display = 'none';
             document.getElementById('main-container').style.display = 'block';
 
-            // --- [關鍵修正] ---
-            // 1. 我們抓取 HTML 中的 <audio> 元素
-            sound = document.getElementById('notification-sound'); 
-            
-            // 2. 我們在「點擊」事件中「直接」播放它，然後立刻暫停
-            // 這是 100% 可靠的解鎖方式
+            // 2. [關鍵] 初始化 AudioContext (這就是「解鎖」)
             try {
-                sound.play();
-                sound.pause();
-                sound.currentTime = 0;
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 console.log("音效已成功解鎖");
-            } catch (err) {
-                 console.warn("音效解鎖失敗，可能需要再次點擊", err);
+                
+                // (可選) 播放一個非常短的無聲，確保它被啟動
+                const buffer = audioCtx.createBuffer(1, 1, 22050);
+                const source = audioCtx.createBufferSource();
+                source.buffer = buffer;
+                source.connect(audioCtx.destination);
+                source.start(0);
+
+            } catch(e) {
+                 console.error("Web Audio API 解鎖失敗:", e);
             }
-            // --------------------
             
+            // 3. 讀取網址參數
             const urlParams = new URLSearchParams(window.location.search);
             const className = urlParams.get('class');
             const messageElement = document.getElementById('welcome-message');
@@ -236,6 +254,7 @@
             currentClassName = className; 
             messageElement.textContent = `班級 ${className} - 載入中...`;
 
+            // 4. 在點擊後才開始監聽
             classQueueRef.on('child_added', (snapshot) => {
                 const studentData = snapshot.val();
                 if (!studentData || !studentData.id) return;
