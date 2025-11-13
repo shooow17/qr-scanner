@@ -34,9 +34,10 @@
     </div>
 
     <script>
-        // --- 1. 你的 jsonbin.io 設定 (已填入你的最新金鑰) ---
-        const JSONBIN_API_KEY = "$2a$10$bRv8yMS2auclsglHpzPJwuupssVoYSn2Xl0MLCllGBNUe2uaew6fi";
-        const JSONBIN_BIN_ID = "691579ceae596e708f563f95";
+        // --- 1. 你的 jsonbin.io 設定 (請貼上「金鑰 A」) ---
+        // !!! 貼上你在「步驟 1」取得的「ScannerKey (Update Key)」!!!
+        const JSONBIN_ACCESS_KEY = "$2a$10$aF96IMmqo8m.0Crn98xuhu1tMIhz6hsOgen7tFyF4s4nUVlDOcVsy"; 
+        const JSONBIN_BIN_ID = "691579ceae596e708f563f95"; // 你的 Bin ID 保持不變
         // ------------------------------------
 
         const JSONBIN_API_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
@@ -72,10 +73,10 @@
                         method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json',
-                            'X-Master-Key': JSONBIN_API_KEY
                             // --- [修正] ---
-                            // 我已移除 'X-Bin-Versioning': 'false' 這一行
-                            // 這是觸發 CORS 錯誤的元兇
+                            // 我們不再使用 X-Master-Key
+                            // 改用權限較小的 X-Access-Key
+                            'X-Access-Key': JSONBIN_ACCESS_KEY 
                             // ----------------
                         },
                         body: JSON.stringify(studentData)
@@ -106,6 +107,13 @@
         function onScanFailure(error) { /* 持續掃描... */ }
 
         document.addEventListener("DOMContentLoaded", () => {
+             // 檢查金鑰是否已填寫
+            if (JSONBIN_ACCESS_KEY.includes("YOUR") || JSONBIN_ACCESS_KEY.includes("在這裡")) {
+                showMessage("<b>設定錯誤：</b><br>請先在 index.html 中填入你的 jsonbin.io [Access Key A]。");
+                cameraControls.style.display = 'none';
+                return;
+            }
+
             html5Qrcode = new Html5Qrcode("qr-reader");
 
             fetch('students.csv')
@@ -120,10 +128,8 @@
                     for (const row of rows) {
                         const trimmedRow = row.trim();
                         if (trimmedRow === '') continue;
-                        
                         const splitIndex = trimmedRow.indexOf(','); 
                         if (splitIndex === -1) continue; 
-                        
                         const id = trimmedRow.substring(0, splitIndex).trim();
                         const name = trimmedRow.substring(splitIndex + 1).trim();
                         if (id && name) {
@@ -137,11 +143,7 @@
                     initializeCamera();
                 })
                 .catch(err => {
-                    if (err instanceof TypeError) {
-                        showMessage(`錯誤：無法載入學生資料庫。<br>請檢查 students.csv 檔案是否存在，且編碼為 UTF-8。`);
-                    } else {
-                        showMessage(`錯誤：無法載入學生資料庫。<br>${err.message}`);
-                    }
+                    showMessage(`錯誤：無法載入學生資料庫。<br>${err.message}`);
                     cameraControls.style.display = 'none';
                 });
         });
@@ -172,9 +174,7 @@
                     showMessage("請先從下拉選單選擇一個鏡頭。");
                     return;
                 }
-                
                 qrReaderElement.style.display = 'block';
-
                 html5Qrcode.start(
                     selectedCameraId,
                     { fps: 10, qrbox: { width: 250, height: 250 } },
