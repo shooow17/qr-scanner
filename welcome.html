@@ -98,8 +98,8 @@
     </div>
 
     <div class="container" id="main-container">
-        <h1 id="welcome-message">等待掃描中...</h1>
-        <p id="student-id">家長在掃描裝置上開始掃描</p>
+        <h1 id="welcome-message">等待警衛室傳訊息...</h1>
+        <p id="student-id">家長/安親班在掃描裝置上開始掃描</p>
         
         <div id="status-buttons">
             <button onclick="sendToGuard('收拾書包前往警衛室')">收拾書包前往警衛室</button>
@@ -208,8 +208,8 @@
 
             } else {
                 currentStudentData = null;
-                messageElement.textContent = `班級 ${currentClassName} - 等待掃描中...`;
-                idElement.textContent = '家長在掃描裝置上開始掃描';
+                messageElement.textContent = `班級 ${currentClassName} - 等待警衛室傳訊息...`;
+                idElement.textContent = '家長/安親班在掃描裝置上開始掃描';
                 buttonsElement.style.display = 'none'; 
             }
         }
