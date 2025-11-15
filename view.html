@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>警衛室狀態畫面</title>
+    <title>警衛室 (教師回報後介面)</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
@@ -15,9 +15,9 @@
             justify-content: center; 
             align-items: center; 
             flex-direction: column; 
-            min-height: 100vh; /* [RWD] 允許內容延伸 */
+            min-height: 100vh; 
             margin: 0; 
-            padding: 20px 0; /* [RWD] 增加上下邊距 */
+            padding: 20px 0; 
             color: #333; 
             box-sizing: border-box;
         }
@@ -36,12 +36,10 @@
             color: #1B5E20; /* 深綠色 */
         }
         
-        /* 網格 */
         #alert-grid {
             margin-top: 20px;
             display: grid;
-            /* 預設 5 欄 (桌機) */
-            grid-template-columns: repeat(5, 1fr); 
+            grid-template-columns: repeat(5, 1fr); /* 預設 5 欄 */
             gap: 15px;
             width: 100%;
         }
@@ -55,8 +53,8 @@
             display: flex;
             flex-direction: column;
             justify-content: center;
-            line-height: 1.5; 
-            height: 120px; /* 給一個最小高度 */
+            line-height: 1.4; /* [修正] 調整行高 */
+            height: 120px; 
         }
         .placeholder {
             background-color: #fdfdfd;
@@ -66,26 +64,28 @@
             justify-content: center;
             font-size: 1.2em;
             color: #ccc;
+            height: 120px;
         }
         
+        /* [修正] 縮小字體以塞進格子 */
         .alert-message {
-            font-size: 1.4em; 
+            font-size: 1.1em; 
             color: #333; 
             font-weight: bold; 
         }
         .alert-message .student-name {
             color: #388E3C; /* 中綠色 */
             display: block; 
-            font-size: 1.3em; 
-            margin-bottom: 8px;
+            font-size: 1.2em; 
+            margin-bottom: 5px;
         }
         .alert-message .status {
-            color: #d84315; /* 紅色狀態保持不變 */
+            color: #d84315; 
         }
         .alert-time {
-            font-size: 1em; 
+            font-size: 0.9em; 
             color: #777;
-            margin-top: 10px;
+            margin-top: 8px;
             display: block;
         }
         .controls {
@@ -95,7 +95,7 @@
             justify-content: space-between;
         }
         .controls button {
-            background-color: #d84315; /* 紅色 */
+            background-color: #d84315; 
             color: white;
             border: none;
             padding: 10px 15px;
@@ -104,7 +104,7 @@
             font-size: 0.9em;
         }
          .controls button#btn-export {
-            background-color: #00796b; /* 藍綠色 */
+            background-color: #00796b; 
         }
 
         /* --- [新] RWD 媒體查詢 --- */
@@ -117,6 +117,8 @@
             #alert-grid {
                 grid-template-columns: repeat(3, 1fr); /* 3 欄 */
             }
+            .alert-message { font-size: 1em; }
+            .alert-message .student-name { font-size: 1.1em; }
         }
 
         /* 手機 (600px 以下) */
@@ -134,8 +136,7 @@
                 max-height: 60vh; /* 限制高度，但允許網格內部滾動 */
                 overflow-y: auto;
             }
-            .alert-message { font-size: 1.2em; }
-            .alert-message .student-name { font-size: 1.2em; }
+            .alert-item { height: auto; padding: 12px; } /* 手機上高度自動 */
             
             .controls {
                 flex-direction: column; /* 讓按鈕垂直堆疊 */
