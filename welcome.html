@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>老師回應介面</title>
+    <title>老師收訊後回應介面</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
@@ -94,12 +94,12 @@
 </head>
 <body>
     <div id="start-overlay" onclick="startApp()">
-        點擊此處開始監聽班級
+        點擊此處開始連線班級
     </div>
 
     <div class="container" id="main-container">
         <h1 id="welcome-message">等待掃描中...</h1>
-        <p id="student-id">請在掃描裝置上開始掃描</p>
+        <p id="student-id">家長在掃描裝置上開始掃描</p>
         
         <div id="status-buttons">
             <button onclick="sendToGuard('收拾書包前往警衛室')">收拾書包前往警衛室</button>
@@ -193,7 +193,7 @@
                 currentStudentData = studentQueue[0];
                 
                 messageElement.textContent = `${currentStudentData.name}同學 (${currentStudentData.class})`;
-                idElement.textContent = `家長來接囉`;
+                idElement.textContent = `家長 / 安親班老師 來接囉`;
 
                 buttonsElement.style.display = 'block'; 
                 setButtonsDisabled(false); 
@@ -209,7 +209,7 @@
             } else {
                 currentStudentData = null;
                 messageElement.textContent = `班級 ${currentClassName} - 等待掃描中...`;
-                idElement.textContent = '請在掃描裝置上開始掃描';
+                idElement.textContent = '家長在掃描裝置上開始掃描';
                 buttonsElement.style.display = 'none'; 
             }
         }
