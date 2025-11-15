@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>學生 QR Code 掃描器</title>
+    <title>家長接回QR Code掃描介面</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
@@ -24,7 +24,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>學生 QR Code 掃描器</h1>
+        <h1>家長接回QR Code掃描</h1>
         <div id="camera-controls">
             <label for="camera-select">選擇鏡頭:</label>
             <select id="camera-select"></select>
@@ -35,7 +35,7 @@
     </div>
 
     <script>
-        // --- 1. 你的 Google Apps Script (GAS) 網址 ---
+        // --- 1. [新] 你的 Google Apps Script (GAS) 網址 ---
         // (我已幫你貼上)
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZHGM5xMgNFn9Df6BXMVfSesT3BIfHN91NdZjLK5TkHdEOai476VNIlJaw61n3Bxg9CA/exec";
         // ------------------------------------
@@ -71,17 +71,13 @@
             scanMessageElement.style.display = 'block';
         }
 
-        // --- [修改] ---
-        // 修改 onScanSuccess 函式
         async function onScanSuccess(decodedText) {
-            console.log(`掃描成功，原始內容 = ${decodedText}`); // decodedText = "1-蔡比特"
+            console.log(`掃描成功，原始內容 = ${decodedText}`);
             
-            // [新] 分割字串，只取 ID
-            // 我們用 '-' 作為分隔符
+            // [修改] 分割字串，只取 ID
             const studentID = decodedText.split('-')[0].trim();
             console.log(`解析後的 ID = ${studentID}`);
 
-            // 使用解析後的 studentID 進行比對
             if (studentDatabase.has(studentID)) {
                 
                 const studentInfo = studentDatabase.get(studentID);
@@ -95,7 +91,7 @@
 
                 const classQueueRef = database.ref(`queues/${studentClass}`);
                 const studentData = {
-                    id: studentID, // 使用解析後的 ID
+                    id: studentID,
                     name: studentName,
                     class: studentClass,
                     timestamp: new Date().toISOString()
@@ -114,20 +110,19 @@
                     console.error("上傳失敗:", err);
                 }
             } else {
-                // [修改] 顯示原始掃描內容，方便除錯
                 showMessage(`錯誤：找不到學生 (ID: ${studentID})<br>原始掃描內容: ${decodedText}`);
                 setTimeout(() => {
                     scanMessageElement.style.display = 'none';
                 }, 3000);
             }
         }
-        // --- [修改完畢] ---
 
         function onScanFailure(error) { /* 持續掃描... */ }
 
         document.addEventListener("DOMContentLoaded", () => {
             html5Qrcode = new Html5Qrcode("qr-reader");
 
+            // [修改] 從 Google Apps Script 讀取資料
             showMessage("正在從 Google 試算表載入學生資料庫...", true);
             
             fetch(GOOGLE_SCRIPT_URL)
