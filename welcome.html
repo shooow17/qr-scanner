@@ -10,7 +10,7 @@
     <style>
         body { 
             font-family: Arial, sans-serif; 
-            background-color: #E8F5E9; /* 淺綠色背景 */
+            background-color: #E8F5E9; 
             display: flex; 
             justify-content: center; 
             align-items: center; 
@@ -26,7 +26,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: #4CAF50; /* 主要綠色 */
+            background-color: #4CAF50; 
             color: white;
             display: flex;
             justify-content: center;
@@ -36,7 +36,6 @@
             z-index: 100;
             transition: opacity 0.5s;
         }
-        /* [新] 點擊後淡出 */
         #start-overlay.hidden {
             opacity: 0;
             pointer-events: none;
@@ -48,11 +47,12 @@
             padding: 40px 60px; 
             border-radius: 12px; 
             box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1); 
+            display: none; 
         }
         h1 { 
             font-size: 2.5em; 
             margin: 0; 
-            color: #1B5E20; /* 深綠色 */
+            color: #1B5E20; 
         }
         p { 
             font-size: 1.4em; 
@@ -63,10 +63,10 @@
         #status-buttons {
             margin-top: 25px;
             display: none; 
-            width: 350px; /* 給按鈕一個固定寬度 */
+            width: 350px; 
         }
         #status-buttons button {
-            background-color: #4CAF50; /* 主要綠色 */
+            background-color: #4CAF50; 
             color: white;
             border: none;
             padding: 12px 20px;
@@ -75,18 +75,17 @@
             font-size: 1.1em;
             font-weight: bold;
             cursor: pointer;
-            width: 100%; /* 讓按鈕填滿 */
-            box-sizing: border-box; /* 確保 padding 不會撐爆寬度 */
+            width: 100%; 
+            box-sizing: border-box; 
             transition: background-color 0.2s;
         }
         #status-buttons button:hover {
-            background-color: #388E3C; /* 深綠色 */
+            background-color: #388E3C; 
         }
         
-        /* [修改] 統一 sent 和 disabled 樣式 */
         #status-buttons button.sent,
         #status-buttons button:disabled { 
-            background-color: #A5D6A7; /* 淺綠色 */
+            background-color: #A5D6A7; 
             opacity: 0.7;
             cursor: not-allowed;
             color: #555;
@@ -111,6 +110,10 @@
     </div>
 
     <script>
+        // --- 1. [新] 你的 Google Apps Script (GAS) 網址 ---
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZHGM5xMgNFn9Df6BXMVfSesT3BIfHN91NdZjLK5TkHdEOai476VNIlJaw61n3Bxg9CA/exec";
+        // ------------------------------------
+
         // --- 2. 你的 Firebase 設定 (我已幫你貼上) ---
         const firebaseConfig = {
           apiKey: "AIzaSyB_-fHCMhi-URwyBqzAIipmffWwvNgzJJc",
@@ -137,7 +140,7 @@
         let audioCtx; 
         let reminderTimer = null; 
 
-        // [修改] 播放音效的函式
+        // 播放音效的函式
         function playNotificationSound(playTwice = false) {
             if (!audioCtx) {
                 console.warn("AudioContext 尚未解鎖，請先點擊頁面。");
@@ -148,8 +151,8 @@
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(900, audioCtx.currentTime);     // 叮
-                osc.frequency.setValueAtTime(700, audioCtx.currentTime + 0.1); // 咚
+                osc.frequency.setValueAtTime(900, audioCtx.currentTime);
+                osc.frequency.setValueAtTime(700, audioCtx.currentTime + 0.1);
                 gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
                 osc.connect(gain);
@@ -223,22 +226,48 @@
 
             console.log(`傳送訊息給警衛室: ${currentStudentData.name} (${currentStudentData.class}) - ${statusMessage}`);
 
+            const responseTime = new Date().toISOString();
+
+            // [修改] 準備「兩份」資料
+            
+            // 1. 給警衛室 (Firebase)
             const guardData = {
                 name: currentStudentData.name,
                 class: currentStudentData.class, 
                 status: statusMessage,
-                timestamp: new Date().toISOString()
+                timestamp: responseTime // [修改] 統一使用回應時間
+            };
+
+            // 2. 給 Google 試算表日誌 (GAS)
+            const logData = {
+                scan_time: currentStudentData.timestamp, // 這是掃描時間
+                class: currentStudentData.class,
+                name: currentStudentData.name,
+                status: statusMessage,
+                response_time: responseTime // 這是回應時間
             };
 
             try {
+                // --- [新功能] 寫入 Google 試算表日誌 ---
+                // 我們使用 "fire-and-forget"，不等待它完成
+                fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', // [重要] 必須用 no-cors 才能 POST 到 GAS
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(logData)
+                }).then(res => console.log("日誌已傳送到 Google Sheet"))
+                  .catch(err => console.error("Google Sheet 日誌寫入失敗:", err));
+                
+                // --- [舊功能] 寫入 Firebase (給警衛室) ---
                 const alertsRef = database.ref(GUARD_ALERTS_KEY);
                 await alertsRef.push(guardData);
                 console.log("訊息成功傳送到警衛室");
                 
+                // 處理下一位
                 processNextStudent(); 
 
             } catch (err) {
-                console.error("傳送失敗:", err);
+                console.error("Firebase 傳送失敗:", err);
                 alert(`傳送失敗: ${err.message}`);
                 setButtonsDisabled(false);
             }
@@ -274,7 +303,6 @@
         
         // 啟動 App 的函式
         function startApp() {
-            // [修改] 隱藏啟動畫面，顯示主畫面
             document.getElementById('start-overlay').classList.add('hidden');
             document.getElementById('main-container').style.display = 'block';
 
@@ -298,7 +326,7 @@
             const messageElement = document.getElementById('welcome-message');
 
             if (!className) {
-                messageElement.innerHTML = "<b>設定錯誤：</b><br>請在網址列指定班級<br>(例如: .../welcome.html<b>?class=ClassA</b>)";
+                messageElement.innerHTML = "<b>設定錯誤：</b><br>請在網址列指定班級<br>(例如: .../welcome.html<b>?class=1A</b>)";
                 return;
             }
             
