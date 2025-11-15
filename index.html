@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>學生 QR Code 掃描器</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; display: flex; justify-content: center; align-items: center; flex-direction: column; padding-top: 20px; }
+        .container { background-color: #ffffff; border-radius: 10px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); padding: 25px; width: 90%; max-width: 500px; }
+        h1 { text-align: center; color: #333; }
+        #qr-reader { width: 100%; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; display: none; }
+        #camera-controls { margin-bottom: 15px; }
+        #camera-controls label { font-weight: bold; margin-right: 10px; }
+        #camera-select { padding: 5px; border-radius: 5px; border: 1px solid #ccc; }
+        #start-scan-btn { background-color: #007bff; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-size: 1em; margin-left: 10px; }
+        #start-scan-btn:hover { background-color: #0056b3; }
+        #scan-message { margin-top: 20px; padding: 15px; background-color: #ffebee; border: 1px solid #ffcdd2; border-radius: 8px; text-align: center; font-size: 1.1em; font-weight: bold; color: #c62828; line-height: 1.5; display: none; }
+        #scan-message.info { background-color: #e0f7fa; border-color: #b2ebf2; color: #00796b; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>學生 QR Code 掃描器</h1>
+        <div id="camera-controls">
+            <label for="camera-select">選擇鏡頭:</label>
+            <select id="camera-select"></select>
+            <button id="start-scan-btn">開始掃描</button>
+        </div>
+        <div id="qr-reader"></div>
+        <div id="scan-message"></div>
+    </div>
+
+    <script>
+        // --- 1. [新] 你的 Google Apps Script (GAS) 網址 ---
+        // (我已幫你貼上)
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZHGM5xMgNFn9Df6BXMVfSesT3BIfHN91NdZjLK5TkHdEOai476VNIlJaw61n3Bxg9CA/exec";
+        // ------------------------------------
+
+        // --- 2. 你的 Firebase 設定 (保持不變) ---
+        const firebaseConfig = {
+          apiKey: "AIzaSyB_-fHCMhi-URwyBqzAIipmffWwvNgzJJc",
+          authDomain: "qr-scanner-app-2c73d.firebaseapp.com",
+          databaseURL: "https://qr-scanner-app-2c73d-default-rtdb.asia-southeast1.firebasedatabase.app",
+          projectId: "qr-scanner-app-2c73d",
+          storageBucket: "qr-scanner-app-2c73d.firebasestorage.app",
+          messagingSenderId: "385628927398",
+          appId: "1:385628927398:web:00239f1b2acebd6e790b67"
+        };
+        // ------------------------------------
+
+        // --- 3. 初始化 Firebase ---
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        // ------------------------
+
+        let studentDatabase = new Map();
+        let html5Qrcode;
+        const cameraSelect = document.getElementById('camera-select');
+        const startScanBtn = document.getElementById('start-scan-btn');
+        const qrReaderElement = document.getElementById('qr-reader');
+        const scanMessageElement = document.getElementById('scan-message');
+        const cameraControls = document.getElementById('camera-controls');
+
+        function showMessage(message, isInfo = false) {
+            scanMessageElement.innerHTML = message;
+            scanMessageElement.classList.toggle('info', isInfo);
+            scanMessageElement.style.display = 'block';
+        }
+
+        async function onScanSuccess(decodedText) {
+            console.log(`掃描成功，內容 = ${decodedText}`);
+
+            if (studentDatabase.has(decodedText)) {
+                
+                const studentInfo = studentDatabase.get(decodedText);
+                const studentName = studentInfo.name;
+                const studentClass = studentInfo.class;
+
+                if (!studentClass) {
+                    showMessage(`錯誤：學生 (ID: ${decodedText}) 在資料表中沒有班級！`);
+                    return;
+                }
+
+                const classQueueRef = database.ref(`queues/${studentClass}`);
+                const studentData = {
+                    id: decodedText,
+                    name: studentName,
+                    class: studentClass,
+                    timestamp: new Date().toISOString()
+                };
+
+                showMessage(`正在傳送資料到 ${studentClass}...`, true);
+                
+                try {
+                    await classQueueRef.push(studentData);
+                    showMessage(`成功傳送: ${studentName}`, true);
+                    setTimeout(() => {
+                        scanMessageElement.style.display = 'none';
+                    }, 2000);
+                } catch (err) {
+                    showMessage(`上傳失敗: ${err.message}`);
+                    console.error("上傳失敗:", err);
+                }
+            } else {
+                showMessage(`錯誤：找不到學生 (ID: ${decodedText})`);
+                setTimeout(() => {
+                    scanMessageElement.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        function onScanFailure(error) { /* 持續掃描... */ }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            html5Qrcode = new Html5Qrcode("qr-reader");
+
+            // [修改] 從 Google Apps Script 讀取資料
+            showMessage("正在從 Google 試算表載入學生資料庫...", true);
+            
+            fetch(GOOGLE_SCRIPT_URL)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Google Script 網路錯誤 (狀態: ${response.status})`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.error) {
+                        throw new Error(`Google Script 執行錯誤: ${data.error}`);
+                    }
+                    
+                    studentDatabase = new Map(Object.entries(data));
+
+                    if (studentDatabase.size === 0) {
+                        throw new Error("Google 試算表為空或格式錯誤 (請確保格式為 A欄:ID, B欄:姓名, C欄:班級ID)");
+                    }
+                    
+                    console.log(`學生資料庫載入成功，共 ${studentDatabase.size} 筆資料`);
+                    showMessage("資料庫載入成功，請開始掃描。", true);
+                     setTimeout(() => {
+                        scanMessageElement.style.display = 'none';
+                    }, 2000);
+
+                    initializeCamera();
+                })
+                .catch(err => {
+                    showMessage(`錯誤：無法載入學生資料庫。<br>${err.message}`);
+                    cameraControls.style.display = 'none';
+                });
+        });
+
+        function initializeCamera() {
+            Html5Qrcode.getCameras().then(cameras => {
+                if (cameras && cameras.length) {
+                    cameras.forEach(camera => {
+                        const option = document.createElement('option');
+                        option.value = camera.id;
+                        option.innerHTML = camera.label;
+                        cameraSelect.appendChild(option);
+                    });
+                    if (cameras.length > 1) {
+                        cameraSelect.selectedIndex = cameras.length - 1;
+                    }
+                } else {
+                    showMessage("錯誤：找不到任何攝影機設備。");
+                }
+            }).catch(err => {
+                let errorMsg = `<b>錯誤：無法取得攝影機列表。</b><br>${err.message}`;
+                showMessage(errorMsg);
+            });
+
+            startScanBtn.addEventListener('click', () => {
+                const selectedCameraId = cameraSelect.value;
+                if (!selectedCameraId) {
+                    showMessage("請先從下拉選單選擇一個鏡頭。");
+                    return;
+                }
+                qrReaderElement.style.display = 'block';
+                html5Qrcode.start(
+                    selectedCameraId,
+                    { fps: 10, qrbox: { width: 250, height: 250 } },
+                    onScanSuccess,
+                    onScanFailure
+                ).then(() => {
+                    cameraControls.style.display = 'none';
+                    showMessage("掃描器已啟動", true);
+                    setTimeout(() => {
+                        scanMessageElement.style.display = 'none';
+                    }, 2000);
+                }).catch(err => {
+                    showMessage(`啟動掃描器失敗: ${err}`);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
