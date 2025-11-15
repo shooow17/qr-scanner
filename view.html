@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>警衛室介面</title>
+    <title>警衛室狀態畫面</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
@@ -56,7 +56,7 @@
             flex-direction: column;
             justify-content: center;
             line-height: 1.5; 
-            height: 100px; /* 給一個最小高度 */
+            height: 120px; /* 給一個最小高度 */
         }
         .placeholder {
             background-color: #fdfdfd;
@@ -95,7 +95,7 @@
             justify-content: space-between;
         }
         .controls button {
-            background-color: #c62828; /* 紅色 */
+            background-color: #d84315; /* 紅色 */
             color: white;
             border: none;
             padding: 10px 15px;
@@ -131,7 +131,7 @@
             h1 { font-size: 2em; }
             #alert-grid {
                 grid-template-columns: 1fr; /* 1 欄 */
-                max-height: 50vh; /* 限制高度，但允許網格內部滾動 */
+                max-height: 60vh; /* 限制高度，但允許網格內部滾動 */
                 overflow-y: auto;
             }
             .alert-message { font-size: 1.2em; }
