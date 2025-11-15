@@ -3,12 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>班級老師回應介面</title>
+    <title>老師回應介面</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f0f8ff; display: flex; justify-content: center; align-items: center; flex-direction: column; height: 100vh; margin: 0; color: #333; }
+        body { 
+            font-family: Arial, sans-serif; 
+            background-color: #E8F5E9; /* 淺綠色背景 */
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            flex-direction: column; 
+            height: 100vh; 
+            margin: 0; 
+            color: #333; 
+        }
         
         #start-overlay {
             position: fixed;
@@ -16,7 +26,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: #005a9c;
+            background-color: #4CAF50; /* 主要綠色 */
             color: white;
             display: flex;
             justify-content: center;
@@ -24,6 +34,12 @@
             font-size: 2em;
             cursor: pointer;
             z-index: 100;
+            transition: opacity 0.5s;
+        }
+        /* [新] 點擊後淡出 */
+        #start-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
         }
 
         .container { 
@@ -32,40 +48,54 @@
             padding: 40px 60px; 
             border-radius: 12px; 
             box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1); 
-            display: none; 
         }
-        h1 { font-size: 2.5em; margin: 0; color: #005a9c; }
-        p { font-size: 1.4em; margin-top: 10px; color: #555; }
+        h1 { 
+            font-size: 2.5em; 
+            margin: 0; 
+            color: #1B5E20; /* 深綠色 */
+        }
+        p { 
+            font-size: 1.4em; 
+            margin-top: 10px; 
+            color: #555; 
+        }
         
         #status-buttons {
             margin-top: 25px;
             display: none; 
+            width: 350px; /* 給按鈕一個固定寬度 */
         }
         #status-buttons button {
-            background-color: #007bff;
+            background-color: #4CAF50; /* 主要綠色 */
             color: white;
             border: none;
             padding: 12px 20px;
             margin: 5px;
             border-radius: 8px;
             font-size: 1.1em;
+            font-weight: bold;
             cursor: pointer;
+            width: 100%; /* 讓按鈕填滿 */
+            box-sizing: border-box; /* 確保 padding 不會撐爆寬度 */
+            transition: background-color 0.2s;
         }
         #status-buttons button:hover {
-            background-color: #0056b3;
+            background-color: #388E3C; /* 深綠色 */
         }
         
+        /* [修改] 統一 sent 和 disabled 樣式 */
         #status-buttons button.sent,
         #status-buttons button:disabled { 
-            background-color: #28a745; 
+            background-color: #A5D6A7; /* 淺綠色 */
             opacity: 0.7;
             cursor: not-allowed;
+            color: #555;
         }
     </style>
 </head>
 <body>
     <div id="start-overlay" onclick="startApp()">
-        點擊此處開始連線班級
+        點擊此處開始監聽班級
     </div>
 
     <div class="container" id="main-container">
@@ -104,13 +134,10 @@
         let currentStudentData = null; 
         let studentQueue = []; 
         let currentClassName = ""; 
-        
-        let audioCtx; // 音效 Context
-        
-        // [新] 30 秒提醒計時器
+        let audioCtx; 
         let reminderTimer = null; 
 
-        // 播放音效的函式
+        // [修改] 播放音效的函式
         function playNotificationSound(playTwice = false) {
             if (!audioCtx) {
                 console.warn("AudioContext 尚未解鎖，請先點擊頁面。");
@@ -121,8 +148,8 @@
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(900, audioCtx.currentTime);
-                osc.frequency.setValueAtTime(700, audioCtx.currentTime + 0.1);
+                osc.frequency.setValueAtTime(900, audioCtx.currentTime);     // 叮
+                osc.frequency.setValueAtTime(700, audioCtx.currentTime + 0.1); // 咚
                 gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
                 osc.connect(gain);
@@ -132,8 +159,6 @@
             }
             
             playSound(); // 播放第一次
-            
-            // [新] 如果需要，播放第二次
             if (playTwice) {
                 setTimeout(playSound, 600); // 間隔 600ms 播放第二次
             }
@@ -155,8 +180,7 @@
             const messageElement = document.getElementById('welcome-message');
             const idElement = document.getElementById('student-id');
             const buttonsElement = document.getElementById('status-buttons');
-            
-            // [新] 清除 30 秒提醒
+
             if (reminderTimer) {
                 clearTimeout(reminderTimer);
                 reminderTimer = null;
@@ -166,20 +190,18 @@
                 currentStudentData = studentQueue[0];
                 
                 messageElement.textContent = `${currentStudentData.name}同學 (${currentStudentData.class})`;
-                idElement.textContent = `家長 / 安親班 來接囉`;
+                idElement.textContent = `家長來接囉`;
 
                 buttonsElement.style.display = 'block'; 
                 setButtonsDisabled(false); 
 
-                // [新] 設定 30 秒提醒
                 const studentKeyForReminder = currentStudentData.key;
                 reminderTimer = setTimeout(() => {
-                    // 30 秒後，檢查是否還是同一個學生 (老師沒按按鈕)
                     if (currentStudentData && currentStudentData.key === studentKeyForReminder) {
                         console.log("30秒提醒：播放聲音");
-                        playNotificationSound(true); // 再次播放兩聲
+                        playNotificationSound(true); 
                     }
-                }, 30000); // 30 秒
+                }, 30000); 
 
             } else {
                 currentStudentData = null;
@@ -194,7 +216,6 @@
             
             setButtonsDisabled(true);
 
-            // [新] 清除 30 秒提醒 (因為老師已經點了)
             if (reminderTimer) {
                 clearTimeout(reminderTimer);
                 reminderTimer = null;
@@ -228,7 +249,6 @@
             
             setButtonsDisabled(true);
             
-            // [新] 清除 30 秒提醒 (因為老師已經點了)
             if (reminderTimer) {
                 clearTimeout(reminderTimer);
                 reminderTimer = null;
@@ -254,7 +274,8 @@
         
         // 啟動 App 的函式
         function startApp() {
-            document.getElementById('start-overlay').style.display = 'none';
+            // [修改] 隱藏啟動畫面，顯示主畫面
+            document.getElementById('start-overlay').classList.add('hidden');
             document.getElementById('main-container').style.display = 'block';
 
             // [關鍵] 初始化 AudioContext (這就是「解鎖」)
@@ -310,7 +331,7 @@
                 
                 if (studentQueue.length === 1 && !currentStudentData) {
                     updateDisplay();
-                    playNotificationSound(true); // [新] 播放兩次
+                    playNotificationSound(true); // 播放兩次
                 }
             });
             
