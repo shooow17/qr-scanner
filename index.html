@@ -3,23 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>家長接回QR Code掃描介面</title>
+    <title>家長接回QR Code掃描</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f4f4; display: flex; justify-content: center; align-items: center; flex-direction: column; padding-top: 20px; }
-        .container { background-color: #ffffff; border-radius: 10px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); padding: 25px; width: 90%; max-width: 500px; }
-        h1 { text-align: center; color: #333; }
-        #qr-reader { width: 100%; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; display: none; }
-        #camera-controls { margin-bottom: 15px; }
-        #camera-controls label { font-weight: bold; margin-right: 10px; }
-        #camera-select { padding: 5px; border-radius: 5px; border: 1px solid #ccc; }
-        #start-scan-btn { background-color: #007bff; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-size: 1em; margin-left: 10px; }
-        #start-scan-btn:hover { background-color: #0056b3; }
-        #scan-message { margin-top: 20px; padding: 15px; background-color: #ffebee; border: 1px solid #ffcdd2; border-radius: 8px; text-align: center; font-size: 1.1em; font-weight: bold; color: #c62828; line-height: 1.5; display: none; }
-        #scan-message.info { background-color: #e0f7fa; border-color: #b2ebf2; color: #00796b; }
+        body { 
+            font-family: Arial, sans-serif; 
+            background-color: #E8F5E9; /* 淺綠色背景 */
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            flex-direction: column; 
+            padding-top: 20px; 
+            height: 100vh;
+            margin: 0;
+        }
+        .container { 
+            background-color: #ffffff; 
+            border-radius: 12px; /* 更圓潤的邊角 */
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1); 
+            padding: 30px; 
+            width: 90%; 
+            max-width: 500px; 
+        }
+        h1 { 
+            text-align: center; 
+            color: #1B5E20; /* 深綠色標題 */
+        }
+        #qr-reader { 
+            width: 100%; 
+            border: 2px solid #C8E6C9; /* 綠色邊框 */
+            border-radius: 12px; /* 圓角 */
+            overflow: hidden; 
+            display: none; 
+        }
+        #camera-controls { 
+            margin-bottom: 20px; 
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+        }
+        #camera-controls label { 
+            font-weight: bold; 
+            color: #388E3C; /* 中綠色 */
+        }
+        #camera-select { 
+            padding: 10px; 
+            border-radius: 8px; 
+            border: 1px solid #A5D6A7;
+            font-size: 1em;
+        }
+        #start-scan-btn { 
+            background-color: #4CAF50; /* 主要綠色 */
+            color: white; 
+            border: none; 
+            padding: 12px 20px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 1.1em; 
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+        #start-scan-btn:hover { 
+            background-color: #388E3C; /* 深綠色 */
+        }
+        #scan-message { 
+            margin-top: 20px; 
+            padding: 15px; 
+            border-radius: 8px; 
+            text-align: center; 
+            font-size: 1.1em; 
+            font-weight: bold; 
+            line-height: 1.5; 
+            display: none; 
+        }
+        /* 錯誤 (紅色) */
+        #scan-message.error { 
+            background-color: #ffebee; 
+            border: 1px solid #ffcdd2; 
+            color: #c62828; 
+        }
+        /* 成功 (綠色) */
+        #scan-message.info { 
+            background-color: #E8F5E9; 
+            border-color: #A5D6A7; 
+            color: #1B5E20; 
+        }
     </style>
 </head>
 <body>
@@ -35,8 +107,7 @@
     </div>
 
     <script>
-        // --- 1. [新] 你的 Google Apps Script (GAS) 網址 ---
-        // (我已幫你貼上)
+        // --- 1. 你的 Google Apps Script (GAS) 網址 ---
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZHGM5xMgNFn9Df6BXMVfSesT3BIfHN91NdZjLK5TkHdEOai476VNIlJaw61n3Bxg9CA/exec";
         // ------------------------------------
 
@@ -67,14 +138,15 @@
 
         function showMessage(message, isInfo = false) {
             scanMessageElement.innerHTML = message;
+            // [修改] 修正 classList.toggle
             scanMessageElement.classList.toggle('info', isInfo);
+            scanMessageElement.classList.toggle('error', !isInfo);
             scanMessageElement.style.display = 'block';
         }
 
         async function onScanSuccess(decodedText) {
             console.log(`掃描成功，原始內容 = ${decodedText}`);
             
-            // [修改] 分割字串，只取 ID
             const studentID = decodedText.split('-')[0].trim();
             console.log(`解析後的 ID = ${studentID}`);
 
@@ -85,7 +157,7 @@
                 const studentClass = studentInfo.class;
 
                 if (!studentClass) {
-                    showMessage(`錯誤：學生 (ID: ${studentID}) 在資料表中沒有班級！`);
+                    showMessage(`錯誤：學生 (ID: ${studentID}) 在資料表中沒有班級！`, false);
                     return;
                 }
 
@@ -106,11 +178,11 @@
                         scanMessageElement.style.display = 'none';
                     }, 2000);
                 } catch (err) {
-                    showMessage(`上傳失敗: ${err.message}`);
+                    showMessage(`上傳失敗: ${err.message}`, false);
                     console.error("上傳失敗:", err);
                 }
             } else {
-                showMessage(`錯誤：找不到學生 (ID: ${studentID})<br>原始掃描內容: ${decodedText}`);
+                showMessage(`錯誤：找不到學生 (ID: ${studentID})<br>原始掃描內容: ${decodedText}`, false);
                 setTimeout(() => {
                     scanMessageElement.style.display = 'none';
                 }, 3000);
@@ -122,7 +194,6 @@
         document.addEventListener("DOMContentLoaded", () => {
             html5Qrcode = new Html5Qrcode("qr-reader");
 
-            // [修改] 從 Google Apps Script 讀取資料
             showMessage("正在從 Google 試算表載入學生資料庫...", true);
             
             fetch(GOOGLE_SCRIPT_URL)
@@ -152,7 +223,7 @@
                     initializeCamera();
                 })
                 .catch(err => {
-                    showMessage(`錯誤：無法載入學生資料庫。<br>${err.message}`);
+                    showMessage(`錯誤：無法載入學生資料庫。<br>${err.message}`, false);
                     cameraControls.style.display = 'none';
                 });
         });
@@ -170,17 +241,17 @@
                         cameraSelect.selectedIndex = cameras.length - 1;
                     }
                 } else {
-                    showMessage("錯誤：找不到任何攝影機設備。");
+                    showMessage("錯誤：找不到任何攝影機設備。", false);
                 }
             }).catch(err => {
                 let errorMsg = `<b>錯誤：無法取得攝影機列表。</b><br>${err.message}`;
-                showMessage(errorMsg);
+                showMessage(errorMsg, false);
             });
 
             startScanBtn.addEventListener('click', () => {
                 const selectedCameraId = cameraSelect.value;
                 if (!selectedCameraId) {
-                    showMessage("請先從下拉選單選擇一個鏡頭。");
+                    showMessage("請先從下拉選單選擇一個鏡頭。", false);
                     return;
                 }
                 qrReaderElement.style.display = 'block';
@@ -196,7 +267,7 @@
                         scanMessageElement.style.display = 'none';
                     }, 2000);
                 }).catch(err => {
-                    showMessage(`啟動掃描器失敗: ${err}`);
+                    showMessage(`啟動掃描器失敗: ${err}`, false);
                 });
             });
         }
