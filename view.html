@@ -3,23 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>警衛室即時顯示畫面)</title>
+    <title>警衛室響應式顯示介面)</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
     <style>
-        body { font-family: Arial, sans-serif; background-color: #fff8f0; display: flex; justify-content: center; align-items: center; flex-direction: column; height: 100vh; margin: 0; color: #5d4037; }
-        .container { text-align: center; background-color: #ffffff; padding: 40px; border-radius: 12px; box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1); width: 90%; max-width: 1200px; }
-        h1 { font-size: 2.5em; margin: 0; color: #d84315; }
+        body { 
+            font-family: Arial, sans-serif; 
+            background-color: #fff8f0; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            flex-direction: column; 
+            height: 100vh; 
+            margin: 0; 
+            color: #5d4037; 
+        }
+        .container { 
+            text-align: center; 
+            background-color: #ffffff; 
+            padding: 40px; 
+            border-radius: 12px; 
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1); 
+            width: 90%; 
+            max-width: 1200px; 
+        }
+        h1 { 
+            font-size: 2.5em; 
+            margin: 0; 
+            color: #d84315; 
+        }
         
+        /* [修正] 網格 RWD */
         #alert-grid {
             margin-top: 20px;
             display: grid;
-            grid-template-columns: repeat(5, 1fr); /* 5 欄 */
-            grid-template-rows: repeat(3, 1fr); /* 3 列 */
+            /* 預設 5 欄 (桌機) */
+            grid-template-columns: repeat(5, 1fr); 
             gap: 15px;
             width: 100%;
             height: 60vh; 
+            overflow-y: auto; /* 保持內容可捲動 */
         }
         .alert-item {
             padding: 15px;
@@ -81,6 +105,47 @@
          .controls button#btn-export {
             background-color: #00796b;
         }
+
+        /* --- [新] RWD 媒體查詢 --- */
+        
+        /* 平板 (1024px 以下) */
+        @media (max-width: 1024px) {
+            .container {
+                padding: 20px;
+            }
+            #alert-grid {
+                grid-template-columns: repeat(3, 1fr); /* 3 欄 */
+                height: 70vh;
+            }
+        }
+
+        /* 手機 (600px 以下) */
+        @media (max-width: 600px) {
+            body { 
+                height: auto; /* 允許手機滾動 */
+                padding: 10px 0;
+            }
+            .container { 
+                width: 95%;
+                padding: 15px;
+                height: auto;
+            }
+            h1 { font-size: 2em; }
+            #alert-grid {
+                grid-template-columns: 1fr; /* 1 欄 */
+                height: auto;
+                max-height: 50vh; /* 限制高度，但允許網格內部滾動 */
+            }
+            .alert-message { font-size: 1.2em; }
+            .alert-message .student-name { font-size: 1.2em; }
+            
+            .controls {
+                flex-direction: column; /* 讓按鈕垂直堆疊 */
+                gap: 10px; /* 增加按鈕間距 */
+            }
+        }
+        /* --- [RWD 結束] --- */
+
     </style>
 </head>
 <body>
