@@ -3,21 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>警衛室響應式顯示介面)</title>
+    <title>警衛室介面</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
     <style>
         body { 
             font-family: Arial, sans-serif; 
-            background-color: #fff8f0; 
+            background-color: #E8F5E9; /* 淺綠色背景 */
             display: flex; 
             justify-content: center; 
             align-items: center; 
             flex-direction: column; 
-            height: 100vh; 
+            min-height: 100vh; /* [RWD] 允許內容延伸 */
             margin: 0; 
-            color: #5d4037; 
+            padding: 20px 0; /* [RWD] 增加上下邊距 */
+            color: #333; 
+            box-sizing: border-box;
         }
         .container { 
             text-align: center; 
@@ -31,10 +33,10 @@
         h1 { 
             font-size: 2.5em; 
             margin: 0; 
-            color: #d84315; 
+            color: #1B5E20; /* 深綠色 */
         }
         
-        /* [修正] 網格 RWD */
+        /* 網格 */
         #alert-grid {
             margin-top: 20px;
             display: grid;
@@ -42,12 +44,10 @@
             grid-template-columns: repeat(5, 1fr); 
             gap: 15px;
             width: 100%;
-            height: 60vh; 
-            overflow-y: auto; /* 保持內容可捲動 */
         }
         .alert-item {
             padding: 15px;
-            border: 1px solid #eee;
+            border: 1px solid #C8E6C9; /* 綠色邊框 */
             border-radius: 8px;
             text-align: left;
             background-color: #fafafa;
@@ -56,10 +56,11 @@
             flex-direction: column;
             justify-content: center;
             line-height: 1.5; 
+            height: 100px; /* 給一個最小高度 */
         }
         .placeholder {
             background-color: #fdfdfd;
-            border: 1px dashed #ddd;
+            border: 1px dashed #A5D6A7;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -73,13 +74,13 @@
             font-weight: bold; 
         }
         .alert-message .student-name {
-            color: #005a9c; 
+            color: #388E3C; /* 中綠色 */
             display: block; 
             font-size: 1.3em; 
             margin-bottom: 8px;
         }
         .alert-message .status {
-            color: #d84315; 
+            color: #d84315; /* 紅色狀態保持不變 */
         }
         .alert-time {
             font-size: 1em; 
@@ -94,7 +95,7 @@
             justify-content: space-between;
         }
         .controls button {
-            background-color: #d84315;
+            background-color: #c62828; /* 紅色 */
             color: white;
             border: none;
             padding: 10px 15px;
@@ -103,7 +104,7 @@
             font-size: 0.9em;
         }
          .controls button#btn-export {
-            background-color: #00796b;
+            background-color: #00796b; /* 藍綠色 */
         }
 
         /* --- [新] RWD 媒體查詢 --- */
@@ -115,26 +116,23 @@
             }
             #alert-grid {
                 grid-template-columns: repeat(3, 1fr); /* 3 欄 */
-                height: 70vh;
             }
         }
 
         /* 手機 (600px 以下) */
         @media (max-width: 600px) {
             body { 
-                height: auto; /* 允許手機滾動 */
                 padding: 10px 0;
             }
             .container { 
                 width: 95%;
                 padding: 15px;
-                height: auto;
             }
             h1 { font-size: 2em; }
             #alert-grid {
                 grid-template-columns: 1fr; /* 1 欄 */
-                height: auto;
                 max-height: 50vh; /* 限制高度，但允許網格內部滾動 */
+                overflow-y: auto;
             }
             .alert-message { font-size: 1.2em; }
             .alert-message .student-name { font-size: 1.2em; }
@@ -143,9 +141,13 @@
                 flex-direction: column; /* 讓按鈕垂直堆疊 */
                 gap: 10px; /* 增加按鈕間距 */
             }
+            .controls button {
+                width: 100%;
+                padding: 12px;
+                font-size: 1em;
+            }
         }
         /* --- [RWD 結束] --- */
-
     </style>
 </head>
 <body>
