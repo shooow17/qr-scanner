@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>班級老師回應畫面</title>
+    <title>班級老師回應介面</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
@@ -65,7 +65,7 @@
 </head>
 <body>
     <div id="start-overlay" onclick="startApp()">
-        點擊此處開始監聽班級
+        點擊此處開始連線班級
     </div>
 
     <div class="container" id="main-container">
@@ -98,41 +98,45 @@
         const database = firebase.database();
         // ------------------------
         
-        // [修改] Base64 內嵌音效 (叮咚聲)
-        const B64_SOUND = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABgAAABkYXRhAgAAAEhEsDzQb/Rh9mH8YfRh/2H6Yfth/WH9Yf5h/mH+Yf9hAmIDYgJiA2IDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYgNiAmIDYGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBjAGMAYwBgBEEIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgUiBSIFIgAgeA=";
-        
         const GUARD_ALERTS_KEY = "alerts"; 
         let classQueueRef = null; 
         
         let currentStudentData = null; 
         let studentQueue = []; 
         let currentClassName = ""; 
-        let sound; 
-        let audioCtx; // [新] AudioContext
+        
+        let audioCtx; // 音效 Context
+        
+        // [新] 30 秒提醒計時器
+        let reminderTimer = null; 
 
-        // [修改] 播放音效的函式
-        function playNotificationSound() {
-            // 檢查 audioCtx 是否已在點擊時被初始化
+        // 播放音效的函式
+        function playNotificationSound(playTwice = false) {
             if (!audioCtx) {
                 console.warn("AudioContext 尚未解鎖，請先點擊頁面。");
                 return;
             }
             
-            // 使用 Web Audio API 來產生聲音
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(900, audioCtx.currentTime);     // 叮
-            osc.frequency.setValueAtTime(700, audioCtx.currentTime + 0.1); // 咚
-            gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
-
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-
-            osc.start(audioCtx.currentTime);
-            osc.stop(audioCtx.currentTime + 0.4);
+            function playSound() {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(900, audioCtx.currentTime);
+                osc.frequency.setValueAtTime(700, audioCtx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(audioCtx.currentTime);
+                osc.stop(audioCtx.currentTime + 0.4);
+            }
+            
+            playSound(); // 播放第一次
+            
+            // [新] 如果需要，播放第二次
+            if (playTwice) {
+                setTimeout(playSound, 600); // 間隔 600ms 播放第二次
+            }
         }
 
         // 鎖定/解鎖所有按鈕
@@ -151,15 +155,31 @@
             const messageElement = document.getElementById('welcome-message');
             const idElement = document.getElementById('student-id');
             const buttonsElement = document.getElementById('status-buttons');
+            
+            // [新] 清除 30 秒提醒
+            if (reminderTimer) {
+                clearTimeout(reminderTimer);
+                reminderTimer = null;
+            }
 
             if (studentQueue.length > 0) {
                 currentStudentData = studentQueue[0];
                 
                 messageElement.textContent = `${currentStudentData.name}同學 (${currentStudentData.class})`;
-                idElement.textContent = `家長/安親班 來接你囉`;
+                idElement.textContent = `家長 / 安親班 來接囉`;
 
                 buttonsElement.style.display = 'block'; 
                 setButtonsDisabled(false); 
+
+                // [新] 設定 30 秒提醒
+                const studentKeyForReminder = currentStudentData.key;
+                reminderTimer = setTimeout(() => {
+                    // 30 秒後，檢查是否還是同一個學生 (老師沒按按鈕)
+                    if (currentStudentData && currentStudentData.key === studentKeyForReminder) {
+                        console.log("30秒提醒：播放聲音");
+                        playNotificationSound(true); // 再次播放兩聲
+                    }
+                }, 30000); // 30 秒
 
             } else {
                 currentStudentData = null;
@@ -173,6 +193,12 @@
             if (!currentStudentData) return;
             
             setButtonsDisabled(true);
+
+            // [新] 清除 30 秒提醒 (因為老師已經點了)
+            if (reminderTimer) {
+                clearTimeout(reminderTimer);
+                reminderTimer = null;
+            }
 
             console.log(`傳送訊息給警衛室: ${currentStudentData.name} (${currentStudentData.class}) - ${statusMessage}`);
 
@@ -202,6 +228,12 @@
             
             setButtonsDisabled(true);
             
+            // [新] 清除 30 秒提醒 (因為老師已經點了)
+            if (reminderTimer) {
+                clearTimeout(reminderTimer);
+                reminderTimer = null;
+            }
+            
             console.log(`處理完畢: ${currentStudentData.name}，正在移除佇列...`);
             
             const keyToRemove = currentStudentData.key;
@@ -230,7 +262,6 @@
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 console.log("音效已成功解鎖");
                 
-                // 播放一個非常短的無聲，確保它被啟動
                 const buffer = audioCtx.createBuffer(1, 1, 22050);
                 const source = audioCtx.createBufferSource();
                 source.buffer = buffer;
@@ -279,7 +310,7 @@
                 
                 if (studentQueue.length === 1 && !currentStudentData) {
                     updateDisplay();
-                    playNotificationSound(); 
+                    playNotificationSound(true); // [新] 播放兩次
                 }
             });
             
