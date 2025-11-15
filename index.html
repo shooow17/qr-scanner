@@ -35,7 +35,7 @@
     </div>
 
     <script>
-        // --- 1. [新] 你的 Google Apps Script (GAS) 網址 ---
+        // --- 1. 你的 Google Apps Script (GAS) 網址 ---
         // (我已幫你貼上)
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZHGM5xMgNFn9Df6BXMVfSesT3BIfHN91NdZjLK5TkHdEOai476VNIlJaw61n3Bxg9CA/exec";
         // ------------------------------------
@@ -71,23 +71,31 @@
             scanMessageElement.style.display = 'block';
         }
 
+        // --- [修改] ---
+        // 修改 onScanSuccess 函式
         async function onScanSuccess(decodedText) {
-            console.log(`掃描成功，內容 = ${decodedText}`);
+            console.log(`掃描成功，原始內容 = ${decodedText}`); // decodedText = "1-蔡比特"
+            
+            // [新] 分割字串，只取 ID
+            // 我們用 '-' 作為分隔符
+            const studentID = decodedText.split('-')[0].trim();
+            console.log(`解析後的 ID = ${studentID}`);
 
-            if (studentDatabase.has(decodedText)) {
+            // 使用解析後的 studentID 進行比對
+            if (studentDatabase.has(studentID)) {
                 
-                const studentInfo = studentDatabase.get(decodedText);
+                const studentInfo = studentDatabase.get(studentID);
                 const studentName = studentInfo.name;
                 const studentClass = studentInfo.class;
 
                 if (!studentClass) {
-                    showMessage(`錯誤：學生 (ID: ${decodedText}) 在資料表中沒有班級！`);
+                    showMessage(`錯誤：學生 (ID: ${studentID}) 在資料表中沒有班級！`);
                     return;
                 }
 
                 const classQueueRef = database.ref(`queues/${studentClass}`);
                 const studentData = {
-                    id: decodedText,
+                    id: studentID, // 使用解析後的 ID
                     name: studentName,
                     class: studentClass,
                     timestamp: new Date().toISOString()
@@ -106,19 +114,20 @@
                     console.error("上傳失敗:", err);
                 }
             } else {
-                showMessage(`錯誤：找不到學生 (ID: ${decodedText})`);
+                // [修改] 顯示原始掃描內容，方便除錯
+                showMessage(`錯誤：找不到學生 (ID: ${studentID})<br>原始掃描內容: ${decodedText}`);
                 setTimeout(() => {
                     scanMessageElement.style.display = 'none';
                 }, 3000);
             }
         }
+        // --- [修改完畢] ---
 
         function onScanFailure(error) { /* 持續掃描... */ }
 
         document.addEventListener("DOMContentLoaded", () => {
             html5Qrcode = new Html5Qrcode("qr-reader");
 
-            // [修改] 從 Google Apps Script 讀取資料
             showMessage("正在從 Google 試算表載入學生資料庫...", true);
             
             fetch(GOOGLE_SCRIPT_URL)
