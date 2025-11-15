@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>班級目錄</title>
+    <title>班級列表</title>
+    
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #f0f4f8;
+            background-color: #E8F5E9; /* 淺綠色背景 */
             display: flex;
             justify-content: center;
             align-items: center;
@@ -16,7 +17,7 @@
             margin: 0;
         }
         h1 {
-            color: #333;
+            color: #1B5E20; /* 深綠色 */
         }
         .grid-container {
             display: grid;
@@ -33,20 +34,25 @@
             font-size: 2em;
             font-weight: bold;
             color: white;
-            background-color: #007bff;
-            border-radius: 12px;
+            background-color: #4CAF50; /* 主要綠色 */
+            border-radius: 12px; /* 圓潤色塊 */
             text-decoration: none;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
             transition: transform 0.2s, background-color 0.2s;
         }
         .class-button:hover {
-            background-color: #0056b3;
+            background-color: #388E3C; /* 深綠色 */
             transform: scale(1.05);
         }
         /* 讓 4C 之後的按鈕也保持 4 欄 */
         @media (max-width: 600px) {
             .grid-container {
                 grid-template-columns: repeat(2, 1fr); /* 手機上改為 2 欄 */
+                width: 90%;
+            }
+            .class-button {
+                font-size: 1.5em;
+                padding: 20px;
             }
         }
     </style>
