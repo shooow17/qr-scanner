@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>警衛室狀態顯示</title>
+    <title>警衛室學生狀態面板</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
@@ -50,7 +50,7 @@
             border-radius: 8px;
             text-align: left;
             background-color: #fafafa;
-            overflow: hidden; /* 隱藏溢出的 X */
+            overflow: hidden;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -73,15 +73,23 @@
         .delete-btn {
             position: absolute;
             top: 5px;
-            right: 8px;
-            font-size: 20px;
+            right: 5px;
+            width: 28px;  /* 加大點擊範圍 */
+            height: 28px; /* 加大點擊範圍 */
+            line-height: 28px; /* 垂直置中 */
+            text-align: center; /* 水平置中 */
+            font-size: 22px; 
             font-weight: bold;
             color: #aaa;
+            background-color: #f0f0f0;
+            border-radius: 50%; /* 圓形按鈕 */
             cursor: pointer;
-            transition: color 0.2s;
+            transition: all 0.2s;
         }
         .delete-btn:hover {
-            color: #d84315; /* 紅色 */
+            background-color: #d84315; /* 紅色 */
+            color: white;
+            transform: scale(1.1);
         }
 
         .alert-message {
@@ -111,6 +119,7 @@
             width: 100%;
             display: flex;
             justify-content: space-between; /* 左右分開 */
+            flex-wrap: wrap; /* [RWD] 允許換行 */
             gap: 10px; /* 按鈕間距 */
         }
         .controls button {
@@ -120,6 +129,7 @@
             border-radius: 5px;
             cursor: pointer;
             font-size: 0.9em;
+            flex-grow: 1; /* [RWD] 讓按鈕平均分配空間 */
         }
         /* [新] 清除畫面 (橘色) */
          .controls button#btn-clear-local {
@@ -161,7 +171,7 @@
                 max-height: 60vh; 
                 overflow-y: auto;
             }
-            .alert-item { height: auto; padding: 12px; } 
+            .alert-item { height: auto; padding: 12px; padding-top: 35px; } /* [RWD] 增加 X 的空間 */
             
             .controls {
                 flex-direction: column; 
@@ -183,9 +193,9 @@
             </div>
 
         <div class="controls">
-            <button id="btn-clear-local" onclick="clearLocalScreen()">清除畫面上所有資料</button>
             <button id="btn-export" onclick="exportReport()">匯出報表 (CSV)</button>
-            <button id="btn-clear-db" onclick="clearDatabase()">清空資料庫 (含佇列)</button>
+            <button id="btn-clear-local" onclick="clearLocalScreen()">清除畫面上所有資料</button>
+            <button id="btn-clear-db" onclick="clearDatabase()">清空資料庫</button>
         </div>
     </div>
 
@@ -215,7 +225,18 @@
         const MAX_ALERTS = 15; // 15 格
         let alertHistory = []; 
 
-        // [修改] 重新渲染整個網格
+        // [新] 姓名遮罩函式
+        function maskName(name) {
+            if (!name) return "";
+            if (name.length <= 1) return name;
+            if (name.length === 2) return name.substring(0, 1) + "O";
+            // 預設 (3個字或以上)
+            let masked = name.substring(0, 1);
+            masked += "O".repeat(name.length - 2);
+            masked += name.substring(name.length - 1);
+            return masked;
+        }
+        
         function renderGrid() {
             const gridElement = document.getElementById('alert-grid');
             gridElement.innerHTML = ''; 
@@ -230,12 +251,9 @@
                     cell.className = 'alert-item';
                     
                     // [新] 姓名遮罩
-                    const name = item.name || "";
-                    const maskedName = name.length > 1 
-                        ? name.substring(0, 1) + "O" + name.substring(name.length - 1)
-                        : name;
-                    
+                    const maskedName = maskName(item.name);
                     const localTime = new Date(item.timestamp).toLocaleString('zh-TW');
+
                     cell.innerHTML = `
                         <div class="delete-btn" onclick="deleteAlert('${item.key}')">×</div>
                         
@@ -264,7 +282,7 @@
         
         // [修改] 清除「資料庫」
         function clearDatabase() {
-            if (!confirm("【警告】確定要清除「所有」警衛室和班級的資料嗎？(這會清空資料庫)")) {
+            if (!confirm("【警告】確定要清除所有警衛室和班級的資料嗎？(這會清空資料庫)")) {
                 return;
             }
             console.log("正在清除所有警報和佇列...");
@@ -275,7 +293,7 @@
         
         // [新] 單筆刪除 (只刪除 alerts)
         function deleteAlert(key) {
-             if (!confirm("確定要刪除這筆訊息嗎？")) {
+             if (!confirm("確定要刪除這筆訊息嗎？(這只會刪除警衛室資料)")) {
                 return;
             }
             if (key) {
@@ -324,7 +342,6 @@
                 renderGrid(); 
             });
 
-            // [修改] 監聽清除事件 和 單筆刪除事件
             alertsRef.on('value', (snapshot) => {
                 if (!snapshot.exists()) {
                     console.log("Firebase 資料庫 (alerts) 已清空");
@@ -332,14 +349,14 @@
                     renderGrid(); 
                 }
             });
-            
+
+            // [新] 監聽 child_removed 事件
             alertsRef.on('child_removed', (snapshot) => {
                 console.log(`一筆警報資料已被移除: ${snapshot.key}`);
-                // [修改] 從本地歷史紀錄移除，並重新渲染
                 alertHistory = alertHistory.filter(item => item.key !== snapshot.key);
                 renderGrid();
             });
-
+            
             queuesRef.on('value', (snapshot) => {
                 if (!snapshot.exists()) {
                     console.log("Firebase 資料庫 (queues) 已清空");
