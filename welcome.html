@@ -3,21 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>老師收訊後回應介面</title>
+    <title>班級即時顯示</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
     <style>
         body { 
             font-family: Arial, sans-serif; 
-            background-color: #E8F5E9; 
+            background-color: #f0f8ff; 
             display: flex; 
-            justify-content: center; 
-            align-items: center; 
             flex-direction: column; 
-            height: 100vh; 
+            align-items: center; 
+            min-height: 100vh; 
             margin: 0; 
             color: #333; 
+            padding: 20px;
+            box-sizing: border-box;
         }
         
         #start-overlay {
@@ -26,7 +27,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: #4CAF50; 
+            background-color: #005a9c;
             color: white;
             display: flex;
             justify-content: center;
@@ -34,87 +35,132 @@
             font-size: 2em;
             cursor: pointer;
             z-index: 100;
-            transition: opacity 0.5s;
         }
         #start-overlay.hidden {
-            opacity: 0;
-            pointer-events: none;
+            display: none;
         }
 
-        .container { 
-            text-align: center; 
-            background-color: #ffffff; 
-            padding: 40px 60px; 
-            border-radius: 12px; 
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1); 
-            display: none; 
+        /* 標題區 */
+        .header {
+            margin-bottom: 20px;
+            text-align: center;
         }
-        h1 { 
-            font-size: 2.5em; 
-            margin: 0; 
-            color: #1B5E20; 
+        h1 { font-size: 2em; margin: 0; color: #005a9c; }
+        
+        /* 學生列表容器 */
+        #student-list {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
         }
-        p { 
-            font-size: 1.4em; 
-            margin-top: 10px; 
-            color: #555; 
+
+        /* 單一學生卡片 */
+        .student-card {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            padding: 20px;
+            display: flex;
+            flex-direction: column; /* 手機版預設垂直排列 */
+            border-left: 10px solid #4CAF50; /* 綠色左邊條 */
+            animation: slideIn 0.3s ease-out;
         }
         
-        #status-buttons {
-            margin-top: 25px;
-            display: none; 
-            width: 350px; 
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        #status-buttons button {
-            background-color: #4CAF50; 
+
+        /* 學生資訊區 */
+        .student-info {
+            margin-bottom: 15px;
+        }
+        .student-name {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #333;
+        }
+        .student-id {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        /* 按鈕區 */
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr; /* 兩欄 */
+            gap: 10px;
+        }
+        
+        /* 電腦版樣式調整 */
+        @media (min-width: 600px) {
+            .student-card {
+                flex-direction: row;
+                align-items: center;
+                justify-content: space-between;
+            }
+            .student-info {
+                margin-bottom: 0;
+                margin-right: 20px;
+                min-width: 150px;
+            }
+            .action-buttons {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+        }
+
+        button {
+            background-color: #007bff;
             color: white;
             border: none;
-            padding: 12px 20px;
-            margin: 5px;
-            border-radius: 8px;
-            font-size: 1.1em;
-            font-weight: bold;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-size: 1em;
             cursor: pointer;
-            width: 100%; 
-            box-sizing: border-box; 
+            white-space: nowrap;
             transition: background-color 0.2s;
         }
-        #status-buttons button:hover {
-            background-color: #388E3C; 
-        }
+        button:hover { background-color: #0056b3; }
+        button.btn-red { background-color: #dc3545; }
+        button.btn-red:hover { background-color: #a71d2a; }
         
-        #status-buttons button.sent,
-        #status-buttons button:disabled { 
-            background-color: #A5D6A7; 
-            opacity: 0.7;
+        /* 按下後的樣式 */
+        button:disabled {
+            background-color: #ccc;
             cursor: not-allowed;
-            color: #555;
+            color: #666;
+        }
+
+        /* 等待中訊息 */
+        .empty-message {
+            text-align: center;
+            font-size: 1.5em;
+            color: #888;
+            margin-top: 50px;
         }
     </style>
 </head>
 <body>
     <div id="start-overlay" onclick="startApp()">
-        點擊此處開始連線班級
+        點擊此處開始監聽班級
     </div>
 
-    <div class="container" id="main-container">
-        <h1 id="welcome-message">等待警衛室傳訊息...</h1>
-        <p id="student-id">家長/安親班在掃描裝置上開始掃描</p>
-        
-        <div id="status-buttons">
-            <button onclick="sendToGuard('收拾書包前往警衛室')">收拾書包前往警衛室</button>
-            <button onclick="sendToGuard('上廁所請稍候')">上廁所請稍候</button>
-            <button onclick="sendToGuard('班級在室外活動')">班級在室外活動</button>
-            <button onclick="sendToGuard('老師另外連絡家長')">老師另外連絡家長</button>
-        </div>
+    <div class="header">
+        <h1 id="class-title">班級即時看板</h1>
+        <p>等待家長掃描中...</p>
     </div>
+
+    <div id="student-list"></div>
 
     <script>
-        // --- 1. [新] 你的 Google Apps Script (GAS) 網址 ---
+        // --- 1. 你的 Google Apps Script (GAS) 網址 ---
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZHGM5xMgNFn9Df6BXMVfSesT3BIfHN91NdZjLK5TkHdEOai476VNIlJaw61n3Bxg9CA/exec";
-        // ------------------------------------
 
-        // --- 2. 你的 Firebase 設定 (我已幫你貼上) ---
+        // --- 2. 你的 Firebase 設定 ---
         const firebaseConfig = {
           apiKey: "AIzaSyB_-fHCMhi-URwyBqzAIipmffWwvNgzJJc",
           authDomain: "qr-scanner-app-2c73d.firebaseapp.com",
@@ -124,255 +170,160 @@
           messagingSenderId: "385628927398",
           appId: "1:385628927398:web:00239f1b2acebd6e790b67"
         };
-        // ------------------------------------
 
-        // --- 3. 初始化 Firebase ---
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
-        // ------------------------
         
         const GUARD_ALERTS_KEY = "alerts"; 
         let classQueueRef = null; 
         
-        let currentStudentData = null; 
-        let studentQueue = []; 
-        let currentClassName = ""; 
+        let studentQueue = []; // 儲存所有等待中的學生
         let audioCtx; 
-        let reminderTimer = null; 
 
-        // 播放音效的函式
-        function playNotificationSound(playTwice = false) {
-            if (!audioCtx) {
-                console.warn("AudioContext 尚未解鎖，請先點擊頁面。");
+        // Web Audio API 音效
+        function playNotificationSound() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(900, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(700, audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(audioCtx.currentTime);
+            osc.stop(audioCtx.currentTime + 0.4);
+        }
+
+        // 更新畫面 (顯示前 5 筆)
+        function updateDisplay() {
+            const listContainer = document.getElementById('student-list');
+            listContainer.innerHTML = ''; // 清空目前的列表
+
+            if (studentQueue.length === 0) {
+                listContainer.innerHTML = '<div class="empty-message">目前沒有家長掃描</div>';
                 return;
             }
-            
-            function playSound() {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(900, audioCtx.currentTime);
-                osc.frequency.setValueAtTime(700, audioCtx.currentTime + 0.1);
-                gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start(audioCtx.currentTime);
-                osc.stop(audioCtx.currentTime + 0.4);
-            }
-            
-            playSound(); // 播放第一次
-            if (playTwice) {
-                setTimeout(playSound, 600); // 間隔 600ms 播放第二次
-            }
-        }
 
-        // 鎖定/解鎖所有按鈕
-        function setButtonsDisabled(disabled = true) {
-            document.querySelectorAll('#status-buttons button').forEach(btn => {
-                btn.disabled = disabled;
-                if (disabled) {
-                    btn.classList.add('sent'); 
-                } else {
-                    btn.classList.remove('sent');
-                }
+            // 只取前 5 筆
+            const displayStudents = studentQueue.slice(0, 5);
+
+            displayStudents.forEach((student, index) => {
+                const card = document.createElement('div');
+                card.className = 'student-card';
+                
+                // 建立卡片內容
+                // 注意：我們把學生的 Firebase Key 傳給按鈕的 onclick 事件
+                card.innerHTML = `
+                    <div class="student-info">
+                        <div class="student-name">${student.name}</div>
+                        <div class="student-id">家長已掃描</div>
+                    </div>
+                    <div class="action-buttons">
+                        <button onclick="handleAction('${student.key}', '${student.name}', '${student.class}', '收拾書包前往警衛室', this)">收拾書包</button>
+                        <button onclick="handleAction('${student.key}', '${student.name}', '${student.class}', '上廁所請稍候', this)">上廁所</button>
+                        <button onclick="handleAction('${student.key}', '${student.name}', '${student.class}', '班級在室外活動', this)">室外活動</button>
+                        <button class="btn-red" onclick="handleAction('${student.key}', '${student.name}', '${student.class}', '老師另外連絡家長', this)">另約家長</button>
+                    </div>
+                `;
+                listContainer.appendChild(card);
             });
         }
-        
-        function updateDisplay() {
-            const messageElement = document.getElementById('welcome-message');
-            const idElement = document.getElementById('student-id');
-            const buttonsElement = document.getElementById('status-buttons');
 
-            if (reminderTimer) {
-                clearTimeout(reminderTimer);
-                reminderTimer = null;
-            }
+        // 處理按鈕點擊
+        async function handleAction(key, name, sClass, status, btnElement) {
+            // 1. 視覺回饋：鎖定該學生的所有按鈕
+            const card = btnElement.closest('.student-card');
+            const buttons = card.querySelectorAll('button');
+            buttons.forEach(b => b.disabled = true);
+            btnElement.innerText = "處理中...";
 
-            if (studentQueue.length > 0) {
-                currentStudentData = studentQueue[0];
-                
-                messageElement.textContent = `${currentStudentData.name}同學 (${currentStudentData.class})`;
-                idElement.textContent = `家長 / 安親班老師 來接囉`;
+            console.log(`處理學生: ${name}, 動作: ${status}`);
 
-                buttonsElement.style.display = 'block'; 
-                setButtonsDisabled(false); 
-
-                const studentKeyForReminder = currentStudentData.key;
-                reminderTimer = setTimeout(() => {
-                    if (currentStudentData && currentStudentData.key === studentKeyForReminder) {
-                        console.log("30秒提醒：播放聲音");
-                        playNotificationSound(true); 
-                    }
-                }, 30000); 
-
-            } else {
-                currentStudentData = null;
-                messageElement.textContent = `班級 ${currentClassName} - 等待警衛室傳訊息...`;
-                idElement.textContent = '家長/安親班在掃描裝置上開始掃描';
-                buttonsElement.style.display = 'none'; 
-            }
-        }
-        
-        async function sendToGuard(statusMessage) {
-            if (!currentStudentData) return;
-            
-            setButtonsDisabled(true);
-
-            if (reminderTimer) {
-                clearTimeout(reminderTimer);
-                reminderTimer = null;
-            }
-
-            console.log(`傳送訊息給警衛室: ${currentStudentData.name} (${currentStudentData.class}) - ${statusMessage}`);
-
-            const responseTime = new Date().toISOString();
-
-            // [修改] 準備「兩份」資料
-            
-            // 1. 給警衛室 (Firebase)
-            const guardData = {
-                name: currentStudentData.name,
-                class: currentStudentData.class, 
-                status: statusMessage,
-                timestamp: responseTime // [修改] 統一使用回應時間
-            };
-
-            // 2. 給 Google 試算表日誌 (GAS)
-            const logData = {
-                scan_time: currentStudentData.timestamp, // 這是掃描時間
-                class: currentStudentData.class,
-                name: currentStudentData.name,
-                status: statusMessage,
-                response_time: responseTime // 這是回應時間
-            };
+            // 準備資料
+            const now = new Date().toISOString();
+            const guardData = { name: name, class: sClass, status: status, timestamp: now };
+            const logData = { scan_time: getScanTime(key), class: sClass, name: name, status: status, response_time: now };
 
             try {
-                // --- [新功能] 寫入 Google 試算表日誌 ---
-                // 我們使用 "fire-and-forget"，不等待它完成
+                // 2. 寫入 Google Sheet (不等待)
                 fetch(GOOGLE_SCRIPT_URL, {
                     method: 'POST',
-                    mode: 'no-cors', // [重要] 必須用 no-cors 才能 POST 到 GAS
+                    mode: 'no-cors',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(logData)
-                }).then(res => console.log("日誌已傳送到 Google Sheet"))
-                  .catch(err => console.error("Google Sheet 日誌寫入失敗:", err));
+                }).catch(e => console.error("GAS Error:", e));
+
+                // 3. 寫入 Firebase Alerts (給警衛)
+                await database.ref(GUARD_ALERTS_KEY).push(guardData);
+
+                // 4. 從 Firebase Queues 刪除該學生 (這會觸發 child_removed)
+                await classQueueRef.child(key).remove();
                 
-                // --- [舊功能] 寫入 Firebase (給警衛室) ---
-                const alertsRef = database.ref(GUARD_ALERTS_KEY);
-                await alertsRef.push(guardData);
-                console.log("訊息成功傳送到警衛室");
-                
-                // 處理下一位
-                processNextStudent(); 
+                // (注意：畫面更新會由 child_removed 事件自動處理)
 
             } catch (err) {
-                console.error("Firebase 傳送失敗:", err);
-                alert(`傳送失敗: ${err.message}`);
-                setButtonsDisabled(false);
-            }
-        }
-
-        function processNextStudent() {
-            if (!currentStudentData) return;
-            
-            setButtonsDisabled(true);
-            
-            if (reminderTimer) {
-                clearTimeout(reminderTimer);
-                reminderTimer = null;
-            }
-            
-            console.log(`處理完畢: ${currentStudentData.name}，正在移除佇列...`);
-            
-            const keyToRemove = currentStudentData.key;
-            
-            studentQueue.shift(); 
-            updateDisplay();
-
-            if (classQueueRef) {
-                classQueueRef.child(keyToRemove).remove()
-                    .then(() => {
-                        console.log(`成功從 Firebase 移除 Key: ${keyToRemove}`);
-                    })
-                    .catch(err => {
-                        console.error(`從 Firebase 移除 Key: ${keyToRemove} 失敗:`, err);
-                    });
+                alert("連線錯誤，請重試");
+                buttons.forEach(b => b.disabled = false);
+                btnElement.innerText = status.substring(0, 4); // 恢復文字
             }
         }
         
-        // 啟動 App 的函式
+        // 輔助：嘗試從本地佇列找回掃描時間 (非必要，僅供日誌用)
+        function getScanTime(key) {
+            const found = studentQueue.find(s => s.key === key);
+            return found ? found.timestamp : new Date().toISOString();
+        }
+
+        // 啟動程式
         function startApp() {
             document.getElementById('start-overlay').classList.add('hidden');
-            document.getElementById('main-container').style.display = 'block';
-
-            // [關鍵] 初始化 AudioContext (這就是「解鎖」)
+            
+            // 初始化音效
             try {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                console.log("音效已成功解鎖");
-                
                 const buffer = audioCtx.createBuffer(1, 1, 22050);
                 const source = audioCtx.createBufferSource();
                 source.buffer = buffer;
                 source.connect(audioCtx.destination);
                 source.start(0);
+            } catch(e) { console.error("Audio Init Error"); }
 
-            } catch(e) {
-                 console.error("Web Audio API 解鎖失敗:", e);
-            }
-            
             const urlParams = new URLSearchParams(window.location.search);
             const className = urlParams.get('class');
-            const messageElement = document.getElementById('welcome-message');
-
+            
             if (!className) {
-                messageElement.innerHTML = "<b>設定錯誤：</b><br>請在網址列指定班級<br>(例如: .../welcome.html<b>?class=1A</b>)";
+                document.getElementById('class-title').innerText = "錯誤：未指定班級";
                 return;
             }
-            
+
+            document.getElementById('class-title').innerText = `${className} 班即時看板`;
             classQueueRef = database.ref(`queues/${className}`);
-            currentClassName = className; 
-            messageElement.textContent = `班級 ${className} - 載入中...`;
 
-            // [關鍵修正] 
-            // 我們必須記錄「現在」的時間，只監聽這之後的資料
+            // 只監聽現在之後的資料
             const startTime = new Date().toISOString();
-
+            
+            // 監聽新增
             classQueueRef.orderByChild('timestamp').startAt(startTime).on('child_added', (snapshot) => {
                 const studentData = snapshot.val();
-                if (!studentData || !studentData.id) return;
-                studentData.key = snapshot.key; 
-                
-                console.log("Firebase 偵測到新資料:", studentData.name, studentData.id);
+                studentData.key = snapshot.key;
 
-                // 檢查是否重複 (你的邏輯)
-                const alreadyInQueue = studentQueue.some(student => student.id === studentData.id) ||
-                                     (currentStudentData && currentStudentData.id === studentData.id);
-                
-                if (alreadyInQueue) {
-                    console.log(`忽略： ${studentData.name} 已在佇列中或正在顯示。`);
-                    return; 
-                }
-
-                console.log(`[新] 將 ${studentData.name} 加入佇列。`);
-                studentQueue.push(studentData);
-                
-                if (studentQueue.length === 1 && !currentStudentData) {
+                // 防止重複 (如果佇列裡已經有這個 ID，就不加了)
+                if (!studentQueue.some(s => s.id === studentData.id)) {
+                    studentQueue.push(studentData);
                     updateDisplay();
-                    playNotificationSound(true); // 播放兩次
+                    playNotificationSound(); // 每來一個新學生就響一次
                 }
+            });
+
+            // 監聽刪除 (當 handleAction 成功刪除 Firebase 資料時觸發)
+            classQueueRef.on('child_removed', (snapshot) => {
+                // 從本地佇列移除該學生
+                studentQueue = studentQueue.filter(s => s.key !== snapshot.key);
+                updateDisplay();
             });
             
-            classQueueRef.on('child_removed', (snapshot) => {
-                console.log(`學生 ${snapshot.val().name} 已被移除`);
-                if (studentQueue.length > 0 && studentQueue[0].key === snapshot.key) {
-                    studentQueue.shift(); 
-                    updateDisplay(); 
-                } else {
-                    studentQueue = studentQueue.filter(student => student.key !== snapshot.key);
-                }
-            });
-
             updateDisplay();
         }
     </script>
