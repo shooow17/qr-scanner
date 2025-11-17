@@ -3,21 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>班級即時顯示</title>
+    <title>班級即時顯示介面</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
     <style>
         body { 
             font-family: Arial, sans-serif; 
-            background-color: #E8F5E9; 
+            background-color: #f0f8ff; 
             display: flex; 
-            justify-content: center; 
-            align-items: center; 
             flex-direction: column; 
-            height: 100vh; 
+            align-items: center; 
+            min-height: 100vh; 
             margin: 0; 
             color: #333; 
+            padding: 20px;
+            box-sizing: border-box;
         }
         
         #start-overlay {
@@ -26,7 +27,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: #4CAF50; 
+            background-color: #005a9c;
             color: white;
             display: flex;
             justify-content: center;
@@ -37,84 +38,80 @@
             transition: opacity 0.5s;
         }
         #start-overlay.hidden {
-            opacity: 0;
-            pointer-events: none;
+            display: none;
         }
 
-        .container { 
-            text-align: center; 
-            background-color: #ffffff; 
-            padding: 40px 60px; 
-            border-radius: 12px; 
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1); 
-            display: none; 
+        .header { margin-bottom: 20px; text-align: center; }
+        h1 { font-size: 2em; margin: 0; color: #005a9c; }
+        
+        /* 學生列表容器 */
+        #student-list {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
         }
-        h1 { 
-            font-size: 2.5em; 
-            margin: 0; 
-            color: #1B5E20; 
-        }
-        p { 
-            font-size: 1.4em; 
-            margin-top: 10px; 
-            color: #555; 
+
+        /* 單一學生卡片 */
+        .student-card {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            padding: 20px;
+            display: flex;
+            flex-direction: column; 
+            border-left: 10px solid #4CAF50; 
+            animation: slideIn 0.3s ease-out;
         }
         
-        #status-buttons {
-            margin-top: 25px;
-            display: none; 
-            width: 350px; 
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        #status-buttons button {
-            background-color: #4CAF50; 
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            margin: 5px;
-            border-radius: 8px;
-            font-size: 1.1em;
-            font-weight: bold;
-            cursor: pointer;
-            width: 100%; 
-            box-sizing: border-box; 
-            transition: background-color 0.2s;
-        }
-        #status-buttons button:hover {
-            background-color: #388E3C; 
+
+        .student-info { margin-bottom: 15px; }
+        .student-name { font-size: 1.8em; font-weight: bold; color: #333; }
+        .student-id { color: #666; font-size: 1.1em; }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr; 
+            gap: 10px;
         }
         
-        #status-buttons button.sent,
-        #status-buttons button:disabled { 
-            background-color: #A5D6A7; 
-            opacity: 0.7;
-            cursor: not-allowed;
-            color: #555;
+        @media (min-width: 600px) {
+            .student-card { flex-direction: row; align-items: center; justify-content: space-between; }
+            .student-info { margin-bottom: 0; margin-right: 20px; min-width: 150px; }
+            .action-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
         }
+
+        button {
+            background-color: #007bff; color: white; border: none; padding: 10px 15px;
+            border-radius: 6px; font-size: 1em; cursor: pointer; white-space: nowrap;
+        }
+        button:hover { background-color: #0056b3; }
+        button.btn-red { background-color: #dc3545; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+
+        .empty-message { text-align: center; font-size: 1.5em; color: #888; margin-top: 50px; }
     </style>
 </head>
 <body>
     <div id="start-overlay" onclick="startApp()">
-        點擊此處開始監聽班級
+        點擊此處開始連線班級
     </div>
 
-    <div class="container" id="main-container">
-        <h1 id="welcome-message">等待掃描中...</h1>
-        <p id="student-id">請在掃描裝置上開始掃描</p>
-        
-        <div id="status-buttons">
-            <button onclick="sendToGuard('收拾書包前往警衛室')">收拾書包前往警衛室</button>
-            <button onclick="sendToGuard('上廁所請稍候')">上廁所請稍候</button>
-            <button onclick="sendToGuard('班級在室外活動')">班級在室外活動</button>
-            <button onclick="sendToGuard('老師另外連絡家長')">老師另外連絡家長</button>
-        </div>
+    <div class="header">
+        <h1 id="class-title">班級即時看板</h1>
+        <p>等待家長掃描中...</p>
     </div>
+
+    <div id="student-list"></div>
 
     <script>
-        // --- 1. 你的 Google Apps Script (GAS) 網址 ---
+        // --- 設定 ---
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZHGM5xMgNFn9Df6BXMVfSesT3BIfHN91NdZjLK5TkHdEOai476VNIlJaw61n3Bxg9CA/exec";
-        // ------------------------------------
-        
-        // --- 2. 你的 Firebase 設定 ---
         const firebaseConfig = {
           apiKey: "AIzaSyB_-fHCMhi-URwyBqzAIipmffWwvNgzJJc",
           authDomain: "qr-scanner-app-2c73d.firebaseapp.com",
@@ -124,259 +121,132 @@
           messagingSenderId: "385628927398",
           appId: "1:385628927398:web:00239f1b2acebd6e790b67"
         };
-        // ------------------------------------
 
-        // --- 3. 初始化 Firebase ---
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
-        // ------------------------
         
         const GUARD_ALERTS_KEY = "alerts"; 
         let classQueueRef = null; 
-        
-        let currentStudentData = null; 
         let studentQueue = []; 
-        let currentClassName = ""; 
         let audioCtx; 
-        let reminderTimer = null; 
-        let synth = window.speechSynthesis; // [新] 語音合成物件
 
-        // 播放音效 (叮咚)
+        // 音效
         function playNotificationSound() {
             if (!audioCtx) return;
-            
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(900, audioCtx.currentTime);
-            osc.frequency.setValueAtTime(700, audioCtx.currentTime + 0.1);
-            gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start(audioCtx.currentTime);
-            osc.stop(audioCtx.currentTime + 0.4);
+            const play = () => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(900, audioCtx.currentTime);
+                osc.frequency.setValueAtTime(700, audioCtx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.4);
+            };
+            play();
+            setTimeout(play, 600);
         }
 
-        // [新] 播放語音 (Web Speech API)
-        function speak(text) {
-            if (!synth) return;
-            
-            // 停止目前正在講的話 (避免重疊)
-            synth.cancel();
+        // 更新畫面 (顯示前5筆)
+        function updateDisplay() {
+            const list = document.getElementById('student-list');
+            list.innerHTML = ''; 
 
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'zh-TW'; // 設定語言為繁體中文
-            utterance.rate = 1;       // 語速 (0.1 ~ 10)
-            utterance.pitch = 1;      // 音調 (0 ~ 2)
-            utterance.volume = 1;     // 音量 (0 ~ 1)
-            
-            synth.speak(utterance);
-        }
+            if (studentQueue.length === 0) {
+                list.innerHTML = '<div class="empty-message">目前沒有家長掃描</div>';
+                return;
+            }
 
-        // 鎖定/解鎖所有按鈕
-        function setButtonsDisabled(disabled = true) {
-            document.querySelectorAll('#status-buttons button').forEach(btn => {
-                btn.disabled = disabled;
-                if (disabled) {
-                    btn.classList.add('sent'); 
-                } else {
-                    btn.classList.remove('sent');
-                }
+            studentQueue.slice(0, 5).forEach(student => {
+                const card = document.createElement('div');
+                card.className = 'student-card';
+                // 每個按鈕都綁定該學生的 key
+                card.innerHTML = `
+                    <div class="student-info">
+                        <div class="student-name">${student.name}</div>
+                        <div class="student-id">家長已掃描</div>
+                    </div>
+                    <div class="action-buttons">
+                        <button onclick="handleAction('${student.key}', '${student.name}', '${student.class}', '收拾書包前往警衛室', this)">收拾書包</button>
+                        <button onclick="handleAction('${student.key}', '${student.name}', '${student.class}', '上廁所請稍候', this)">上廁所</button>
+                        <button onclick="handleAction('${student.key}', '${student.name}', '${student.class}', '班級在室外活動', this)">室外活動</button>
+                        <button class="btn-red" onclick="handleAction('${student.key}', '${student.name}', '${student.class}', '老師另外連絡家長', this)">另約家長</button>
+                    </div>
+                `;
+                list.appendChild(card);
             });
         }
-        
-        function updateDisplay() {
-            const messageElement = document.getElementById('welcome-message');
-            const idElement = document.getElementById('student-id');
-            const buttonsElement = document.getElementById('status-buttons');
 
-            if (reminderTimer) {
-                clearTimeout(reminderTimer);
-                reminderTimer = null;
-            }
+        // 處理動作
+        async function handleAction(key, name, sClass, status, btnElement) {
+            // 視覺回饋：鎖定該學生的所有按鈕
+            const card = btnElement.closest('.student-card');
+            card.querySelectorAll('button').forEach(b => b.disabled = true);
+            btnElement.innerText = "處理中...";
 
-            if (studentQueue.length > 0) {
-                currentStudentData = studentQueue[0];
-                
-                messageElement.textContent = `${currentStudentData.name}同學 (${currentStudentData.class})`;
-                idElement.textContent = `家長來接囉`;
-
-                buttonsElement.style.display = 'block'; 
-                setButtonsDisabled(false); 
-
-                const studentKeyForReminder = currentStudentData.key;
-                reminderTimer = setTimeout(() => {
-                    if (currentStudentData && currentStudentData.key === studentKeyForReminder) {
-                        console.log("30秒提醒：播放聲音與語音");
-                        playNotificationSound(); 
-                        // [新] 延遲 1.2 秒後播放語音 (避免和叮咚重疊)
-                        setTimeout(() => {
-                            speak(`${currentStudentData.name}同學，家長來接囉`);
-                        }, 1200);
-                    }
-                }, 30000); 
-
-            } else {
-                currentStudentData = null;
-                messageElement.textContent = `班級 ${currentClassName} - 等待掃描中...`;
-                idElement.textContent = '請在掃描裝置上開始掃描';
-                buttonsElement.style.display = 'none'; 
-            }
-        }
-        
-        async function sendToGuard(statusMessage) {
-            if (!currentStudentData) return;
+            const now = new Date().toISOString();
+            const guardData = { name: name, class: sClass, status: status, timestamp: now };
             
-            setButtonsDisabled(true);
-
-            if (reminderTimer) {
-                clearTimeout(reminderTimer);
-                reminderTimer = null;
-            }
+            // 為了日誌，我們需要嘗試找回原始掃描時間
+            const studentObj = studentQueue.find(s => s.key === key);
+            const scanTime = studentObj ? studentObj.timestamp : now;
             
-            // 停止語音 (如果還在念)
-            if(synth) synth.cancel();
-
-            console.log(`傳送訊息給警衛室: ${currentStudentData.name} (${currentStudentData.class}) - ${statusMessage}`);
-
-            const responseTime = new Date().toISOString();
-
-            const guardData = {
-                name: currentStudentData.name,
-                class: currentStudentData.class, 
-                status: statusMessage,
-                timestamp: responseTime 
-            };
-
-            const logData = {
-                scan_time: currentStudentData.timestamp,
-                class: currentStudentData.class,
-                name: currentStudentData.name,
-                status: statusMessage,
-                response_time: responseTime
-            };
+            const logData = { scan_time: scanTime, class: sClass, name: name, status: status, response_time: now };
 
             try {
-                fetch(GOOGLE_SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'no-cors', 
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(logData)
-                }).catch(err => console.error("Google Sheet 錯誤:", err));
-                
-                const alertsRef = database.ref(GUARD_ALERTS_KEY);
-                await alertsRef.push(guardData);
-                console.log("訊息成功傳送到警衛室");
-                
-                processNextStudent(); 
+                // 1. 寫入 GAS (不等待)
+                fetch(GOOGLE_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(logData) }).catch(e => console.error(e));
+
+                // 2. 寫入 Firebase Alerts (警衛)
+                await database.ref(GUARD_ALERTS_KEY).push(guardData);
+
+                // 3. 從佇列刪除 (這會觸發 child_removed 更新畫面)
+                await classQueueRef.child(key).remove();
 
             } catch (err) {
-                console.error("Firebase 傳送失敗:", err);
-                alert(`傳送失敗: ${err.message}`);
-                setButtonsDisabled(false);
+                alert("失敗: " + err.message);
+                card.querySelectorAll('button').forEach(b => b.disabled = false);
+                btnElement.innerText = status.substring(0, 4);
             }
         }
 
-        function processNextStudent() {
-            if (!currentStudentData) return;
-            
-            setButtonsDisabled(true);
-            
-            if (reminderTimer) {
-                clearTimeout(reminderTimer);
-                reminderTimer = null;
-            }
-            
-            console.log(`處理完畢: ${currentStudentData.name}，正在移除佇列...`);
-            
-            const keyToRemove = currentStudentData.key;
-            
-            studentQueue.shift(); 
-            updateDisplay();
-
-            if (classQueueRef) {
-                classQueueRef.child(keyToRemove).remove()
-                    .catch(err => {
-                        console.error(`從 Firebase 移除 Key: ${keyToRemove} 失敗:`, err);
-                    });
-            }
-        }
-        
         function startApp() {
             document.getElementById('start-overlay').classList.add('hidden');
-            document.getElementById('main-container').style.display = 'block';
-
-            // 1. 解鎖 Web Audio API (叮咚聲)
+            
+            // 初始化音效
             try {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const buffer = audioCtx.createBuffer(1, 1, 22050);
-                const source = audioCtx.createBufferSource();
-                source.buffer = buffer;
-                source.connect(audioCtx.destination);
-                source.start(0);
-            } catch(e) { console.error("Audio 解鎖失敗:", e); }
-
-            // 2. [新] 解鎖 Web Speech API (語音)
-            // 播放一個空白的語音，讓瀏覽器知道使用者允許發聲
-            if (synth) {
-                const u = new SpeechSynthesisUtterance('');
-                synth.speak(u);
-            }
+                const b = audioCtx.createBuffer(1, 1, 22050);
+                const s = audioCtx.createBufferSource();
+                s.buffer = b; s.connect(audioCtx.destination); s.start(0);
+            } catch(e) {}
 
             const urlParams = new URLSearchParams(window.location.search);
             const className = urlParams.get('class');
-            const messageElement = document.getElementById('welcome-message');
+            if (!className) { document.getElementById('class-title').innerText = "錯誤：未指定班級"; return; }
 
-            if (!className) {
-                messageElement.innerHTML = "<b>設定錯誤：</b><br>請在網址列指定班級<br>(例如: .../welcome.html<b>?class=1A</b>)";
-                return;
-            }
-            
+            document.getElementById('class-title').innerText = `${className} 班即時看板`;
             classQueueRef = database.ref(`queues/${className}`);
-            currentClassName = className; 
-            messageElement.textContent = `班級 ${className} - 載入中...`;
 
+            // 監聽新增
             const startTime = new Date().toISOString();
-
             classQueueRef.orderByChild('timestamp').startAt(startTime).on('child_added', (snapshot) => {
-                const studentData = snapshot.val();
-                if (!studentData || !studentData.id) return;
-                studentData.key = snapshot.key; 
-                
-                console.log("Firebase 偵測到新資料:", studentData.name);
-
-                const alreadyInQueue = studentQueue.some(student => student.id === studentData.id) ||
-                                     (currentStudentData && currentStudentData.id === studentData.id);
-                
-                if (alreadyInQueue) {
-                    return; 
-                }
-
-                studentQueue.push(studentData);
-                
-                if (studentQueue.length === 1 && !currentStudentData) {
+                const data = snapshot.val(); data.key = snapshot.key;
+                // 防止重複
+                if (!studentQueue.some(s => s.id === data.id)) {
+                    studentQueue.push(data);
                     updateDisplay();
-                    
-                    // 1. 播放叮咚
-                    playNotificationSound(); 
-                    
-                    // 2. [新] 延遲 1.2 秒後播放語音
-                    setTimeout(() => {
-                        speak(`${studentData.name}同學，家長來接囉`);
-                    }, 1200);
+                    playNotificationSound();
                 }
+            });
+
+            // 監聽刪除
+            classQueueRef.on('child_removed', (snapshot) => {
+                studentQueue = studentQueue.filter(s => s.key !== snapshot.key);
+                updateDisplay();
             });
             
-            classQueueRef.on('child_removed', (snapshot) => {
-                if (studentQueue.length > 0 && studentQueue[0].key === snapshot.key) {
-                    studentQueue.shift(); 
-                    updateDisplay(); 
-                } else {
-                    studentQueue = studentQueue.filter(student => student.key !== snapshot.key);
-                }
-            });
-
             updateDisplay();
         }
     </script>
