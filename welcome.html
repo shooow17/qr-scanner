@@ -107,7 +107,7 @@
 
     <div class="header">
         <h1 id="class-title">班級即時看板</h1>
-        <p>等待家長掃描中...</p>
+        <p>等待家長掃描qrcode中...</p>
     </div>
 
     <div id="student-list"></div>
@@ -178,7 +178,7 @@
                 card.innerHTML = `
                     <div class="student-info">
                         <div class="student-name">${student.name}</div>
-                        <div class="student-id">家長已掃描</div>
+                        <div class="student-id">家長已送出qrcode</div>
                     </div>
                     <div class="action-buttons">
                         <button onclick="handleAction('${student.key}', '${student.name}', '${student.class}', '收拾書包前往警衛室', this)">收拾書包</button>
