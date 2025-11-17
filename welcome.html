@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>班級即時顯示介面</title>
+    <title>班級即時顯示</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
@@ -89,10 +89,13 @@
         button {
             background-color: #007bff; color: white; border: none; padding: 10px 15px;
             border-radius: 6px; font-size: 1em; cursor: pointer; white-space: nowrap;
+            transition: background-color 0.2s;
         }
         button:hover { background-color: #0056b3; }
         button.btn-red { background-color: #dc3545; }
-        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        button.btn-red:hover { background-color: #a71d2a; }
+        
+        button:disabled { background-color: #ccc; cursor: not-allowed; color: #666; }
 
         .empty-message { text-align: center; font-size: 1.5em; color: #888; margin-top: 50px; }
     </style>
@@ -129,8 +132,9 @@
         let classQueueRef = null; 
         let studentQueue = []; 
         let audioCtx; 
+        let synth = window.speechSynthesis; // [新] 語音合成物件
 
-        // 音效
+        // Web Audio API 音效 (叮咚)
         function playNotificationSound() {
             if (!audioCtx) return;
             const play = () => {
@@ -148,6 +152,15 @@
             setTimeout(play, 600);
         }
 
+        // [新] 播放語音 (Web Speech API)
+        function speak(text) {
+            if (!synth) return;
+            synth.cancel(); // 停止目前的
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'zh-TW'; 
+            synth.speak(utterance);
+        }
+
         // 更新畫面 (顯示前5筆)
         function updateDisplay() {
             const list = document.getElementById('student-list');
@@ -161,7 +174,7 @@
             studentQueue.slice(0, 5).forEach(student => {
                 const card = document.createElement('div');
                 card.className = 'student-card';
-                // 每個按鈕都綁定該學生的 key
+                
                 card.innerHTML = `
                     <div class="student-info">
                         <div class="student-name">${student.name}</div>
@@ -178,20 +191,22 @@
             });
         }
 
-        // 處理動作
+        // 處理按鈕點擊
         async function handleAction(key, name, sClass, status, btnElement) {
             // 視覺回饋：鎖定該學生的所有按鈕
             const card = btnElement.closest('.student-card');
             card.querySelectorAll('button').forEach(b => b.disabled = true);
             btnElement.innerText = "處理中...";
+            
+            // 停止任何正在播放的語音
+            if(synth) synth.cancel();
 
             const now = new Date().toISOString();
             const guardData = { name: name, class: sClass, status: status, timestamp: now };
             
-            // 為了日誌，我們需要嘗試找回原始掃描時間
+            // 找回原始掃描時間
             const studentObj = studentQueue.find(s => s.key === key);
             const scanTime = studentObj ? studentObj.timestamp : now;
-            
             const logData = { scan_time: scanTime, class: sClass, name: name, status: status, response_time: now };
 
             try {
@@ -201,7 +216,7 @@
                 // 2. 寫入 Firebase Alerts (警衛)
                 await database.ref(GUARD_ALERTS_KEY).push(guardData);
 
-                // 3. 從佇列刪除 (這會觸發 child_removed 更新畫面)
+                // 3. 從 Firebase Queues 刪除
                 await classQueueRef.child(key).remove();
 
             } catch (err) {
@@ -222,6 +237,12 @@
                 s.buffer = b; s.connect(audioCtx.destination); s.start(0);
             } catch(e) {}
 
+            // 初始化語音 (解鎖)
+            if (synth) {
+                const u = new SpeechSynthesisUtterance('');
+                synth.speak(u);
+            }
+
             const urlParams = new URLSearchParams(window.location.search);
             const className = urlParams.get('class');
             if (!className) { document.getElementById('class-title').innerText = "錯誤：未指定班級"; return; }
@@ -238,6 +259,10 @@
                     studentQueue.push(data);
                     updateDisplay();
                     playNotificationSound();
+                    // [新] 延遲播放語音
+                    setTimeout(() => {
+                        speak(`${data.name}同學，請前往警衛室`);
+                    }, 1200);
                 }
             });
 
