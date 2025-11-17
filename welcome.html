@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>班級即時顯示</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            background-color: #E8F5E9; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            flex-direction: column; 
+            height: 100vh; 
+            margin: 0; 
+            color: #333; 
+        }
+        
+        #start-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #4CAF50; 
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2em;
+            cursor: pointer;
+            z-index: 100;
+            transition: opacity 0.5s;
+        }
+        #start-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .container { 
+            text-align: center; 
+            background-color: #ffffff; 
+            padding: 40px 60px; 
+            border-radius: 12px; 
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1); 
+            display: none; 
+        }
+        h1 { 
+            font-size: 2.5em; 
+            margin: 0; 
+            color: #1B5E20; 
+        }
+        p { 
+            font-size: 1.4em; 
+            margin-top: 10px; 
+            color: #555; 
+        }
+        
+        #status-buttons {
+            margin-top: 25px;
+            display: none; 
+            width: 350px; 
+        }
+        #status-buttons button {
+            background-color: #4CAF50; 
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            margin: 5px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%; 
+            box-sizing: border-box; 
+            transition: background-color 0.2s;
+        }
+        #status-buttons button:hover {
+            background-color: #388E3C; 
+        }
+        
+        #status-buttons button.sent,
+        #status-buttons button:disabled { 
+            background-color: #A5D6A7; 
+            opacity: 0.7;
+            cursor: not-allowed;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div id="start-overlay" onclick="startApp()">
+        點擊此處開始監聽班級
+    </div>
+
+    <div class="container" id="main-container">
+        <h1 id="welcome-message">等待掃描中...</h1>
+        <p id="student-id">請在掃描裝置上開始掃描</p>
+        
+        <div id="status-buttons">
+            <button onclick="sendToGuard('收拾書包前往警衛室')">收拾書包前往警衛室</button>
+            <button onclick="sendToGuard('上廁所請稍候')">上廁所請稍候</button>
+            <button onclick="sendToGuard('班級在室外活動')">班級在室外活動</button>
+            <button onclick="sendToGuard('老師另外連絡家長')">老師另外連絡家長</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. 你的 Google Apps Script (GAS) 網址 ---
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZHGM5xMgNFn9Df6BXMVfSesT3BIfHN91NdZjLK5TkHdEOai476VNIlJaw61n3Bxg9CA/exec";
+        // ------------------------------------
+        
+        // --- 2. 你的 Firebase 設定 ---
+        const firebaseConfig = {
+          apiKey: "AIzaSyB_-fHCMhi-URwyBqzAIipmffWwvNgzJJc",
+          authDomain: "qr-scanner-app-2c73d.firebaseapp.com",
+          databaseURL: "https://qr-scanner-app-2c73d-default-rtdb.asia-southeast1.firebasedatabase.app",
+          projectId: "qr-scanner-app-2c73d",
+          storageBucket: "qr-scanner-app-2c73d.firebasestorage.app",
+          messagingSenderId: "385628927398",
+          appId: "1:385628927398:web:00239f1b2acebd6e790b67"
+        };
+        // ------------------------------------
+
+        // --- 3. 初始化 Firebase ---
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        // ------------------------
+        
+        const GUARD_ALERTS_KEY = "alerts"; 
+        let classQueueRef = null; 
+        
+        let currentStudentData = null; 
+        let studentQueue = []; 
+        let currentClassName = ""; 
+        let audioCtx; 
+        let reminderTimer = null; 
+        let synth = window.speechSynthesis; // [新] 語音合成物件
+
+        // 播放音效 (叮咚)
+        function playNotificationSound() {
+            if (!audioCtx) return;
+            
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(900, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(700, audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(audioCtx.currentTime);
+            osc.stop(audioCtx.currentTime + 0.4);
+        }
+
+        // [新] 播放語音 (Web Speech API)
+        function speak(text) {
+            if (!synth) return;
+            
+            // 停止目前正在講的話 (避免重疊)
+            synth.cancel();
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'zh-TW'; // 設定語言為繁體中文
+            utterance.rate = 1;       // 語速 (0.1 ~ 10)
+            utterance.pitch = 1;      // 音調 (0 ~ 2)
+            utterance.volume = 1;     // 音量 (0 ~ 1)
+            
+            synth.speak(utterance);
+        }
+
+        // 鎖定/解鎖所有按鈕
+        function setButtonsDisabled(disabled = true) {
+            document.querySelectorAll('#status-buttons button').forEach(btn => {
+                btn.disabled = disabled;
+                if (disabled) {
+                    btn.classList.add('sent'); 
+                } else {
+                    btn.classList.remove('sent');
+                }
+            });
+        }
+        
+        function updateDisplay() {
+            const messageElement = document.getElementById('welcome-message');
+            const idElement = document.getElementById('student-id');
+            const buttonsElement = document.getElementById('status-buttons');
+
+            if (reminderTimer) {
+                clearTimeout(reminderTimer);
+                reminderTimer = null;
+            }
+
+            if (studentQueue.length > 0) {
+                currentStudentData = studentQueue[0];
+                
+                messageElement.textContent = `${currentStudentData.name}同學 (${currentStudentData.class})`;
+                idElement.textContent = `家長來接囉`;
+
+                buttonsElement.style.display = 'block'; 
+                setButtonsDisabled(false); 
+
+                const studentKeyForReminder = currentStudentData.key;
+                reminderTimer = setTimeout(() => {
+                    if (currentStudentData && currentStudentData.key === studentKeyForReminder) {
+                        console.log("30秒提醒：播放聲音與語音");
+                        playNotificationSound(); 
+                        // [新] 延遲 1.2 秒後播放語音 (避免和叮咚重疊)
+                        setTimeout(() => {
+                            speak(`${currentStudentData.name}同學，家長來接囉`);
+                        }, 1200);
+                    }
+                }, 30000); 
+
+            } else {
+                currentStudentData = null;
+                messageElement.textContent = `班級 ${currentClassName} - 等待掃描中...`;
+                idElement.textContent = '請在掃描裝置上開始掃描';
+                buttonsElement.style.display = 'none'; 
+            }
+        }
+        
+        async function sendToGuard(statusMessage) {
+            if (!currentStudentData) return;
+            
+            setButtonsDisabled(true);
+
+            if (reminderTimer) {
+                clearTimeout(reminderTimer);
+                reminderTimer = null;
+            }
+            
+            // 停止語音 (如果還在念)
+            if(synth) synth.cancel();
+
+            console.log(`傳送訊息給警衛室: ${currentStudentData.name} (${currentStudentData.class}) - ${statusMessage}`);
+
+            const responseTime = new Date().toISOString();
+
+            const guardData = {
+                name: currentStudentData.name,
+                class: currentStudentData.class, 
+                status: statusMessage,
+                timestamp: responseTime 
+            };
+
+            const logData = {
+                scan_time: currentStudentData.timestamp,
+                class: currentStudentData.class,
+                name: currentStudentData.name,
+                status: statusMessage,
+                response_time: responseTime
+            };
+
+            try {
+                fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', 
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(logData)
+                }).catch(err => console.error("Google Sheet 錯誤:", err));
+                
+                const alertsRef = database.ref(GUARD_ALERTS_KEY);
+                await alertsRef.push(guardData);
+                console.log("訊息成功傳送到警衛室");
+                
+                processNextStudent(); 
+
+            } catch (err) {
+                console.error("Firebase 傳送失敗:", err);
+                alert(`傳送失敗: ${err.message}`);
+                setButtonsDisabled(false);
+            }
+        }
+
+        function processNextStudent() {
+            if (!currentStudentData) return;
+            
+            setButtonsDisabled(true);
+            
+            if (reminderTimer) {
+                clearTimeout(reminderTimer);
+                reminderTimer = null;
+            }
+            
+            console.log(`處理完畢: ${currentStudentData.name}，正在移除佇列...`);
+            
+            const keyToRemove = currentStudentData.key;
+            
+            studentQueue.shift(); 
+            updateDisplay();
+
+            if (classQueueRef) {
+                classQueueRef.child(keyToRemove).remove()
+                    .catch(err => {
+                        console.error(`從 Firebase 移除 Key: ${keyToRemove} 失敗:`, err);
+                    });
+            }
+        }
+        
+        function startApp() {
+            document.getElementById('start-overlay').classList.add('hidden');
+            document.getElementById('main-container').style.display = 'block';
+
+            // 1. 解鎖 Web Audio API (叮咚聲)
+            try {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const buffer = audioCtx.createBuffer(1, 1, 22050);
+                const source = audioCtx.createBufferSource();
+                source.buffer = buffer;
+                source.connect(audioCtx.destination);
+                source.start(0);
+            } catch(e) { console.error("Audio 解鎖失敗:", e); }
+
+            // 2. [新] 解鎖 Web Speech API (語音)
+            // 播放一個空白的語音，讓瀏覽器知道使用者允許發聲
+            if (synth) {
+                const u = new SpeechSynthesisUtterance('');
+                synth.speak(u);
+            }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const className = urlParams.get('class');
+            const messageElement = document.getElementById('welcome-message');
+
+            if (!className) {
+                messageElement.innerHTML = "<b>設定錯誤：</b><br>請在網址列指定班級<br>(例如: .../welcome.html<b>?class=1A</b>)";
+                return;
+            }
+            
+            classQueueRef = database.ref(`queues/${className}`);
+            currentClassName = className; 
+            messageElement.textContent = `班級 ${className} - 載入中...`;
+
+            const startTime = new Date().toISOString();
+
+            classQueueRef.orderByChild('timestamp').startAt(startTime).on('child_added', (snapshot) => {
+                const studentData = snapshot.val();
+                if (!studentData || !studentData.id) return;
+                studentData.key = snapshot.key; 
+                
+                console.log("Firebase 偵測到新資料:", studentData.name);
+
+                const alreadyInQueue = studentQueue.some(student => student.id === studentData.id) ||
+                                     (currentStudentData && currentStudentData.id === studentData.id);
+                
+                if (alreadyInQueue) {
+                    return; 
+                }
+
+                studentQueue.push(studentData);
+                
+                if (studentQueue.length === 1 && !currentStudentData) {
+                    updateDisplay();
+                    
+                    // 1. 播放叮咚
+                    playNotificationSound(); 
+                    
+                    // 2. [新] 延遲 1.2 秒後播放語音
+                    setTimeout(() => {
+                        speak(`${studentData.name}同學，家長來接囉`);
+                    }, 1200);
+                }
+            });
+            
+            classQueueRef.on('child_removed', (snapshot) => {
+                if (studentQueue.length > 0 && studentQueue[0].key === snapshot.key) {
+                    studentQueue.shift(); 
+                    updateDisplay(); 
+                } else {
+                    studentQueue = studentQueue.filter(student => student.key !== snapshot.key);
+                }
+            });
+
+            updateDisplay();
+        }
+    </script>
+</body>
+</html>
