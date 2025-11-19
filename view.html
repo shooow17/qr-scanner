@@ -3,204 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>警衛室學生狀態面板</title>
+    <title>警衛室學生狀態頁面</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
     <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            background-color: #E8F5E9; /* 淺綠色背景 */
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            flex-direction: column; 
-            min-height: 100vh; 
-            margin: 0; 
-            padding: 20px 0; 
-            color: #333; 
-            box-sizing: border-box;
-        }
-        .container { 
-            text-align: center; 
-            background-color: #ffffff; 
-            padding: 40px; 
-            border-radius: 12px; 
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1); 
-            width: 90%; 
-            max-width: 1200px; 
-        }
-        h1 { 
-            font-size: 2.5em; 
-            margin: 0; 
-            color: #1B5E20; /* 深綠色 */
-        }
-        
-        /* 網格 */
-        #alert-grid {
-            margin-top: 20px;
-            display: grid;
-            grid-template-columns: repeat(5, 1fr); /* 預設 5 欄 */
-            gap: 15px;
-            width: 100%;
-        }
-        .alert-item {
-            padding: 15px;
-            border: 1px solid #C8E6C9; /* 綠色邊框 */
-            border-radius: 8px;
-            text-align: left;
-            background-color: #fafafa;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            line-height: 1.4; 
-            height: 120px; 
-            position: relative; /* [新] 為了 X 按鈕定位 */
-        }
-        .placeholder {
-            background-color: #fdfdfd;
-            border: 1px dashed #A5D6A7;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2em;
-            color: #ccc;
-            height: 120px;
-        }
-        
-        /* [新] 單筆刪除 (X) 按鈕 */
-        .delete-btn {
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            width: 28px;  /* 加大點擊範圍 */
-            height: 28px; /* 加大點擊範圍 */
-            line-height: 28px; /* 垂直置中 */
-            text-align: center; /* 水平置中 */
-            font-size: 22px; 
-            font-weight: bold;
-            color: #aaa;
-            background-color: #f0f0f0;
-            border-radius: 50%; /* 圓形按鈕 */
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .delete-btn:hover {
-            background-color: #d84315; /* 紅色 */
-            color: white;
-            transform: scale(1.1);
-        }
-
-        .alert-message {
-            font-size: 1.1em; 
-            color: #333; 
-            font-weight: bold; 
-        }
-        .alert-message .student-name {
-            color: #388E3C; /* 中綠色 */
-            display: block; 
-            font-size: 1.2em; 
-            margin-bottom: 5px;
-        }
-        .alert-message .status {
-            color: #d84315; 
-        }
-        .alert-time {
-            font-size: 0.9em; 
-            color: #777;
-            margin-top: 8px;
-            display: block;
-        }
+        body { font-family: Arial, sans-serif; background-color: #E8F5E9; display: flex; justify-content: center; align-items: center; flex-direction: column; min-height: 100vh; margin: 0; padding: 20px 0; color: #333; box-sizing: border-box; }
+        .container { text-align: center; background-color: #ffffff; padding: 40px; border-radius: 12px; box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1); width: 90%; max-width: 1200px; }
+        h1 { font-size: 2.5em; margin: 0; color: #1B5E20; }
+        #alert-grid { margin-top: 20px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; width: 100%; }
+        .alert-item { padding: 15px; border: 1px solid #C8E6C9; border-radius: 8px; text-align: left; background-color: #fafafa; overflow: hidden; display: flex; flex-direction: column; justify-content: center; line-height: 1.4; height: 120px; position: relative; }
+        .placeholder { background-color: #fdfdfd; border: 1px dashed #A5D6A7; display: flex; align-items: center; justify-content: center; font-size: 1.2em; color: #ccc; height: 120px; }
+        .delete-btn { position: absolute; top: 5px; right: 5px; width: 28px; height: 28px; line-height: 28px; text-align: center; font-size: 22px; font-weight: bold; color: #aaa; background-color: #f0f0f0; border-radius: 50%; cursor: pointer; transition: all 0.2s; }
+        .delete-btn:hover { background-color: #d84315; color: white; transform: scale(1.1); }
+        .alert-message { font-size: 1.1em; color: #333; font-weight: bold; }
+        .alert-message .student-name { color: #388E3C; display: block; font-size: 1.2em; margin-bottom: 5px; }
+        .alert-message .status { color: #d84315; }
+        .alert-time { font-size: 0.9em; color: #777; margin-top: 8px; display: block; }
         
         /* [修改] 控制按鈕區域 */
-        .controls {
-            margin-top: 20px;
-            width: 100%;
-            display: flex;
-            justify-content: space-between; /* 左右分開 */
-            flex-wrap: wrap; /* [RWD] 允許換行 */
-            gap: 10px; /* 按鈕間距 */
-        }
-        .controls button {
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 0.9em;
-            flex-grow: 1; /* [RWD] 讓按鈕平均分配空間 */
-        }
-        /* [新] 清除畫面 (橘色) */
-         .controls button#btn-clear-local {
-            background-color: #FF9800; 
-        }
-         /* [新] 清空資料庫 (紅色) */
-         .controls button#btn-clear-db {
-            background-color: #d84315; 
-        }
-         /* 匯出 (綠色) */
-         .controls button#btn-export {
-            background-color: #00796b; 
-        }
+        .controls { margin-top: 20px; width: 100%; display: flex; justify-content: center; gap: 20px; }
+        .controls button { color: white; border: none; padding: 10px 25px; border-radius: 5px; cursor: pointer; font-size: 1em; }
+        #btn-clear-local { background-color: #FF9800; }
+        #btn-export { background-color: #00796b; }
+        /* (已移除 clear-db 按鈕樣式) */
 
-        /* --- [新] RWD 媒體查詢 --- */
-        
-        /* 平板 (1024px 以下) */
-        @media (max-width: 1024px) {
-            .container {
-                padding: 20px;
-            }
-            #alert-grid {
-                grid-template-columns: repeat(3, 1fr); /* 3 欄 */
-            }
-        }
-
-        /* 手機 (600px 以下) */
-        @media (max-width: 600px) {
-            body { 
-                padding: 10px 0;
-            }
-            .container { 
-                width: 95%;
-                padding: 15px;
-            }
-            h1 { font-size: 2em; }
-            #alert-grid {
-                grid-template-columns: 1fr; /* 1 欄 */
-                max-height: 60vh; 
-                overflow-y: auto;
-            }
-            .alert-item { height: auto; padding: 12px; padding-top: 35px; } /* [RWD] 增加 X 的空間 */
-            
-            .controls {
-                flex-direction: column; 
-                gap: 10px; 
-            }
-            .controls button {
-                width: 100%;
-                padding: 12px;
-                font-size: 1em;
-            }
-        }
-        /* --- [RWD 結束] --- */
+        @media (max-width: 1024px) { .container { padding: 20px; } #alert-grid { grid-template-columns: repeat(3, 1fr); } }
+        @media (max-width: 600px) { body { padding: 10px 0; } .container { width: 95%; padding: 15px; } h1 { font-size: 2em; } #alert-grid { grid-template-columns: 1fr; max-height: 60vh; overflow-y: auto; } .alert-item { height: auto; padding: 12px; padding-top: 35px; } .controls { flex-direction: column; gap: 10px; } .controls button { width: 100%; padding: 12px; } }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>警衛室即時訊息</h1>
-        <div id="alert-grid">
-            </div>
-
+        <div id="alert-grid"></div>
         <div class="controls">
             <button id="btn-export" onclick="exportReport()">匯出報表 (CSV)</button>
             <button id="btn-clear-local" onclick="clearLocalScreen()">清除畫面上所有資料</button>
-            <button id="btn-clear-db" onclick="clearDatabase()">清空資料庫</button>
-        </div>
+            </div>
     </div>
 
     <script>
-        // --- 2. 你的 Firebase 設定 (我已幫你貼上) ---
         const firebaseConfig = {
           apiKey: "AIzaSyB_-fHCMhi-URwyBqzAIipmffWwvNgzJJc",
           authDomain: "qr-scanner-app-2c73d.firebaseapp.com",
@@ -210,53 +52,36 @@
           messagingSenderId: "385628927398",
           appId: "1:385628927398:web:00239f1b2acebd6e790b67"
         };
-        // ------------------------------------
 
-        // --- 3. 初始化 Firebase ---
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
-        // ------------------------
-
-        const GUARD_ALERTS_KEY = "alerts"; 
-        const QUEUES_KEY = "queues"; 
-        const alertsRef = database.ref(GUARD_ALERTS_KEY);
-        const queuesRef = database.ref(QUEUES_KEY); 
-        
-        const MAX_ALERTS = 15; // 15 格
+        const alertsRef = database.ref("alerts");
+        const MAX_ALERTS = 15; 
         let alertHistory = []; 
 
-        // [新] 姓名遮罩函式
-        function maskName(name) {
-            if (!name) return "";
-            if (name.length <= 1) return name;
-            if (name.length === 2) return name.substring(0, 1) + "O";
-            // 預設 (3個字或以上)
-            let masked = name.substring(0, 1);
-            masked += "O".repeat(name.length - 2);
-            masked += name.substring(name.length - 1);
+        function maskName(n) {
+            if (!n) return "";
+            if (n.length <= 1) return n;
+            if (n.length === 2) return n.substring(0, 1) + "O";
+            let masked = n.substring(0, 1);
+            masked += "O".repeat(n.length - 2);
+            masked += n.substring(n.length - 1);
             return masked;
         }
         
         function renderGrid() {
             const gridElement = document.getElementById('alert-grid');
             gridElement.innerHTML = ''; 
-            
             const itemsToDisplay = alertHistory.slice(-MAX_ALERTS).reverse();
-
             for (let i = 0; i < MAX_ALERTS; i++) {
                 const item = itemsToDisplay[i];
                 const cell = document.createElement('div');
-                
                 if (item) {
                     cell.className = 'alert-item';
-                    
-                    // [新] 姓名遮罩
                     const maskedName = maskName(item.name);
                     const localTime = new Date(item.timestamp).toLocaleString('zh-TW');
-
                     cell.innerHTML = `
                         <div class="delete-btn" onclick="deleteAlert('${item.key}')">×</div>
-                        
                         <div class="alert-message">
                             <span class="student-name">${maskedName} (${item.class})</span>
                             <span class="status">${item.status}</span>
@@ -271,98 +96,47 @@
             }
         }
 
-        // [新] 清除「畫面」
         function clearLocalScreen() {
-             if (!confirm("確定要清除「畫面上」的所有資料嗎？(資料庫不會被刪除)")) {
-                return;
-            }
+             if (!confirm("確定要清除「畫面上」的所有資料嗎？(資料庫不會被刪除)")) return;
             alertHistory = [];
             renderGrid();
         }
         
-        // [修改] 清除「資料庫」
-        function clearDatabase() {
-            if (!confirm("【警告】確定要清除所有警衛室和班級的資料嗎？(這會清空資料庫)")) {
-                return;
-            }
-            console.log("正在清除所有警報和佇列...");
-            
-            alertsRef.remove().catch(err => alert(`清除 [alerts] 失敗: ${err.message}`));
-            queuesRef.remove().catch(err => alert(`清除 [queues] 失敗: ${err.message}`));
-        }
-        
-        // [新] 單筆刪除 (只刪除 alerts)
         function deleteAlert(key) {
-             if (!confirm("確定要刪除這筆訊息嗎？(這只會刪除警衛室資料)")) {
-                return;
-            }
-            if (key) {
-                alertsRef.child(key).remove()
-                    .catch(err => alert(`刪除失敗: ${err.message}`));
-            }
+             if (!confirm("確定要刪除這筆訊息嗎？(這只會刪除警衛室資料)")) return;
+            if (key) alertsRef.child(key).remove().catch(err => alert(`刪除失敗: ${err.message}`));
         }
         
         function exportReport() {
-            if (alertHistory.length === 0) {
-                alert("目前沒有資料可匯出。");
-                return;
-            }
-
-            console.log("正在產生報表...");
-            
+            if (alertHistory.length === 0) return alert("目前沒有資料可匯出。");
             let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
             csvContent += "時間,班級,學生姓名,狀態\r\n";
-
             [...alertHistory].reverse().forEach(item => {
                 const time = new Date(item.timestamp).toLocaleString('zh-TW');
                 const row = `"${time}","${item.class}","${item.name}","${item.status}"`;
                 csvContent += row + "\r\n";
             });
-
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
             link.setAttribute("href", encodedUri);
             link.setAttribute("download", `警衛室報表_${new Date().toISOString().split('T')[0]}.csv`);
-            document.body.appendChild(link); 
-            link.click();
-            document.body.removeChild(link);
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            
             alertsRef.limitToLast(MAX_ALERTS).on('child_added', (snapshot) => {
                 const alertData = snapshot.val();
                 alertData.key = snapshot.key; 
-                console.log("收到新警報:", alertData.name);
-                
                 alertHistory.push(alertData); 
-                if (alertHistory.length > MAX_ALERTS) {
-                    alertHistory.shift(); 
-                }
                 renderGrid(); 
             });
-
             alertsRef.on('value', (snapshot) => {
-                if (!snapshot.exists()) {
-                    console.log("Firebase 資料庫 (alerts) 已清空");
-                    alertHistory = [];
-                    renderGrid(); 
-                }
+                if (!snapshot.exists()) { alertHistory = []; renderGrid(); }
             });
-
-            // [新] 監聽 child_removed 事件
             alertsRef.on('child_removed', (snapshot) => {
-                console.log(`一筆警報資料已被移除: ${snapshot.key}`);
                 alertHistory = alertHistory.filter(item => item.key !== snapshot.key);
                 renderGrid();
             });
-            
-            queuesRef.on('value', (snapshot) => {
-                if (!snapshot.exists()) {
-                    console.log("Firebase 資料庫 (queues) 已清空");
-                }
-            });
-
             renderGrid();
         });
     </script>
