@@ -3,40 +3,134 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>班級老師控制畫面</title>
+    <title>班級老師回應介面</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f0f8ff; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; color: #333; padding: 20px; box-sizing: border-box; }
-        #start-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #005a9c; color: white; display: flex; justify-content: center; align-items: center; font-size: 2em; cursor: pointer; z-index: 100; transition: opacity 0.5s; }
-        #start-overlay.hidden { display: none; }
+        body { 
+            font-family: Arial, sans-serif; 
+            background-color: #f0f8ff; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            color: #333; 
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        
+        /* [新] 連線狀態燈 */
+        #connection-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+            color: white;
+            background-color: #ccc; /* 預設灰色 */
+            z-index: 200;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        #connection-status.online { background-color: #28a745; } /* 綠色 */
+        #connection-status.offline { background-color: #dc3545; } /* 紅色 */
+
+        #start-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #005a9c;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2em;
+            cursor: pointer;
+            z-index: 100;
+            transition: opacity 0.5s;
+        }
+        #start-overlay.hidden {
+            display: none;
+        }
+
         .header { margin-bottom: 20px; text-align: center; }
         h1 { font-size: 2em; margin: 0; color: #005a9c; }
-        #student-list { width: 100%; max-width: 800px; display: flex; flex-direction: column; gap: 15px; }
-        .student-card { background-color: white; border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); padding: 20px; display: flex; flex-direction: column; border-left: 10px solid #4CAF50; animation: slideIn 0.3s ease-out; }
-        @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        #student-list {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .student-card {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            padding: 20px;
+            display: flex;
+            flex-direction: column; 
+            border-left: 10px solid #4CAF50; 
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         .student-info { margin-bottom: 15px; }
         .student-name { font-size: 1.8em; font-weight: bold; color: #333; }
         .student-id { color: #666; font-size: 1.1em; }
-        .action-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        @media (min-width: 600px) { .student-card { flex-direction: row; align-items: center; justify-content: space-between; } .student-info { margin-bottom: 0; margin-right: 20px; min-width: 150px; } .action-buttons { display: flex; flex-wrap: wrap; gap: 8px; } }
-        button { background-color: #007bff; color: white; border: none; padding: 10px 15px; border-radius: 6px; font-size: 1em; cursor: pointer; white-space: nowrap; transition: background-color 0.2s; }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr; 
+            gap: 10px;
+        }
+        
+        @media (min-width: 600px) {
+            .student-card { flex-direction: row; align-items: center; justify-content: space-between; }
+            .student-info { margin-bottom: 0; margin-right: 20px; min-width: 150px; }
+            .action-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+        }
+
+        button {
+            background-color: #007bff; color: white; border: none; padding: 10px 15px;
+            border-radius: 6px; font-size: 1em; cursor: pointer; white-space: nowrap;
+            transition: background-color 0.2s;
+        }
         button:hover { background-color: #0056b3; }
-        button.btn-red { background-color: #dc3545; } button.btn-red:hover { background-color: #a71d2a; }
+        button.btn-red { background-color: #dc3545; }
+        button.btn-red:hover { background-color: #a71d2a; }
+        
         button:disabled { background-color: #ccc; cursor: not-allowed; color: #666; }
+
         .empty-message { text-align: center; font-size: 1.5em; color: #888; margin-top: 50px; }
     </style>
 </head>
 <body>
-    <div id="start-overlay" onclick="startApp()">點擊此處開始監聽班級</div>
+    <div id="connection-status">連線偵測中...</div>
+
+    <div id="start-overlay" onclick="startApp()">
+        點擊此處開始監聽班級
+    </div>
+
     <div class="header">
         <h1 id="class-title">班級即時看板</h1>
         <p>等待家長掃描中...</p>
     </div>
+
     <div id="student-list"></div>
 
     <script>
+        // --- 設定 ---
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZHGM5xMgNFn9Df6BXMVfSesT3BIfHN91NdZjLK5TkHdEOai476VNIlJaw61n3Bxg9CA/exec";
         const firebaseConfig = {
           apiKey: "AIzaSyB_-fHCMhi-URwyBqzAIipmffWwvNgzJJc",
@@ -50,12 +144,27 @@
 
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
+        
         const GUARD_ALERTS_KEY = "alerts"; 
         let classQueueRef = null; 
         let studentQueue = []; 
         let audioCtx; 
         let synth = window.speechSynthesis; 
 
+        // [新] 監聽連線狀態
+        const connectedRef = database.ref(".info/connected");
+        connectedRef.on("value", (snap) => {
+            const statusDiv = document.getElementById("connection-status");
+            if (snap.val() === true) {
+                statusDiv.textContent = "● 連線正常";
+                statusDiv.className = "online";
+            } else {
+                statusDiv.textContent = "● 連線中斷";
+                statusDiv.className = "offline";
+            }
+        });
+
+        // 音效
         function playNotificationSound() {
             if (!audioCtx) return;
             const play = () => {
@@ -84,13 +193,16 @@
         function updateDisplay() {
             const list = document.getElementById('student-list');
             list.innerHTML = ''; 
+
             if (studentQueue.length === 0) {
                 list.innerHTML = '<div class="empty-message">目前沒有家長掃描</div>';
                 return;
             }
+
             studentQueue.slice(0, 5).forEach(student => {
                 const card = document.createElement('div');
                 card.className = 'student-card';
+                
                 card.innerHTML = `
                     <div class="student-info">
                         <div class="student-name">${student.name}</div>
@@ -101,7 +213,8 @@
                         <button onclick="handleAction('${student.key}', '${student.name}', '${student.class}', '上廁所請稍候', this)">上廁所</button>
                         <button onclick="handleAction('${student.key}', '${student.name}', '${student.class}', '班級在室外活動', this)">室外活動</button>
                         <button class="btn-red" onclick="handleAction('${student.key}', '${student.name}', '${student.class}', '老師另外連絡家長', this)">另約家長</button>
-                    </div>`;
+                    </div>
+                `;
                 list.appendChild(card);
             });
         }
@@ -122,6 +235,7 @@
                 fetch(GOOGLE_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(logData) }).catch(e => console.error(e));
                 await database.ref(GUARD_ALERTS_KEY).push(guardData);
                 await classQueueRef.child(key).remove();
+
             } catch (err) {
                 alert("失敗: " + err.message);
                 card.querySelectorAll('button').forEach(b => b.disabled = false);
@@ -131,6 +245,7 @@
 
         function startApp() {
             document.getElementById('start-overlay').classList.add('hidden');
+            
             try {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 const b = audioCtx.createBuffer(1, 1, 22050); const s = audioCtx.createBufferSource(); s.buffer = b; s.connect(audioCtx.destination); s.start(0);
@@ -148,22 +263,13 @@
             classQueueRef.orderByChild('timestamp').startAt(startTime).on('child_added', (snapshot) => {
                 const data = snapshot.val(); data.key = snapshot.key;
                 
-                // --- [修改] 檢查是否需要過濾 (1分鐘冷卻) ---
-                // 1. 找出佇列中「同一個學生」的所有紀錄
                 const sameStudentEntries = studentQueue.filter(s => s.id === data.id);
-                
                 let shouldAdd = true;
                 if (sameStudentEntries.length > 0) {
-                    // 2. 取得最後一筆的時間
                     const lastEntry = sameStudentEntries[sameStudentEntries.length - 1];
                     const lastTime = new Date(lastEntry.timestamp).getTime();
                     const newTime = new Date(data.timestamp).getTime();
-                    
-                    // 3. 如果距離上一筆不到 60 秒 (60000 毫秒)，則視為重複掃描，忽略
-                    if (newTime - lastTime < 60000) {
-                        console.log(`忽略重複掃描: ${data.name} (間隔 < 60秒)`);
-                        shouldAdd = false;
-                    }
+                    if (newTime - lastTime < 60000) shouldAdd = false;
                 }
 
                 if (shouldAdd) {
@@ -172,13 +278,13 @@
                     playNotificationSound();
                     setTimeout(() => { speak(`${data.name}同學，家長來接囉`); }, 1200);
                 }
-                // -----------------------------------------
             });
 
             classQueueRef.on('child_removed', (snapshot) => {
                 studentQueue = studentQueue.filter(s => s.key !== snapshot.key);
                 updateDisplay();
             });
+            
             updateDisplay();
         }
     </script>
