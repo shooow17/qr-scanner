@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>班級列表</title>
+    <title>班級總表</title>
     
     <style>
         body {
@@ -13,11 +13,14 @@
             justify-content: center;
             align-items: center;
             flex-direction: column;
-            height: 100vh;
+            min-height: 100vh; /* [修改] 允許內容超過螢幕高度時捲動 */
             margin: 0;
+            padding: 40px 0; /* [修改] 增加上下邊距 */
+            box-sizing: border-box;
         }
         h1 {
             color: #1B5E20; /* 深綠色 */
+            margin-bottom: 30px;
         }
         .grid-container {
             display: grid;
@@ -44,10 +47,17 @@
             background-color: #388E3C; /* 深綠色 */
             transform: scale(1.05);
         }
-        /* 讓 4C 之後的按鈕也保持 4 欄 */
-        @media (max-width: 600px) {
+        /* RWD: 平板改為 3 欄 */
+        @media (max-width: 800px) {
             .grid-container {
-                grid-template-columns: repeat(2, 1fr); /* 手機上改為 2 欄 */
+                grid-template-columns: repeat(3, 1fr); 
+                width: 90%;
+            }
+        }
+        /* RWD: 手機改為 2 欄 */
+        @media (max-width: 500px) {
+            .grid-container {
+                grid-template-columns: repeat(2, 1fr); 
                 width: 90%;
             }
             .class-button {
@@ -63,12 +73,22 @@
     
     <div class="grid-container">
         <a href="welcome.html?class=1A" class="class-button">1A</a>
+        <a href="welcome.html?class=1B" class="class-button">1B</a>
+        
         <a href="welcome.html?class=2A" class="class-button">2A</a>
         <a href="welcome.html?class=2B" class="class-button">2B</a>
+        
+        <a href="welcome.html?class=3A" class="class-button">3A</a>
+        <a href="welcome.html?class=3B" class="class-button">3B</a>
+        
         <a href="welcome.html?class=4A" class="class-button">4A</a>
         <a href="welcome.html?class=4B" class="class-button">4B</a>
         <a href="welcome.html?class=4C" class="class-button">4C</a>
+        
         <a href="welcome.html?class=5A" class="class-button">5A</a>
+        <a href="welcome.html?class=5B" class="class-button">5B</a>
+        
+        <a href="welcome.html?class=6A" class="class-button">6A</a>
         <a href="welcome.html?class=6B" class="class-button">6B</a>
     </div>
 
