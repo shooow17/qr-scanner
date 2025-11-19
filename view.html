@@ -3,43 +3,188 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>警衛室學生狀態頁面</title>
+    <title>警衛室學生狀態介面</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
     <style>
-        body { font-family: Arial, sans-serif; background-color: #E8F5E9; display: flex; justify-content: center; align-items: center; flex-direction: column; min-height: 100vh; margin: 0; padding: 20px 0; color: #333; box-sizing: border-box; }
-        .container { text-align: center; background-color: #ffffff; padding: 40px; border-radius: 12px; box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1); width: 90%; max-width: 1200px; }
-        h1 { font-size: 2.5em; margin: 0; color: #1B5E20; }
-        #alert-grid { margin-top: 20px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; width: 100%; }
-        .alert-item { padding: 15px; border: 1px solid #C8E6C9; border-radius: 8px; text-align: left; background-color: #fafafa; overflow: hidden; display: flex; flex-direction: column; justify-content: center; line-height: 1.4; height: 120px; position: relative; }
-        .placeholder { background-color: #fdfdfd; border: 1px dashed #A5D6A7; display: flex; align-items: center; justify-content: center; font-size: 1.2em; color: #ccc; height: 120px; }
-        .delete-btn { position: absolute; top: 5px; right: 5px; width: 28px; height: 28px; line-height: 28px; text-align: center; font-size: 22px; font-weight: bold; color: #aaa; background-color: #f0f0f0; border-radius: 50%; cursor: pointer; transition: all 0.2s; }
-        .delete-btn:hover { background-color: #d84315; color: white; transform: scale(1.1); }
-        .alert-message { font-size: 1.1em; color: #333; font-weight: bold; }
-        .alert-message .student-name { color: #388E3C; display: block; font-size: 1.2em; margin-bottom: 5px; }
-        .alert-message .status { color: #d84315; }
-        .alert-time { font-size: 0.9em; color: #777; margin-top: 8px; display: block; }
-        
-        /* [修改] 控制按鈕區域 */
-        .controls { margin-top: 20px; width: 100%; display: flex; justify-content: center; gap: 20px; }
-        .controls button { color: white; border: none; padding: 10px 25px; border-radius: 5px; cursor: pointer; font-size: 1em; }
-        #btn-clear-local { background-color: #FF9800; }
-        #btn-export { background-color: #00796b; }
-        /* (已移除 clear-db 按鈕樣式) */
+        body { 
+            font-family: Arial, sans-serif; 
+            background-color: #E8F5E9; /* 淺綠色背景 */
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            flex-direction: column; 
+            min-height: 100vh; 
+            margin: 0; 
+            padding: 20px 0; 
+            color: #333; 
+            box-sizing: border-box;
+        }
 
-        @media (max-width: 1024px) { .container { padding: 20px; } #alert-grid { grid-template-columns: repeat(3, 1fr); } }
-        @media (max-width: 600px) { body { padding: 10px 0; } .container { width: 95%; padding: 15px; } h1 { font-size: 2em; } #alert-grid { grid-template-columns: 1fr; max-height: 60vh; overflow-y: auto; } .alert-item { height: auto; padding: 12px; padding-top: 35px; } .controls { flex-direction: column; gap: 10px; } .controls button { width: 100%; padding: 12px; } }
+        /* [新] 連線狀態燈 */
+        #connection-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+            color: white;
+            background-color: #ccc; /* 預設灰色 */
+            z-index: 200;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        #connection-status.online { background-color: #28a745; } /* 綠色 */
+        #connection-status.offline { background-color: #dc3545; } /* 紅色 */
+
+        .container { 
+            text-align: center; 
+            background-color: #ffffff; 
+            padding: 40px; 
+            border-radius: 12px; 
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1); 
+            width: 90%; 
+            max-width: 1200px; 
+        }
+        h1 { 
+            font-size: 2.5em; 
+            margin: 0; 
+            color: #1B5E20; /* 深綠色 */
+        }
+        
+        #alert-grid {
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr); 
+            gap: 15px;
+            width: 100%;
+        }
+        .alert-item {
+            padding: 15px;
+            border: 1px solid #C8E6C9; 
+            border-radius: 8px;
+            text-align: left;
+            background-color: #fafafa;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            line-height: 1.4; 
+            height: 120px; 
+            position: relative; 
+        }
+        .placeholder {
+            background-color: #fdfdfd;
+            border: 1px dashed #A5D6A7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            color: #ccc;
+            height: 120px;
+        }
+        
+        .delete-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 28px;  
+            height: 28px; 
+            line-height: 28px; 
+            text-align: center; 
+            font-size: 22px; 
+            font-weight: bold;
+            color: #aaa;
+            background-color: #f0f0f0;
+            border-radius: 50%; 
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .delete-btn:hover {
+            background-color: #d84315; 
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .alert-message {
+            font-size: 1.1em; 
+            color: #333; 
+            font-weight: bold; 
+        }
+        .alert-message .student-name {
+            color: #388E3C; 
+            display: block; 
+            font-size: 1.2em; 
+            margin-bottom: 5px;
+        }
+        .alert-message .status {
+            color: #d84315; 
+        }
+        .alert-time {
+            font-size: 0.9em; 
+            color: #777;
+            margin-top: 8px;
+            display: block;
+        }
+        
+        .controls {
+            margin-top: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between; 
+            flex-wrap: wrap; 
+            gap: 10px; 
+        }
+        .controls button {
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            flex-grow: 1; 
+        }
+         .controls button#btn-clear-local {
+            background-color: #FF9800; 
+        }
+         .controls button#btn-clear-db {
+            background-color: #d84315; 
+        }
+         .controls button#btn-export {
+            background-color: #00796b; 
+        }
+
+        @media (max-width: 1024px) {
+            .container { padding: 20px; }
+            #alert-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+
+        @media (max-width: 600px) {
+            body { padding: 10px 0; }
+            .container { width: 95%; padding: 15px; }
+            h1 { font-size: 2em; }
+            #alert-grid { grid-template-columns: 1fr; max-height: 60vh; overflow-y: auto; }
+            .alert-item { height: auto; padding: 12px; padding-top: 35px; } 
+            .controls { flex-direction: column; gap: 10px; }
+            .controls button { width: 100%; padding: 12px; font-size: 1em; }
+        }
     </style>
 </head>
 <body>
+    <div id="connection-status">連線偵測中...</div>
+
     <div class="container">
         <h1>警衛室即時訊息</h1>
-        <div id="alert-grid"></div>
+        <div id="alert-grid">
+            </div>
+
         <div class="controls">
             <button id="btn-export" onclick="exportReport()">匯出報表 (CSV)</button>
             <button id="btn-clear-local" onclick="clearLocalScreen()">清除畫面上所有資料</button>
-            </div>
+            <button id="btn-clear-db" onclick="clearDatabase()">清空資料庫</button>
+        </div>
     </div>
 
     <script>
@@ -56,8 +201,22 @@
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
         const alertsRef = database.ref("alerts");
+        const queuesRef = database.ref("queues"); 
         const MAX_ALERTS = 15; 
         let alertHistory = []; 
+
+        // [新] 監聽連線狀態
+        const connectedRef = database.ref(".info/connected");
+        connectedRef.on("value", (snap) => {
+            const statusDiv = document.getElementById("connection-status");
+            if (snap.val() === true) {
+                statusDiv.textContent = "● 連線正常";
+                statusDiv.className = "online";
+            } else {
+                statusDiv.textContent = "● 連線中斷";
+                statusDiv.className = "offline";
+            }
+        });
 
         function maskName(n) {
             if (!n) return "";
@@ -72,10 +231,13 @@
         function renderGrid() {
             const gridElement = document.getElementById('alert-grid');
             gridElement.innerHTML = ''; 
+            
             const itemsToDisplay = alertHistory.slice(-MAX_ALERTS).reverse();
+
             for (let i = 0; i < MAX_ALERTS; i++) {
                 const item = itemsToDisplay[i];
                 const cell = document.createElement('div');
+                
                 if (item) {
                     cell.className = 'alert-item';
                     const maskedName = maskName(item.name);
@@ -100,6 +262,12 @@
              if (!confirm("確定要清除「畫面上」的所有資料嗎？(資料庫不會被刪除)")) return;
             alertHistory = [];
             renderGrid();
+        }
+        
+        function clearDatabase() {
+            if (!confirm("【警告】確定要清除所有警衛室和班級的資料嗎？(這會清空資料庫)")) return;
+            alertsRef.remove().catch(err => alert(`清除 [alerts] 失敗: ${err.message}`));
+            queuesRef.remove().catch(err => alert(`清除 [queues] 失敗: ${err.message}`));
         }
         
         function deleteAlert(key) {
@@ -130,13 +298,25 @@
                 alertHistory.push(alertData); 
                 renderGrid(); 
             });
+
             alertsRef.on('value', (snapshot) => {
-                if (!snapshot.exists()) { alertHistory = []; renderGrid(); }
+                if (!snapshot.exists()) {
+                    alertHistory = [];
+                    renderGrid(); 
+                }
             });
+
             alertsRef.on('child_removed', (snapshot) => {
                 alertHistory = alertHistory.filter(item => item.key !== snapshot.key);
                 renderGrid();
             });
+
+            queuesRef.on('value', (snapshot) => {
+                if (!snapshot.exists()) {
+                    console.log("Firebase 資料庫 (queues) 已清空");
+                }
+            });
+
             renderGrid();
         });
     </script>
