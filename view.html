@@ -10,7 +10,7 @@
     <style>
         body { 
             font-family: Arial, sans-serif; 
-            background-color: #E8F5E9; /* 淺綠色背景 */
+            background-color: #E8F5E9; 
             display: flex; 
             justify-content: center; 
             align-items: center; 
@@ -21,24 +21,6 @@
             color: #333; 
             box-sizing: border-box;
         }
-
-        /* [新] 連線狀態燈 */
-        #connection-status {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 0.8em;
-            font-weight: bold;
-            color: white;
-            background-color: #ccc; /* 預設灰色 */
-            z-index: 200;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-        #connection-status.online { background-color: #28a745; } /* 綠色 */
-        #connection-status.offline { background-color: #dc3545; } /* 紅色 */
-
         .container { 
             text-align: center; 
             background-color: #ffffff; 
@@ -51,7 +33,7 @@
         h1 { 
             font-size: 2.5em; 
             margin: 0; 
-            color: #1B5E20; /* 深綠色 */
+            color: #1B5E20; 
         }
         
         #alert-grid {
@@ -133,8 +115,7 @@
             margin-top: 20px;
             width: 100%;
             display: flex;
-            justify-content: space-between; 
-            flex-wrap: wrap; 
+            justify-content: center; /* 置中 */
             gap: 10px; 
         }
         .controls button {
@@ -144,13 +125,11 @@
             border-radius: 5px;
             cursor: pointer;
             font-size: 0.9em;
-            flex-grow: 1; 
+            flex-grow: 0; /* 不強制拉伸 */
+            min-width: 150px;
         }
          .controls button#btn-clear-local {
             background-color: #FF9800; 
-        }
-         .controls button#btn-clear-db {
-            background-color: #d84315; 
         }
          .controls button#btn-export {
             background-color: #00796b; 
@@ -173,8 +152,6 @@
     </style>
 </head>
 <body>
-    <div id="connection-status">連線偵測中...</div>
-
     <div class="container">
         <h1>警衛室即時訊息</h1>
         <div id="alert-grid">
@@ -183,7 +160,6 @@
         <div class="controls">
             <button id="btn-export" onclick="exportReport()">匯出報表 (CSV)</button>
             <button id="btn-clear-local" onclick="clearLocalScreen()">清除畫面上所有資料</button>
-            <button id="btn-clear-db" onclick="clearDatabase()">清空資料庫</button>
         </div>
     </div>
 
@@ -201,22 +177,8 @@
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
         const alertsRef = database.ref("alerts");
-        const queuesRef = database.ref("queues"); 
         const MAX_ALERTS = 15; 
         let alertHistory = []; 
-
-        // [新] 監聽連線狀態
-        const connectedRef = database.ref(".info/connected");
-        connectedRef.on("value", (snap) => {
-            const statusDiv = document.getElementById("connection-status");
-            if (snap.val() === true) {
-                statusDiv.textContent = "● 連線正常";
-                statusDiv.className = "online";
-            } else {
-                statusDiv.textContent = "● 連線中斷";
-                statusDiv.className = "offline";
-            }
-        });
 
         function maskName(n) {
             if (!n) return "";
@@ -231,7 +193,6 @@
         function renderGrid() {
             const gridElement = document.getElementById('alert-grid');
             gridElement.innerHTML = ''; 
-            
             const itemsToDisplay = alertHistory.slice(-MAX_ALERTS).reverse();
 
             for (let i = 0; i < MAX_ALERTS; i++) {
@@ -264,12 +225,6 @@
             renderGrid();
         }
         
-        function clearDatabase() {
-            if (!confirm("【警告】確定要清除所有警衛室和班級的資料嗎？(這會清空資料庫)")) return;
-            alertsRef.remove().catch(err => alert(`清除 [alerts] 失敗: ${err.message}`));
-            queuesRef.remove().catch(err => alert(`清除 [queues] 失敗: ${err.message}`));
-        }
-        
         function deleteAlert(key) {
              if (!confirm("確定要刪除這筆訊息嗎？(這只會刪除警衛室資料)")) return;
             if (key) alertsRef.child(key).remove().catch(err => alert(`刪除失敗: ${err.message}`));
@@ -292,6 +247,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+            
             alertsRef.limitToLast(MAX_ALERTS).on('child_added', (snapshot) => {
                 const alertData = snapshot.val();
                 alertData.key = snapshot.key; 
@@ -310,13 +266,7 @@
                 alertHistory = alertHistory.filter(item => item.key !== snapshot.key);
                 renderGrid();
             });
-
-            queuesRef.on('value', (snapshot) => {
-                if (!snapshot.exists()) {
-                    console.log("Firebase 資料庫 (queues) 已清空");
-                }
-            });
-
+            
             renderGrid();
         });
     </script>
