@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>警衛室學生狀態介面</title>
+    <title>警衛室即時顯示介面)</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
@@ -43,12 +43,12 @@
             gap: 15px;
             width: 100%;
         }
+
+        /* --- [核心修改] 格子樣式 --- */
         .alert-item {
             padding: 15px;
-            border: 1px solid #C8E6C9; 
             border-radius: 8px;
             text-align: left;
-            background-color: #fafafa;
             overflow: hidden;
             display: flex;
             flex-direction: column;
@@ -56,7 +56,27 @@
             line-height: 1.4; 
             height: 120px; 
             position: relative; 
+            transition: all 0.3s ease;
         }
+
+        /* 樣式 A: 最新一筆 (左上角) - 閃爍紅框 + 亮底色 */
+        .alert-item.newest {
+            background-color: #fff3e0; /* 淡淡的橘色底，突顯重要性 */
+            border: 3px solid #ff5722; /* 粗紅框 */
+            animation: flash-border 1.5s infinite; /* 閃爍動畫 */
+            z-index: 10; /* 確保在最上層 */
+            transform: scale(1.02); /* 稍微放大 */
+            box-shadow: 0 4px 12px rgba(255, 87, 34, 0.3);
+        }
+
+        /* 樣式 B: 歷史資料 (其他) - 淺灰底 + 灰框 */
+        .alert-item.normal {
+            background-color: #f5f5f5; /* 淺灰色底 */
+            border: 1px solid #bdbdbd; /* 灰色框 */
+            opacity: 0.9;
+        }
+
+        /* 樣式 C: 空格子 */
         .placeholder {
             background-color: #fdfdfd;
             border: 1px dashed #A5D6A7;
@@ -67,6 +87,14 @@
             color: #ccc;
             height: 120px;
         }
+
+        /* [新] 邊框閃爍動畫定義 */
+        @keyframes flash-border {
+            0% { border-color: #ff5722; box-shadow: 0 0 5px rgba(255, 87, 34, 0.5); }
+            50% { border-color: #ffccbc; box-shadow: 0 0 15px rgba(255, 87, 34, 0.8); }
+            100% { border-color: #ff5722; box-shadow: 0 0 5px rgba(255, 87, 34, 0.5); }
+        }
+        /* ------------------------- */
         
         .delete-btn {
             position: absolute;
@@ -79,7 +107,7 @@
             font-size: 22px; 
             font-weight: bold;
             color: #aaa;
-            background-color: #f0f0f0;
+            background-color: rgba(255,255,255,0.8);
             border-radius: 50%; 
             cursor: pointer;
             transition: all 0.2s;
@@ -95,6 +123,11 @@
             color: #333; 
             font-weight: bold; 
         }
+        /* 最新訊息的文字可以再深一點 */
+        .newest .alert-message {
+            color: #000;
+        }
+
         .alert-message .student-name {
             color: #388E3C; 
             display: block; 
@@ -115,7 +148,8 @@
             margin-top: 20px;
             width: 100%;
             display: flex;
-            justify-content: center; /* 置中 */
+            justify-content: space-between; 
+            flex-wrap: wrap; 
             gap: 10px; 
         }
         .controls button {
@@ -125,11 +159,13 @@
             border-radius: 5px;
             cursor: pointer;
             font-size: 0.9em;
-            flex-grow: 0; /* 不強制拉伸 */
-            min-width: 150px;
+            flex-grow: 1; 
         }
          .controls button#btn-clear-local {
             background-color: #FF9800; 
+        }
+         .controls button#btn-clear-db {
+            background-color: #d84315; 
         }
          .controls button#btn-export {
             background-color: #00796b; 
@@ -160,7 +196,7 @@
         <div class="controls">
             <button id="btn-export" onclick="exportReport()">匯出報表 (CSV)</button>
             <button id="btn-clear-local" onclick="clearLocalScreen()">清除畫面上所有資料</button>
-        </div>
+                   </div>
     </div>
 
     <script>
@@ -177,7 +213,9 @@
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
         const alertsRef = database.ref("alerts");
-        const MAX_ALERTS = 15; 
+        const queuesRef = database.ref("queues"); 
+        
+        const MAX_ALERTS = 15; // 15 格
         let alertHistory = []; 
 
         function maskName(n) {
@@ -193,6 +231,8 @@
         function renderGrid() {
             const gridElement = document.getElementById('alert-grid');
             gridElement.innerHTML = ''; 
+            
+            // 取得最新的資料 (reverse 後 index 0 就是最新)
             const itemsToDisplay = alertHistory.slice(-MAX_ALERTS).reverse();
 
             for (let i = 0; i < MAX_ALERTS; i++) {
@@ -200,7 +240,13 @@
                 const cell = document.createElement('div');
                 
                 if (item) {
-                    cell.className = 'alert-item';
+                    // [修改] 判斷是否為最新一筆 (i === 0)
+                    if (i === 0) {
+                        cell.className = 'alert-item newest'; // 最新：閃爍紅框
+                    } else {
+                        cell.className = 'alert-item normal'; // 其他：灰底
+                    }
+                    
                     const maskedName = maskName(item.name);
                     const localTime = new Date(item.timestamp).toLocaleString('zh-TW');
                     cell.innerHTML = `
@@ -223,6 +269,12 @@
              if (!confirm("確定要清除「畫面上」的所有資料嗎？(資料庫不會被刪除)")) return;
             alertHistory = [];
             renderGrid();
+        }
+        
+        function clearDatabase() {
+            if (!confirm("【警告】確定要清除所有警衛室和班級的資料嗎？(這會清空資料庫)")) return;
+            alertsRef.remove().catch(err => alert(`清除 [alerts] 失敗: ${err.message}`));
+            queuesRef.remove().catch(err => alert(`清除 [queues] 失敗: ${err.message}`));
         }
         
         function deleteAlert(key) {
@@ -257,16 +309,24 @@
 
             alertsRef.on('value', (snapshot) => {
                 if (!snapshot.exists()) {
+                    console.log("Firebase 資料庫 (alerts) 已清空");
                     alertHistory = [];
                     renderGrid(); 
                 }
             });
 
             alertsRef.on('child_removed', (snapshot) => {
+                console.log(`一筆警報資料已被移除: ${snapshot.key}`);
                 alertHistory = alertHistory.filter(item => item.key !== snapshot.key);
                 renderGrid();
             });
             
+            queuesRef.on('value', (snapshot) => {
+                if (!snapshot.exists()) {
+                    console.log("Firebase 資料庫 (queues) 已清空");
+                }
+            });
+
             renderGrid();
         });
     </script>
