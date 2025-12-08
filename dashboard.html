@@ -4,27 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>永順國小課後照顧早接系統</title>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Sans+TC:wght@900&display=swap" rel="stylesheet">
     
     <style>
         :root {
-            /* 配色設定 */
-            --sand-bg: #ECDFBB;        /* 沙灘淡黃 */
-            --sand-dot: #D4C5A0;       /* 沙子顆粒色 */
+            /* 參考圖片的配色 */
+            --mc-green: #70B237;       /* 草方塊綠 */
+            --mc-brown: #593D29;       /* 泥土棕 */
+            --mc-bg: #DCCFA3;          /* 沙灘背景色 */
+            --mc-border: #1D1D1D;      /* 深黑色邊框 */
             
-            /* 草方塊配色 (更鮮豔) */
-            --grass-top: #5ABB37;
-            --grass-side: #469628;     /* 側面草 (較暗) */
-            --dirt-side: #754D34;      /* 側面土 */
-            --dirt-shadow: #593A27;    /* 陰影面土 */
-            
-            /* 文字顏色 */
-            --text-color: #fff;
-            --text-shadow: #000;
+            /* 模擬像素質感的內陰影 */
+            --inset-light: inset 4px 4px 0 rgba(255,255,255,0.25);
+            --inset-dark: inset -4px -4px 0 rgba(0,0,0,0.25);
         }
 
         body { 
-            font-family: 'Press Start 2P', cursive;
             margin: 0; 
             padding: 40px 20px;
             display: flex;
@@ -33,200 +28,176 @@
             min-height: 100vh;
             box-sizing: border-box;
             
-            /* 背景：沙灘淡黃色 + 雜點紋理 */
-            background-color: var(--sand-bg);
+            /* 背景：沙灘色 + 像素雜點 */
+            background-color: var(--mc-bg);
             background-image: 
-                radial-gradient(var(--sand-dot) 15%, transparent 16%),
-                radial-gradient(var(--sand-dot) 15%, transparent 16%);
-            background-size: 20px 20px;
-            background-position: 0 0, 10px 10px;
-            overflow-x: hidden; /* 防止 3D 旋轉超出邊界 */
+                radial-gradient(#C6B68D 15%, transparent 16%),
+                radial-gradient(#C6B68D 15%, transparent 16%);
+            background-size: 16px 16px;
+            background-position: 0 0, 8px 8px;
+            font-family: 'Noto Sans TC', sans-serif;
         }
 
         /* --- 標題區 --- */
         .logo-area {
             text-align: center;
-            margin-bottom: 60px; /* 留空間給 3D 標題 */
-            position: relative;
-            z-index: 10;
+            margin-bottom: 50px;
         }
 
         h1 {
+            font-family: 'Press Start 2P', cursive;
             font-size: 2em;
             color: #333;
-            text-shadow: 4px 4px 0 #fff; /* 改用白色陰影對比沙灘 */
-            margin-bottom: 20px;
+            text-shadow: 4px 4px 0 #fff;
+            margin-bottom: 15px;
             line-height: 1.5;
         }
 
-        /* 閃爍標語 */
         .splash-text {
-            color: #FF5555; /* 改用紅色比較顯眼 */
-            font-size: 1em;
+            font-family: 'Press Start 2P', cursive;
+            color: #FF5555;
+            font-size: 0.9em;
             text-shadow: 2px 2px 0 #fff;
-            transform: rotate(-10deg);
-            animation: pulse 0.6s infinite alternate;
+            transform: rotate(-8deg);
+            animation: pulse 0.8s infinite alternate;
             display: inline-block;
-            background: rgba(255,255,255,0.5);
-            padding: 5px;
-            border-radius: 5px;
+            background: #fff;
+            padding: 5px 10px;
+            border: 2px solid #333;
         }
 
         @keyframes pulse {
-            from { transform: scale(1) rotate(-10deg); }
-            to { transform: scale(1.1) rotate(-10deg); }
+            from { transform: scale(1) rotate(-8deg); }
+            to { transform: scale(1.1) rotate(-8deg); }
         }
 
         /* --- 選單容器 --- */
         .menu-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 60px; /* 拉大間距，因為方塊旋轉後佔位較大 */
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
             width: 100%;
-            max-width: 1200px;
-            margin-bottom: 80px;
-            perspective: 1000px; /* 3D 透視點 */
+            max-width: 1000px;
+            margin-bottom: 60px;
         }
 
-        /* --- 3D 立方體按鈕結構 --- */
-        .cube-wrapper {
-            width: 160px;
-            height: 160px;
+        /* --- [核心] 2D 像素卡片按鈕 --- */
+        .mc-card {
+            display: flex;
+            flex-direction: column;
+            text-decoration: none;
             position: relative;
-            transform-style: preserve-3d;
-            /* 預設視角：旋轉成 45 度等角 */
-            transform: rotateX(-30deg) rotateY(-45deg);
-            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            cursor: pointer;
-            text-decoration: none; /* 去除連結底線 */
-            margin: 20px; /* 額外邊距 */
+            
+            /* 最外層粗框 */
+            border: 4px solid var(--mc-border);
+            background-color: var(--mc-border); /* 填補縫隙 */
+            
+            /* 陰影增加層次感 */
+            box-shadow: 6px 6px 0 rgba(0,0,0,0.2);
+            transition: transform 0.1s, box-shadow 0.1s;
         }
 
-        /* 滑鼠懸停：方塊浮起 */
-        .cube-wrapper:hover {
-            transform: rotateX(-30deg) rotateY(-45deg) translateY(-20px);
+        .mc-card:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 8px 8px 0 rgba(0,0,0,0.25);
+            filter: brightness(1.05);
         }
 
-        /* 滑鼠點擊：方塊壓下 */
-        .cube-wrapper:active {
-            transform: rotateX(-30deg) rotateY(-45deg) translateY(10px);
+        .mc-card:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 rgba(0,0,0,0.2);
         }
 
-        /* 立方體的面 */
-        .face {
-            position: absolute;
-            width: 160px;
+        /* 上半部：綠色區 (放圖示) */
+        .card-top {
+            background-color: var(--mc-green);
             height: 160px;
-            border: 4px solid rgba(0,0,0,0.2); /* 淡淡的黑框增加質感 */
-            box-sizing: border-box;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 20px;
-            font-weight: bold;
-            color: white;
+            box-shadow: var(--inset-light), var(--inset-dark); /* 內發光質感 */
+            border-bottom: 4px solid rgba(0,0,0,0.1); /* 分隔線 */
+        }
+
+        .pixel-icon {
+            font-size: 4.5em;
+            /* 讓 Emoji 也有像素邊框感 */
+            filter: drop-shadow(3px 3px 0 rgba(0,0,0,0.3));
+        }
+
+        /* 下半部：棕色區 (放文字) */
+        .card-bottom {
+            background-color: var(--mc-brown);
+            padding: 20px 10px;
             text-align: center;
-            backface-visibility: hidden; /* 隱藏背面 */
-        }
-
-        /* 1. 上面 (Top) - 純草綠色 */
-        .face.top {
-            background-color: var(--grass-top);
-            transform: rotateX(90deg) translateZ(80px);
-            /* 加上內發光質感 */
-            box-shadow: inset 0 0 20px rgba(255,255,255,0.2);
-        }
-
-        /* 2. 正面 (Front / Left) - 亮面 */
-        .face.front {
-            /* 漸層：上 20% 草綠，下 80% 泥土 */
-            background: linear-gradient(
-                to bottom, 
-                var(--grass-side) 0%, var(--grass-side) 20%, 
-                var(--dirt-side) 20%, var(--dirt-side) 100%
-            );
-            transform: translateZ(80px);
-        }
-
-        /* 3. 右面 (Right) - 暗面 (模擬陰影) */
-        .face.right {
-            /* 漸層：顏色比正面更深 */
-            background: linear-gradient(
-                to bottom, 
-                var(--grass-side) 0%, var(--grass-side) 20%, 
-                var(--dirt-shadow) 20%, var(--dirt-shadow) 100%
-            );
-            /* 讓這面看起來暗一點 */
-            filter: brightness(0.85); 
-            transform: rotateY(90deg) translateZ(80px);
-        }
-
-        /* --- 方塊上的內容 --- */
-        
-        /* 放在頂部的圖示 */
-        .cube-icon {
-            font-size: 3.5em;
-            transform: rotate(-45deg); /* 修正圖示角度，讓它面對使用者 */
-            filter: drop-shadow(4px 4px 0 rgba(0,0,0,0.3));
-        }
-
-        /* 放在側面的文字 */
-        .cube-text {
-            font-size: 0.8em;
-            text-shadow: 2px 2px 0 #000;
-            line-height: 1.4;
-            padding-top: 30px; /* 避開草皮 */
-        }
-
-        /* --- 懸浮文字 (標籤) --- */
-        /* 因為 3D 方塊文字可能較難閱讀，我們在方塊下方加一個飄浮標籤 */
-        .label-tag {
-            position: absolute;
-            bottom: -80px; /* 放在方塊下方 */
-            left: 50%;
-            transform: translateX(-50%) rotateY(45deg) rotateX(30deg); /* 反向旋轉回來 */
-            background: rgba(0,0,0,0.7);
+            box-shadow: var(--inset-light), var(--inset-dark);
             color: #fff;
-            padding: 8px 15px;
-            border-radius: 4px;
-            font-size: 0.8em;
-            white-space: nowrap;
-            opacity: 0;
-            transition: opacity 0.3s, transform 0.3s;
-            pointer-events: none;
         }
 
-        .cube-wrapper:hover .label-tag {
-            opacity: 1;
-            transform: translateX(-50%) rotateY(45deg) rotateX(30deg) translateY(-10px);
+        .en-title {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 1.2em;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            text-shadow: 3px 3px 0 #000; /* 黑色硬陰影 */
+            text-transform: uppercase;
         }
 
-        /* --- 後台管理 (TNT / 紅石風格) --- */
-        .admin-wrapper .face.top { background-color: #D32F2F; } /* 紅色頂部 */
-        .admin-wrapper .face.front { 
-            background: repeating-linear-gradient(
-                45deg, 
-                #fff, #fff 10px, 
-                #D32F2F 10px, #D32F2F 20px
-            ); 
+        .zh-title {
+            font-size: 1.6em;
+            font-weight: 900; /* 最粗體 */
+            text-shadow: 2px 2px 0 #000;
+            letter-spacing: 2px;
         }
-        .admin-wrapper .face.right { background-color: #B71C1C; }
 
+        .desc-text {
+            font-size: 0.9em;
+            color: #ccc;
+            margin-top: 5px;
+            font-weight: normal;
+            text-shadow: 1px 1px 0 #000;
+        }
+
+        /* --- 後台管理 (基岩灰風格) --- */
         .admin-section {
-            margin-top: 50px;
-            border-top: 2px dashed #aaa;
-            padding-top: 30px;
             width: 100%;
             text-align: center;
+            border-top: 4px dashed #998A70; /* 沙色虛線 */
+            padding-top: 30px;
         }
 
-        /* RWD 調整 */
+        .admin-btn {
+            display: inline-block;
+            text-decoration: none;
+            border: 4px solid var(--mc-border);
+            background-color: #333; /* 深灰 */
+            box-shadow: 4px 4px 0 rgba(0,0,0,0.2);
+            transition: all 0.1s;
+        }
+
+        .admin-btn-inner {
+            padding: 15px 30px;
+            color: #FF6666; /* 紅色字 */
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.8em;
+            box-shadow: inset 3px 3px 0 #555, inset -3px -3px 0 #111;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        .admin-btn:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 6px 6px 0 rgba(0,0,0,0.25);
+        }
+        .admin-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 rgba(0,0,0,0.2);
+        }
+
+        /* RWD */
         @media (max-width: 600px) {
-            h1 { font-size: 1.5em; }
-            .menu-container { gap: 80px; flex-direction: column; align-items: center; }
-            .cube-wrapper { transform: rotateX(-20deg) rotateY(-45deg); } /* 手機版角度稍微平一點比較好按 */
-            .label-tag { opacity: 1; bottom: -60px; } /* 手機版直接顯示標籤 */
+            h1 { font-size: 1.4em; }
+            .menu-container { grid-template-columns: 1fr; }
+            .card-top { height: 140px; }
         }
 
     </style>
@@ -235,47 +206,52 @@
 
     <div class="logo-area">
         <h1>永順國小課後照顧早接系統</h1>
-        <div class="splash-text">系統運作中！</div>
+        <div class="splash-text">System Active!</div>
     </div>
 
     <div class="menu-container">
         
-        <a href="index.html" class="cube-wrapper" target="_blank">
-            <div class="face top"><div class="cube-icon">📷</div></div>
-            <div class="face front"><div class="cube-text">家長<br>掃描</div></div>
-            <div class="face right"></div>
-            <div class="label-tag">進入掃描站</div>
+        <a href="index.html" class="mc-card" target="_blank">
+            <div class="card-top">
+                <div class="pixel-icon">📷</div>
+            </div>
+            <div class="card-bottom">
+                <div class="en-title">SCANNER</div>
+                <div class="zh-title">家長掃描站</div>
+                <div class="desc-text">Click to Scan</div>
+            </div>
         </a>
 
-        <a href="view.html" class="cube-wrapper" target="_blank">
-            <div class="face top"><div class="cube-icon">🛡️</div></div>
-            <div class="face front"><div class="cube-text">警衛<br>看板</div></div>
-            <div class="face right"></div>
-            <div class="label-tag">進入警衛室</div>
+        <a href="view.html" class="mc-card" target="_blank">
+            <div class="card-top">
+                <div class="pixel-icon">🛡️</div>
+            </div>
+            <div class="card-bottom">
+                <div class="en-title">GUARD VIEW</div>
+                <div class="zh-title">警衛室看板</div>
+                <div class="desc-text">Monitor Status</div>
+            </div>
         </a>
 
-        <a href="directory.html" class="cube-wrapper" target="_blank">
-            <div class="face top"><div class="cube-icon">💎</div></div>
-            <div class="face front"><div class="cube-text">班級<br>入口</div></div>
-            <div class="face right"></div>
-            <div class="label-tag">老師請進</div>
+        <a href="directory.html" class="mc-card" target="_blank">
+            <div class="card-top">
+                <div class="pixel-icon">💎</div>
+            </div>
+            <div class="card-bottom">
+                <div class="en-title">CLASSROOM</div>
+                <div class="zh-title">各班教室入口</div>
+                <div class="desc-text">Teacher Only</div>
+            </div>
         </a>
 
     </div>
 
     <div class="admin-section">
-        <p style="font-size: 0.7em; color: #666; margin-bottom: 20px;">系統後台 (危險區域)</p>
-        
-        <div style="display:flex; justify-content:center;">
-            <a href="management.html" class="cube-wrapper admin-wrapper" style="width:100px; height:100px;" target="_blank">
-                <div class="face top" style="width:100px; height:100px; transform: rotateX(90deg) translateZ(50px);">
-                    <div class="cube-icon" style="font-size:2em;">⚙️</div>
-                </div>
-                <div class="face front" style="width:100px; height:100px; transform: translateZ(50px);"></div>
-                <div class="face right" style="width:100px; height:100px; transform: rotateY(90deg) translateZ(50px);"></div>
-                <div class="label-tag">清空資料庫</div>
-            </a>
-        </div>
+        <a href="management.html" class="admin-btn" target="_blank">
+            <div class="admin-btn-inner">
+                ⚙️ ADMIN (RESET DB)
+            </div>
+        </a>
     </div>
 
 </body>
