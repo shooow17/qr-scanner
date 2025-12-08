@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>校園接送系統 - 主控台</title>
+    
+    <style>
+        body { 
+            font-family: "Microsoft JhengHei", Arial, sans-serif; 
+            background-color: #f5f5f5; 
+            margin: 0; 
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.2em;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 1.1em;
+            text-align: center;
+        }
+
+        /* 卡片容器 */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            width: 100%;
+            max-width: 1000px;
+            margin-bottom: 40px;
+        }
+
+        /* 功能卡片 */
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            text-decoration: none;
+            color: #333;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            transition: transform 0.3s, box-shadow 0.3s;
+            border-top: 5px solid #ccc; /* 預設顏色 */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .icon {
+            font-size: 3.5em;
+            margin-bottom: 15px;
+        }
+
+        .card-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .card-desc {
+            font-size: 0.9em;
+            color: #777;
+            line-height: 1.5;
+        }
+
+        /* 各別卡片配色 */
+        .card.scanner { border-top-color: #4CAF50; } /* 綠色 */
+        .card.guard { border-top-color: #FF9800; }   /* 橘色 */
+        .card.teacher { border-top-color: #2196F3; } /* 藍色 */
+
+        /* 後台管理區塊 */
+        .admin-section {
+            width: 100%;
+            max-width: 1000px;
+            border-top: 2px dashed #ddd;
+            padding-top: 30px;
+            text-align: center;
+        }
+
+        .btn-admin {
+            display: inline-block;
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            color: #d32f2f;
+            padding: 12px 25px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 0.9em;
+            transition: all 0.2s;
+        }
+
+        .btn-admin:hover {
+            background-color: #d32f2f;
+            color: white;
+            border-color: #d32f2f;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>🏫 校園接送即時通報系統</h1>
+    <div class="subtitle">請選擇您的操作身分</div>
+
+    <div class="grid-container">
+        
+        <a href="index.html" class="card scanner" target="_blank">
+            <div class="icon">📷</div>
+            <div class="card-title">家長掃描站</div>
+            <div class="card-desc">位於校門口<br>供家長掃描 QR Code 使用</div>
+        </a>
+
+        <a href="view.html" class="card guard" target="_blank">
+            <div class="icon">👮‍♂️</div>
+            <div class="card-title">警衛室看板</div>
+            <div class="card-desc">查看即時接送資訊<br>與匯出報表</div>
+        </a>
+
+        <a href="directory.html" class="card teacher" target="_blank">
+            <div class="icon">👩‍🏫</div>
+            <div class="card-title">各班教室入口</div>
+            <div class="card-desc">老師由此進入<br>選擇班級並接收通知</div>
+        </a>
+
+    </div>
+
+    <div class="admin-section">
+        <p style="color: #999; margin-bottom: 15px; font-size: 0.9em;">系統維護區域</p>
+        <a href="management.html" class="btn-admin" target="_blank">⚙️ 進入後台管理 (清空資料庫)</a>
+    </div>
+
+</body>
+</html>
