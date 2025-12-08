@@ -41,29 +41,45 @@
         /* --- 標題區 --- */
         .logo-area {
             text-align: center;
-            margin-bottom: 100px;
+            margin-bottom: 60px; /* 增加間距 */
         }
 
         h1 {
-            font-family: 'Press Start 2P', cursive;
-            font-size: 4em;
-            color: #333;
-            text-shadow: 2px 2px 0 #fff;
-            margin-bottom: 15px;
-            line-height: 1.5;
+            /* [修改] 字體設定 */
+            font-family: 'Press Start 2P', 'Noto Sans TC', sans-serif;
+            font-weight: 900; /* 最粗體 */
+            
+            /* [修改] 放大兩倍以上 */
+            font-size: 4.5em; 
+            
+            /* [修改] 淺灰色字 */
+            color: #EEEEEE; 
+            
+            /* [修改] 黑色硬陰影 (加大偏移量) */
+            text-shadow: 
+                6px 6px 0 #000,
+                -2px -2px 0 #000, /* 加一點描邊效果讓字更清楚 */
+                2px -2px 0 #000,
+                -2px 2px 0 #000,
+                2px 2px 0 #000;
+            
+            margin-bottom: 20px;
+            line-height: 1.3;
+            letter-spacing: -2px; /* 字距稍微縮緊一點，更有張力 */
         }
 
         .splash-text {
             font-family: 'Press Start 2P', cursive;
             color: #FF5555;
-            font-size: 0.9em;
-            text-shadow: 2px 2px 0 #fff;
+            font-size: 1.2em; /* 這裡也稍微放大 */
+            text-shadow: 3px 3px 0 #000; /* 改成黑色陰影對比更強 */
             transform: rotate(-8deg);
             animation: pulse 0.8s infinite alternate;
             display: inline-block;
             background: #fff;
-            padding: 5px 10px;
-            border: 2px solid #333;
+            padding: 8px 15px;
+            border: 3px solid #333;
+            box-shadow: 4px 4px 0 rgba(0,0,0,0.2);
         }
 
         @keyframes pulse {
@@ -75,9 +91,9 @@
         .menu-container {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 30px;
+            gap: 40px;
             width: 100%;
-            max-width: 1000px;
+            max-width: 1100px; /* 稍微放寬 */
             margin-bottom: 60px;
         }
 
@@ -93,25 +109,25 @@
             background-color: var(--mc-border); /* 填補縫隙 */
             
             /* 陰影增加層次感 */
-            box-shadow: 6px 6px 0 rgba(0,0,0,0.2);
+            box-shadow: 8px 8px 0 rgba(0,0,0,0.3); /* 陰影加深 */
             transition: transform 0.1s, box-shadow 0.1s;
         }
 
         .mc-card:hover {
-            transform: translate(-2px, -2px);
-            box-shadow: 8px 8px 0 rgba(0,0,0,0.25);
-            filter: brightness(1.05);
+            transform: translate(-4px, -4px);
+            box-shadow: 12px 12px 0 rgba(0,0,0,0.3);
+            filter: brightness(1.1);
         }
 
         .mc-card:active {
-            transform: translate(2px, 2px);
-            box-shadow: 2px 2px 0 rgba(0,0,0,0.2);
+            transform: translate(4px, 4px);
+            box-shadow: 4px 4px 0 rgba(0,0,0,0.3);
         }
 
         /* 上半部：綠色區 (放圖示) */
         .card-top {
             background-color: var(--mc-green);
-            height: 160px;
+            height: 180px; /* 稍微加高 */
             display: flex;
             justify-content: center;
             align-items: center;
@@ -120,15 +136,15 @@
         }
 
         .pixel-icon {
-            font-size: 4.5em;
+            font-size: 5em; /* 圖示放大 */
             /* 讓 Emoji 也有像素邊框感 */
-            filter: drop-shadow(3px 3px 0 rgba(0,0,0,0.3));
+            filter: drop-shadow(4px 4px 0 rgba(0,0,0,0.4));
         }
 
         /* 下半部：棕色區 (放文字) */
         .card-bottom {
             background-color: var(--mc-brown);
-            padding: 20px 10px;
+            padding: 25px 10px;
             text-align: center;
             box-shadow: var(--inset-light), var(--inset-dark);
             color: #fff;
@@ -136,26 +152,27 @@
 
         .en-title {
             font-family: 'Press Start 2P', cursive;
-            font-size: 1.2em;
+            font-size: 1.3em;
             letter-spacing: 1px;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             text-shadow: 3px 3px 0 #000; /* 黑色硬陰影 */
             text-transform: uppercase;
         }
 
         .zh-title {
-            font-size: 1.6em;
+            font-family: 'Noto Sans TC', sans-serif;
+            font-size: 1.8em;
             font-weight: 900; /* 最粗體 */
-            text-shadow: 2px 2px 0 #000;
+            text-shadow: 3px 3px 0 #000;
             letter-spacing: 2px;
         }
 
         .desc-text {
-            font-size: 0.9em;
-            color: #ccc;
-            margin-top: 5px;
+            font-size: 1em;
+            color: #ddd;
+            margin-top: 8px;
             font-weight: normal;
-            text-shadow: 1px 1px 0 #000;
+            text-shadow: 2px 2px 0 #000;
         }
 
         /* --- 後台管理 (基岩灰風格) --- */
@@ -163,7 +180,7 @@
             width: 100%;
             text-align: center;
             border-top: 4px dashed #998A70; /* 沙色虛線 */
-            padding-top: 30px;
+            padding-top: 40px;
         }
 
         .admin-btn {
@@ -171,33 +188,34 @@
             text-decoration: none;
             border: 4px solid var(--mc-border);
             background-color: #333; /* 深灰 */
-            box-shadow: 4px 4px 0 rgba(0,0,0,0.2);
+            box-shadow: 6px 6px 0 rgba(0,0,0,0.3);
             transition: all 0.1s;
         }
 
         .admin-btn-inner {
-            padding: 15px 30px;
+            padding: 20px 40px;
             color: #FF6666; /* 紅色字 */
             font-family: 'Press Start 2P', cursive;
-            font-size: 0.8em;
+            font-size: 1em;
             box-shadow: inset 3px 3px 0 #555, inset -3px -3px 0 #111;
             text-shadow: 2px 2px 0 #000;
         }
 
         .admin-btn:hover {
             transform: translate(-2px, -2px);
-            box-shadow: 6px 6px 0 rgba(0,0,0,0.25);
+            box-shadow: 8px 8px 0 rgba(0,0,0,0.35);
         }
         .admin-btn:active {
             transform: translate(2px, 2px);
-            box-shadow: 2px 2px 0 rgba(0,0,0,0.2);
+            box-shadow: 2px 2px 0 rgba(0,0,0,0.3);
         }
 
-        /* RWD */
+        /* RWD: 手機板自動縮小字體 */
         @media (max-width: 600px) {
-            h1 { font-size: 1.4em; }
+            h1 { font-size: 2.2em; text-shadow: 3px 3px 0 #000; }
             .menu-container { grid-template-columns: 1fr; }
-            .card-top { height: 140px; }
+            .card-top { height: 150px; }
+            .pixel-icon { font-size: 4em; }
         }
 
     </style>
@@ -206,7 +224,7 @@
 
     <div class="logo-area">
         <h1>永順國小課後照顧早接系統</h1>
-        <div class="splash-text">系統運作中</div>
+        
     </div>
 
     <div class="menu-container">
@@ -249,7 +267,7 @@
     <div class="admin-section">
         <a href="management.html" class="admin-btn" target="_blank">
             <div class="admin-btn-inner">
-                ⚙️ 管理介面 (RESET DB)
+                ⚙️ ADMIN (RESET DB)
             </div>
         </a>
     </div>
