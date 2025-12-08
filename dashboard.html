@@ -3,229 +3,317 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>麥塊校園接送系統 - 主控台</title>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <title>永順國小課後照顧早接系統</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Sans+TC:wght@700&display=swap" rel="stylesheet">
     
     <style>
-        /* --- 全域設定 --- */
+        :root {
+            /* 定義明亮的 Minecraft 配色 */
+            --mc-green: #6ABA2E;       /* 明亮的草綠 */
+            --mc-green-dark: #4A8F1B;  /* 草綠陰影 */
+            --mc-brown: #79553A;       /* 泥土棕 */
+            --mc-brown-dark: #4E3424;  /* 泥土陰影 */
+            --mc-border: #1E1E1E;      /* 深色邊框 */
+            --mc-shadow: rgba(0,0,0,0.4);
+            --mc-highlight: rgba(255,255,255,0.25);
+        }
+
         body { 
-            font-family: 'Press Start 2P', cursive; /* 像素字體 */
+            font-family: 'Press Start 2P', cursive;
             margin: 0; 
-            padding: 20px;
+            padding: 40px 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
             box-sizing: border-box;
-            /* 經典的泥土背景紋理 */
-            background-color: #382618;
+            
+            /* 背景：更細緻的泥土紋理 */
+            background-color: #2e2118;
             background-image: 
-                linear-gradient(45deg, #2b1d12 25%, transparent 25%, transparent 75%, #2b1d12 75%, #2b1d12),
-                linear-gradient(45deg, #2b1d12 25%, transparent 25%, transparent 75%, #2b1d12 75%, #2b1d12);
+                radial-gradient(circle, #3d2d22 10%, transparent 10%),
+                radial-gradient(circle, #3d2d22 10%, transparent 10%);
             background-size: 20px 20px;
             background-position: 0 0, 10px 10px;
             color: #fff;
         }
 
-        /* --- 標題區 (中文化) --- */
+        /* --- 標題區 --- */
         .logo-area {
             text-align: center;
-            margin-bottom: 40px;
-            margin-top: 20px;
+            margin-bottom: 50px;
+            position: relative;
         }
 
         h1 {
-            font-size: 2em;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 2.2em;
             color: #fff;
-            text-shadow: 4px 4px 0 #3f3f3f;
-            margin-bottom: 15px;
-            line-height: 1.5;
+            /* 標題立體字效果 */
+            text-shadow: 
+                4px 4px 0 #3f3f3f,
+                -2px -2px 0 #3f3f3f,
+                2px -2px 0 #3f3f3f,
+                -2px 2px 0 #3f3f3f,
+                4px 4px 0 #000;
+            margin-bottom: 20px;
+            line-height: 1.4;
+            letter-spacing: 2px;
         }
 
-        /* 黃色閃爍標語 (Splash Text) */
+        /* 黃色閃爍標語 */
         .splash-text {
-            color: #ffff55;
-            font-size: 1em;
-            text-shadow: 2px 2px 0 #3f3f3f;
-            transform: rotate(-8deg);
-            animation: pulse 0.8s infinite alternate;
-            display: inline-block;
+            color: #FFFF55;
+            font-size: 1.2em;
+            text-shadow: 3px 3px 0 #3F3F3F;
+            font-weight: bold;
+            position: absolute;
+            bottom: -20px;
+            right: 0;
+            transform: rotate(-15deg);
+            animation: bounce 0.8s infinite alternate;
+            background-color: rgba(0,0,0,0.3);
+            padding: 5px 10px;
+            border-radius: 5px;
         }
 
-        @keyframes pulse {
-            from { transform: scale(1) rotate(-8deg); }
-            to { transform: scale(1.1) rotate(-8deg); }
+        @keyframes bounce {
+            from { transform: scale(1) rotate(-15deg); }
+            to { transform: scale(1.1) rotate(-15deg); }
         }
 
         /* --- 選單容器 --- */
         .menu-container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 30px;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
             width: 100%;
-            max-width: 900px;
-            margin-bottom: 50px;
+            max-width: 1000px;
+            margin-bottom: 60px;
         }
 
-        /* --- Minecraft 風格按鈕外框 --- */
-        .mc-btn {
+        /* --- [核心] 3D 草方塊按鈕設計 --- */
+        .mc-block-btn {
             display: block;
             text-decoration: none;
-            color: white;
-            text-align: center;
             position: relative;
-            padding: 4px; /* 最外層黑框厚度 */
-            background: #000; 
+            /* 預留 3D 下沉空間 */
+            margin-bottom: 10px; 
             transition: transform 0.1s;
         }
 
-        .mc-btn:active {
-            transform: translateY(6px); /* 按下效果 */
-        }
-
-        /* --- [核心修改] 按鈕內部：統一的草方塊樣式 --- */
-        .btn-inner {
+        /* 方塊本體 */
+        .block-face {
             display: flex;
             flex-direction: column;
             align-items: center;
-            height: 220px; /* 增加高度以容納分層 */
+            height: 260px;
             position: relative;
             
-            /* 草方塊材質：使用硬邊漸層模擬上綠下棕 */
+            /* 1. 外框 (粗黑線) */
+            border: 4px solid var(--mc-border);
+            
+            /* 2. 背景：上綠下棕 (硬邊漸層) */
             background: linear-gradient(
-                to bottom, 
-                #7cb342 0%, #7cb342 55%,  /* 上半部綠色 */
-                #5d4037 55%, #5d4037 100% /* 下半部棕色 */
+                to bottom,
+                var(--mc-green) 0%, 
+                var(--mc-green) 50%, 
+                var(--mc-brown) 50%, 
+                var(--mc-brown) 100%
             );
-            
-            /* 像素風格邊框與內發光 */
-            border: 4px solid #3E2723; /* 深棕色邊框 */
+
+            /* 3. 3D 立體陰影 (側面厚度感) */
             box-shadow: 
-                inset 4px 4px 0 rgba(255,255,255,0.3), /* 左上高光 */
-                inset -4px -4px 0 rgba(0,0,0,0.3); /* 右下陰影 */
+                /* 內發光 (Highlight) - 讓方塊看起來有稜角 */
+                inset 4px 4px 0 var(--mc-highlight),
+                inset -4px -4px 0 var(--mc-shadow),
+                /* 底部立體厚度 (模擬 3D) */
+                0 8px 0 #161616, /* 黑色底座 */
+                0 8px 10px rgba(0,0,0,0.5); /* 投影 */
             
-            padding-top: 25px;
+            transition: all 0.1s;
         }
 
-        /* 圖示容器 (深色背景框) */
-        .icon-container {
-            background-color: rgba(0,0,0,0.6);
-            border: 3px solid #222;
-            border-radius: 4px;
-            padding: 8px;
-            margin-bottom: 10px;
-            box-shadow: inset 0 0 10px #000;
+        /* 滑鼠移過去的效果 */
+        .mc-block-btn:hover .block-face {
+            filter: brightness(1.1); /* 變亮 */
+            transform: translateY(-2px); /* 稍微浮起 */
+            box-shadow: 
+                inset 4px 4px 0 var(--mc-highlight),
+                inset -4px -4px 0 var(--mc-shadow),
+                0 10px 0 #161616,
+                0 15px 20px rgba(0,0,0,0.4);
         }
 
-        .icon {
-            font-size: 3em;
-            margin-bottom: 0;
-            filter: drop-shadow(2px 2px 0 #000);
+        /* 按下去的效果 */
+        .mc-block-btn:active .block-face {
+            transform: translateY(8px); /* 往下壓 */
+            box-shadow: 
+                inset 4px 4px 0 var(--mc-highlight),
+                inset -4px -4px 0 var(--mc-shadow),
+                0 0 0 #161616, /* 厚度消失 */
+                0 0 0 rgba(0,0,0,0);
         }
 
-        /* 文字區域 */
-        .text-container {
-            margin-top: auto; /* 將文字推到下方棕色區域 */
-            padding-bottom: 20px;
-        }
-
-        .btn-title {
-            font-size: 1.3em;
-            text-shadow: 3px 3px 0 #000;
-            line-height: 1.4;
-            font-weight: bold;
-        }
-
-        .btn-desc {
-            font-size: 0.7em;
-            color: #ddd;
-            margin-top: 8px;
-            text-shadow: 1px 1px 0 #000;
-            font-family: Arial, sans-serif; /* 說明文字維持易讀字體 */
-            opacity: 0.9;
-        }
-
-        /* --- 後台管理區 (維持基岩風格以示區別) --- */
-        .admin-section {
+        /* --- 按鈕內部內容 --- */
+        
+        /* 圖示區 (位於綠色部分) */
+        .icon-zone {
+            height: 50%;
             width: 100%;
-            max-width: 900px;
-            text-align: center;
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 4px dashed #555;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
         }
 
-        .mc-btn-small {
-            display: inline-block;
-            text-decoration: none;
-            background-color: #333;
-            padding: 4px;
-            background: #000;
-        }
-
-        .mc-btn-small .btn-inner-small {
-            background-color: #2a2a2a; /* 深灰基岩 */
-            color: #ff5555; /* 紅色警告字 */
-            padding: 15px 30px;
-            font-size: 0.8em;
-            border: 3px solid #1a1a1a;
-            box-shadow: inset 3px 3px 0 #444, inset -3px -3px 0 #000;
-            text-shadow: 2px 2px 0 #000;
+        .pixel-icon {
+            font-size: 4em;
+            /* 給 emoji 加黑邊，看起來更像貼圖 */
+            filter: drop-shadow(4px 4px 0 rgba(0,0,0,0.3));
+            transition: transform 0.2s;
         }
         
-        .mc-btn-small:active { transform: translateY(4px); }
-        .mc-btn-small:hover .btn-inner-small { background-color: #3a3a3a; }
-
-        /* RWD 調整 */
-        @media (max-width: 600px) {
-            h1 { font-size: 1.5em; }
-            .menu-container { grid-template-columns: 1fr; }
-            .btn-inner { height: 200px; }
+        .mc-block-btn:hover .pixel-icon {
+            transform: scale(1.1) rotate(5deg);
         }
 
+        /* 文字區 (位於棕色部分) */
+        .text-zone {
+            height: 50%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            position: relative;
+        }
+
+        /* 主要英文標題 (像素字體) */
+        .main-title {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 1.4em;
+            color: #fff;
+            text-shadow: 3px 3px 0 #000;
+            margin-bottom: 8px;
+            /* 讓文字跨越綠棕交界處，像圖片那樣 */
+            position: absolute;
+            top: -15px; 
+            width: 100%;
+            z-index: 2;
+        }
+
+        /* 中文標題 */
+        .sub-title {
+            font-family: "Noto Sans TC", sans-serif; /* 使用粗黑體比較清楚 */
+            font-weight: 900;
+            font-size: 1.8em;
+            color: #FFEA00; /* 亮黃色 */
+            text-shadow: 2px 2px 0 #3e2723;
+            margin-top: 15px;
+        }
+
+        /* 底部說明小字 */
+        .desc-text {
+            font-family: Arial, sans-serif;
+            font-size: 0.8em;
+            color: #ccc;
+            margin-top: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* --- 後台管理 (基岩風格) --- */
+        .admin-section {
+            margin-top: 40px;
+            text-align: center;
+        }
+
+        .bedrock-btn {
+            display: inline-block;
+            background-color: #2a2a2a;
+            border: 4px solid #000;
+            color: #aaa;
+            padding: 15px 30px;
+            text-decoration: none;
+            font-size: 0.9em;
+            box-shadow: 
+                inset 3px 3px 0 #444, 
+                inset -3px -3px 0 #111,
+                0 6px 0 #000;
+            transition: all 0.1s;
+        }
+
+        .bedrock-btn:hover {
+            color: #ff5555;
+            background-color: #333;
+            transform: translateY(-2px);
+            box-shadow: 
+                inset 3px 3px 0 #555, 
+                inset -3px -3px 0 #111,
+                0 8px 0 #000;
+        }
+
+        .bedrock-btn:active {
+            transform: translateY(6px);
+            box-shadow: none;
+        }
+
+        /* RWD */
+        @media (max-width: 600px) {
+            h1 { font-size: 1.5em; }
+            .menu-container { grid-template-columns: 1fr; padding: 0 20px; }
+            .block-face { height: 220px; }
+            .pixel-icon { font-size: 3em; }
+            .sub-title { font-size: 1.5em; }
+        }
     </style>
 </head>
 <body>
 
     <div class="logo-area">
-        <h1>麥塊校園接送系統</h1>
+        <h1>永順國小課後照顧早接系統</h1>
         <div class="splash-text">系統運作中！</div>
     </div>
 
     <div class="menu-container">
         
-        <a href="index.html" class="mc-btn" target="_blank">
-            <div class="btn-inner">
-                <div class="icon-container">
-                    <div class="icon">📷</div>
+        <a href="index.html" class="mc-block-btn" target="_blank">
+            <div class="block-face">
+                <div class="icon-zone">
+                    <div class="pixel-icon">📷</div>
                 </div>
-                <div class="text-container">
-                    <div class="btn-title">家長掃描站</div>
-                    <div class="btn-desc">SCANNER</div>
-                </div>
-            </div>
-        </a>
-
-        <a href="view.html" class="mc-btn" target="_blank">
-            <div class="btn-inner">
-                <div class="icon-container">
-                    <div class="icon">🛡️</div>
-                </div>
-                <div class="text-container">
-                    <div class="btn-title">警衛室看板</div>
-                    <div class="btn-desc">GUARD VIEW</div>
+                <div class="text-zone">
+                    <div class="main-title">SCANNER</div>
+                    <div class="sub-title">家長掃描</div>
+                    <div class="desc-text">Click to Scan</div>
                 </div>
             </div>
         </a>
 
-        <a href="directory.html" class="mc-btn" target="_blank">
-            <div class="btn-inner">
-                <div class="icon-container">
-                    <div class="icon">💎</div>
+        <a href="view.html" class="mc-block-btn" target="_blank">
+            <div class="block-face">
+                <div class="icon-zone">
+                    <div class="pixel-icon">🛡️</div>
                 </div>
-                <div class="text-container">
-                    <div class="btn-title">各班教室入口</div>
-                    <div class="btn-desc">CLASSROOMS</div>
+                <div class="text-zone">
+                    <div class="main-title">GUARD</div>
+                    <div class="sub-title">警衛看板</div>
+                    <div class="desc-text">Monitor View</div>
+                </div>
+            </div>
+        </a>
+
+        <a href="directory.html" class="mc-block-btn" target="_blank">
+            <div class="block-face">
+                <div class="icon-zone">
+                    <div class="pixel-icon">💎</div>
+                </div>
+                <div class="text-zone">
+                    <div class="main-title">TEACHER</div>
+                    <div class="sub-title">班級入口</div>
+                    <div class="desc-text">Select Class</div>
                 </div>
             </div>
         </a>
@@ -233,11 +321,8 @@
     </div>
 
     <div class="admin-section">
-        <p style="font-size: 0.6em; color: #aaa; margin-bottom: 15px; font-family: Arial;">SERVER ADMIN</p>
-        <a href="management.html" class="mc-btn-small" target="_blank">
-            <div class="btn-inner-small">
-                🧨 進入後台 (清空資料庫)
-            </div>
+        <a href="management.html" class="bedrock-btn" target="_blank">
+            ⚙️ 進入後台 (ADMIN)
         </a>
     </div>
 
