@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code 自動產生器</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    
+    <style>
+        body {
+            font-family: "Microsoft JhengHei", Arial, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { color: #333; margin-bottom: 10px; }
+        
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 90%;
+            max-width: 800px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 1em;
+            cursor: pointer;
+            margin: 0 10px;
+            font-weight: bold;
+        }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        
+        #btn-download { background-color: #28a745; display: none; } /* 預設隱藏 */
+        #btn-download:hover { background-color: #218838; }
+
+        /* 進度條 */
+        #progress-container {
+            width: 100%;
+            background-color: #eee;
+            border-radius: 5px;
+            margin-top: 15px;
+            height: 20px;
+            display: none;
+            overflow: hidden;
+        }
+        #progress-bar {
+            height: 100%;
+            width: 0%;
+            background-color: #4CAF50;
+            transition: width 0.2s;
+        }
+
+        /* 預覽區域 */
+        #preview-area {
+            width: 90%;
+            max-width: 1200px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        /* 班級區塊 */
+        .class-section {
+            grid-column: 1 / -1; /* 跨滿整行 */
+            background-color: #fff;
+            padding: 10px 20px;
+            margin-top: 20px;
+            border-left: 5px solid #007bff;
+            border-radius: 4px;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* 單個學生卡片 */
+        .qr-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        
+        .qr-card img {
+            margin-bottom: 10px;
+            border: 1px solid #eee;
+        }
+
+        .student-info {
+            font-size: 0.9em;
+            color: #555;
+            word-break: break-all;
+        }
+        
+        .back-link {
+            margin-top: 20px;
+            color: #666;
+            text-decoration: none;
+        }
+        .back-link:hover { text-decoration: underline; }
+
+    </style>
+</head>
+<body>
+
+    <h1>QR Code 產生器</h1>
+    <div class="controls">
+        <p>此工具將讀取 Google 試算表，產生全校 QR Code 並依班級打包下載。</p>
+        <button id="btn-load" onclick="loadData()">1. 讀取名單 & 產生預覽</button>
+        <button id="btn-download" onclick="downloadZip()">2. 打包下載 ZIP</button>
+        
+        <div id="progress-container">
+            <div id="progress-bar"></div>
+        </div>
+        <div id="status-text" style="margin-top: 10px; color: #666;"></div>
+    </div>
+
+    <div id="preview-area"></div>
+    
+    <a href="dashboard.html" class="back-link">← 回主控台</a>
+
+    <script>
+        // --- 1. 你的 GAS 網址 (請填入) ---
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZHGM5xMgNFn9Df6BXMVfSesT3BIfHN91NdZjLK5TkHdEOai476VNIlJaw61n3Bxg9CA/exec";
+        // ------------------------------
+
+        let allStudents = []; // 儲存下載下來的資料
+        
+        // 1. 讀取資料並產生預覽
+        async function loadData() {
+            const btnLoad = document.getElementById('btn-load');
+            const previewArea = document.getElementById('preview-area');
+            const statusText = document.getElementById('status-text');
+            const progressContainer = document.getElementById('progress-container');
+            const progressBar = document.getElementById('progress-bar');
+
+            btnLoad.disabled = true;
+            statusText.textContent = "正在連線 Google 試算表...";
+            previewArea.innerHTML = "";
+            allStudents = [];
+
+            try {
+                const response = await fetch(GOOGLE_SCRIPT_URL);
+                const data = await response.json();
+
+                if (data.error) throw new Error(data.error);
+
+                // 轉換資料格式並排序 (按班級 -> ID)
+                const studentsArray = Object.entries(data).map(([id, info]) => ({
+                    id: id,
+                    name: info.name,
+                    class: info.class
+                })).sort((a, b) => {
+                    if (a.class === b.class) return a.id.localeCompare(b.id);
+                    return a.class.localeCompare(b.class);
+                });
+
+                if (studentsArray.length === 0) throw new Error("沒有學生資料");
+
+                statusText.textContent = `共取得 ${studentsArray.length} 筆資料，開始產生 QR Code...`;
+                progressContainer.style.display = 'block';
+                
+                // 開始渲染
+                let currentClass = "";
+                
+                // 使用非同步迴圈避免卡死瀏覽器
+                for (let i = 0; i < studentsArray.length; i++) {
+                    const student = studentsArray[i];
+                    allStudents.push(student); // 存起來給下載用
+
+                    // 如果換班級，插入標題
+                    if (student.class !== currentClass) {
+                        currentClass = student.class;
+                        const classHeader = document.createElement('div');
+                        classHeader.className = 'class-section';
+                        classHeader.textContent = `📂 班級：${currentClass}`;
+                        previewArea.appendChild(classHeader);
+                    }
+
+                    // 建立卡片
+                    const card = document.createElement('div');
+                    card.className = 'qr-card';
+                    
+                    // 建立 QR Code 容器
+                    const qrDiv = document.createElement('div');
+                    // *** 關鍵邏輯 ***
+                    // 內容：ID-姓名 (為了讓掃描器工作)
+                    // 顯示/檔名：ID姓名
+                    const qrContent = `${student.id}-${student.name}`;
+                    
+                    new QRCode(qrDiv, {
+                        text: qrContent,
+                        width: 128,
+                        height: 128
+                    });
+
+                    // 等待圖片生成的小技巧 (QRCode.js 是非同步的)
+                    await new Promise(r => setTimeout(r, 10)); 
+
+                    // 加上文字
+                    const info = document.createElement('div');
+                    info.className = 'student-info';
+                    info.innerHTML = `<b>${student.class}</b><br>${student.id}${student.name}`;
+
+                    card.appendChild(qrDiv);
+                    card.appendChild(info);
+                    previewArea.appendChild(card);
+
+                    // 更新進度條
+                    const progress = Math.round(((i + 1) / studentsArray.length) * 100);
+                    progressBar.style.width = `${progress}%`;
+                    
+                    // 每處理 10 筆休息一下，讓畫面渲染
+                    if (i % 10 === 0) await new Promise(r => setTimeout(r, 0));
+                }
+
+                statusText.textContent = "✅ 預覽完成！請檢查後按下載。";
+                document.getElementById('btn-download').style.display = 'inline-block';
+                btnLoad.textContent = "重新讀取";
+                btnLoad.disabled = false;
+
+            } catch (err) {
+                console.error(err);
+                statusText.textContent = "❌ 發生錯誤：" + err.message;
+                alert("讀取失敗，請檢查網路或 GAS 網址");
+                btnLoad.disabled = false;
+            }
+        }
+
+        // 2. 打包下載
+        async function downloadZip() {
+            if (allStudents.length === 0) return;
+
+            const zip = new JSZip();
+            const statusText = document.getElementById('status-text');
+            const btnDownload = document.getElementById('btn-download');
+            
+            btnDownload.disabled = true;
+            statusText.textContent = "正在打包 ZIP 檔案，請稍候...";
+
+            // 從畫面上抓取已經生成的圖片 (這樣不用重新生成)
+            const cards = document.querySelectorAll('.qr-card');
+            
+            for (let i = 0; i < cards.length; i++) {
+                const student = allStudents[i];
+                const img = cards[i].querySelector('img');
+                
+                if (img) {
+                    // 取得 Base64 圖片資料
+                    const imgData = img.src.split(',')[1];
+                    
+                    // *** 關鍵邏輯：建立資料夾結構 ***
+                    // 結構：班級資料夾 / ID姓名.png
+                    const folder = zip.folder(student.class);
+                    folder.file(`${student.id}${student.name}.png`, imgData, {base64: true});
+                }
+            }
+
+            statusText.textContent = "正在壓縮...";
+            
+            // 產生 ZIP
+            zip.generateAsync({type:"blob"}).then(function(content) {
+                // 下載檔案
+                const today = new Date().toISOString().split('T')[0];
+                saveAs(content, `學生QR_Codes_${today}.zip`);
+                
+                statusText.textContent = "✅ 下載已開始！請查看下載資料夾。";
+                btnDownload.disabled = false;
+            });
+        }
+    </script>
+</body>
+</html>
