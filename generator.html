@@ -7,99 +7,144 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <style>
-        /* --- 全域設定：微軟正黑體、簡約背景 --- */
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3f37c9;
+            --success-color: #4cc9f0;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-main: #2b2d42;
+            --text-sub: #8d99ae;
+        }
+
         body {
             font-family: "Microsoft JhengHei", "Heiti TC", sans-serif;
-            background-color: #f0f2f5; /* 淺灰背景 */
+            background-color: var(--bg-color);
             margin: 0;
-            padding: 30px;
+            padding: 40px 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            color: #333;
+            color: var(--text-main);
         }
 
-        h1 {
-            margin-bottom: 20px;
-            font-weight: bold;
-            color: #1a1a1a;
+        /* --- 標題區 --- */
+        .header-area {
+            text-align: center;
+            margin-bottom: 40px;
         }
         
-        /* 控制面板區塊 */
-        .controls {
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08); /* 柔和陰影 */
-            text-align: center;
-            width: 100%;
-            max-width: 800px;
-            margin-bottom: 30px;
+        h1 {
+            font-size: 2.5em;
+            margin: 0;
+            background: linear-gradient(45deg, var(--primary-color), var(--success-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 900;
+            letter-spacing: 1px;
         }
 
-        .desc-text {
-            color: #666;
-            margin-bottom: 20px;
+        .subtitle {
+            color: var(--text-sub);
+            margin-top: 10px;
             font-size: 1.1em;
         }
 
-        /* --- 標準按鈕樣式 --- */
+        /* --- 控制面板 (玻璃擬態風格) --- */
+        .controls {
+            background: var(--card-bg);
+            padding: 30px 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            text-align: center;
+            width: 100%;
+            max-width: 800px;
+            margin-bottom: 40px;
+            transition: transform 0.3s;
+            border: 1px solid rgba(255,255,255,0.8);
+        }
+
+        .controls:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        }
+
+        /* --- 按鈕群 --- */
+        .btn-group {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 25px;
+        }
+
         button {
             border: none;
-            padding: 12px 24px;
-            border-radius: 6px;
+            padding: 12px 30px;
+            border-radius: 50px; /* 圓形按鈕 */
             font-size: 1em;
             cursor: pointer;
-            margin: 0 10px;
             font-weight: bold;
-            transition: background-color 0.2s;
-            font-family: "Microsoft JhengHei", sans-serif;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: inherit;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
 
-        /* 藍色按鈕 (讀取) */
         #btn-load {
-            background-color: #007bff;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
             color: white;
         }
-        #btn-load:hover { background-color: #0056b3; }
+        #btn-load:hover {
+            filter: brightness(1.1);
+            transform: scale(1.05);
+        }
 
-        /* 綠色按鈕 (下載) */
         #btn-download {
-            background-color: #28a745;
+            background: linear-gradient(135deg, #11998e, #38ef7d);
             color: white;
-            display: none; /* 預設隱藏 */
+            display: none;
         }
-        #btn-download:hover { background-color: #218838; }
+        #btn-download:hover {
+            filter: brightness(1.1);
+            transform: scale(1.05);
+        }
 
-        /* 禁用狀態 */
         button:disabled {
-            background-color: #ccc !important;
+            background: #e0e0e0;
+            color: #999;
+            box-shadow: none;
             cursor: not-allowed;
+            transform: none !important;
         }
 
-        /* 進度條 */
+        /* --- 進度條 --- */
         #progress-container {
             width: 100%;
-            background-color: #e9ecef;
-            border-radius: 50px;
-            margin-top: 20px;
-            height: 10px;
+            background-color: #edf2f4;
+            border-radius: 10px;
+            margin-top: 25px;
+            height: 12px;
             display: none;
             overflow: hidden;
         }
         #progress-bar {
             height: 100%;
             width: 0%;
-            background-color: #007bff;
-            transition: width 0.2s;
+            background: linear-gradient(90deg, var(--success-color), var(--primary-color));
+            border-radius: 10px;
+            transition: width 0.3s ease;
         }
         
         #status-text {
             margin-top: 15px;
-            color: #555;
-            font-size: 0.95em;
+            color: var(--text-sub);
+            font-size: 0.9em;
+            font-weight: 500;
         }
 
         /* --- 預覽區域 --- */
@@ -107,86 +152,134 @@
             width: 100%;
             max-width: 1200px;
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); /* 自動排版 */
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 25px;
+            padding-bottom: 50px;
         }
 
         /* 班級標題 */
         .class-section {
-            grid-column: 1 / -1; /* 跨滿整行 */
-            background-color: #fff;
-            padding: 12px 20px;
+            grid-column: 1 / -1;
+            background: transparent;
+            padding: 15px 0 5px 0;
             margin-top: 20px;
-            border-left: 5px solid #007bff; /* 藍色側邊條 */
-            border-radius: 4px;
-            font-size: 1.3em;
-            font-weight: bold;
-            color: #333;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border-bottom: 2px solid #e0e0e0;
+            color: var(--text-main);
+            font-size: 1.4em;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .class-icon {
+            color: var(--primary-color);
         }
 
-        /* 學生卡片 */
+        /* QR Code 卡片 */
         .qr-card {
             background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            padding: 25px 20px;
+            border-radius: 16px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.03);
             display: flex;
             flex-direction: column;
             align-items: center;
             text-align: center;
-            border: 1px solid #eee;
-        }
-        
-        /* [關鍵] 強制縮小預覽圖片 */
-        /* 雖然原始圖是 800px，但在網頁上只顯示 180px 以免版面爆炸 */
-        .qr-card img {
-            width: 180px !important;
-            height: auto !important;
-            margin-bottom: 15px;
-            border: 1px solid #ddd;
-            padding: 5px;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 1px solid #f0f0f0;
+            position: relative;
+            overflow: hidden;
         }
 
-        .student-info {
-            font-size: 1em;
-            color: #444;
-            line-height: 1.5;
+        .qr-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.08);
+            border-color: var(--success-color);
         }
+        
+        /* 裝飾線條 */
+        .qr-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 6px;
+            background: linear-gradient(90deg, var(--primary-color), var(--success-color));
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .qr-card:hover::before { opacity: 1; }
+
+        .qr-card img {
+            width: 160px !important;
+            height: auto !important;
+            margin-bottom: 20px;
+            padding: 5px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+        }
+
+        .student-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
         .student-id {
             font-size: 0.9em;
-            color: #888;
+            color: #999;
+            background: #f5f5f5;
+            padding: 2px 8px;
+            border-radius: 4px;
         }
         
         .back-link {
-            margin-top: 40px;
-            color: #666;
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: white;
+            color: var(--text-main);
             text-decoration: none;
-            padding: 10px 20px;
-            border: 1px solid #ccc;
+            padding: 12px 20px;
             border-radius: 50px;
-            transition: all 0.2s;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            font-weight: bold;
+            transition: all 0.3s;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         .back-link:hover {
-            background-color: #fff;
-            color: #000;
-            border-color: #000;
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            color: var(--primary-color);
         }
 
     </style>
 </head>
 <body>
 
-    <h1>QR Code 自動生成與下載</h1>
+    <div class="header-area">
+        <h1><i class="fas fa-qrcode"></i>QR Code 自動生成與下載</h1>
+        <div class="subtitle">自動同步 Google 試算表 • 高解析度輸出 • 智慧分班打包</div>
+    </div>
     
     <div class="controls">
-        <div class="desc-text">
-            讀取 Google 試算表名單，產生 800x800 高解析度 QR Code 並依班級打包下載。
-        </div>
+        <p style="color: #666; margin-bottom: 20px;">
+            系統將自動讀取名單，並排除表頭資料。<br>生成的 QR Code 為 <strong>800x800 高解析度</strong>，適合印刷。
+        </p>
         
-        <div>
-            <button id="btn-load" onclick="loadData()">讀取名單 & 產生預覽</button>
-            <button id="btn-download" onclick="downloadZip()">打包下載 ZIP</button>
+        <div class="btn-group">
+            <button id="btn-load" onclick="loadData()">
+                <i class="fas fa-cloud-download-alt"></i> 1. 讀取名單 & 產生預覽
+            </button>
+            <button id="btn-download" onclick="downloadZip()">
+                <i class="fas fa-file-archive"></i> 2. 打包下載 ZIP
+            </button>
         </div>
         
         <div id="progress-container">
@@ -197,12 +290,14 @@
 
     <div id="preview-area"></div>
     
-    <a href="dashboard.html" class="back-link">← 回主控台</a>
+    <a href="dashboard.html" class="back-link">
+        <i class="fas fa-arrow-left"></i> 回主控台
+    </a>
 
     <script>
-        // --- 1. 你的 GAS 網址 (請確認權限為 '任何人') ---
+        // --- 設定 ---
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZHGM5xMgNFn9Df6BXMVfSesT3BIfHN91NdZjLK5TkHdEOai476VNIlJaw61n3Bxg9CA/exec";
-        // ------------------------------------------------
+        // -----------
 
         let allStudents = []; 
         
@@ -214,7 +309,7 @@
             const progressBar = document.getElementById('progress-bar');
 
             btnLoad.disabled = true;
-            statusText.textContent = "正在連線 Google 試算表...";
+            statusText.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在連線 Google 試算表...';
             previewArea.innerHTML = "";
             allStudents = [];
 
@@ -224,24 +319,34 @@
 
                 if (data.error) throw new Error(data.error);
 
-                // 排序：先比班級，再比 ID
-                const studentsArray = Object.entries(data).map(([id, info]) => ({
-                    id: id,
-                    name: info.name,
-                    class: info.class
-                })).sort((a, b) => {
-                    if (a.class === b.class) return a.id.localeCompare(b.id);
-                    return a.class.localeCompare(b.class);
-                });
+                // --- [關鍵修正] 資料過濾與排序 ---
+                const studentsArray = Object.entries(data)
+                    .map(([id, info]) => ({
+                        id: String(id).trim(),
+                        name: String(info.name).trim(),
+                        class: String(info.class).trim()
+                    }))
+                    .filter(student => {
+                        // [過濾邏輯] 排除可能是標題的資料
+                        // 如果 ID 或 姓名 包含這些關鍵字，就跳過
+                        const invalidKeywords = ["ID", "id", "學生", "姓名", "班級", "Student", "Name", "Class", "編號"];
+                        const isHeader = invalidKeywords.includes(student.id) || invalidKeywords.includes(student.name);
+                        return !isHeader && student.id !== ""; // 確保不是標題且 ID 不為空
+                    })
+                    .sort((a, b) => {
+                        // 先排班級，再排 ID
+                        if (a.class === b.class) return a.id.localeCompare(b.id, undefined, {numeric: true});
+                        return a.class.localeCompare(b.class, undefined, {numeric: true});
+                    });
+                // ---------------------------------
 
-                if (studentsArray.length === 0) throw new Error("沒有學生資料");
+                if (studentsArray.length === 0) throw new Error("沒有有效的學生資料 (或格式錯誤)");
 
-                statusText.textContent = `共取得 ${studentsArray.length} 筆資料，開始繪製 QR Code...`;
+                statusText.textContent = `成功取得 ${studentsArray.length} 筆有效資料，開始繪製...`;
                 progressContainer.style.display = 'block';
                 
                 let currentClass = "";
                 
-                // 開始產生
                 for (let i = 0; i < studentsArray.length; i++) {
                     const student = studentsArray[i];
                     allStudents.push(student);
@@ -251,59 +356,62 @@
                         currentClass = student.class;
                         const classHeader = document.createElement('div');
                         classHeader.className = 'class-section';
-                        classHeader.textContent = `📂 班級：${currentClass}`;
+                        classHeader.innerHTML = `<i class="fas fa-folder-open class-icon"></i> 班級：${currentClass}`;
                         previewArea.appendChild(classHeader);
                     }
 
-                    // 卡片容器
+                    // 卡片
                     const card = document.createElement('div');
                     card.className = 'qr-card';
                     
                     const qrDiv = document.createElement('div');
-                    // QR 內容 (ID-姓名)
+                    // 內容：ID-姓名
                     const qrContent = `${student.id}-${student.name}`;
                     
-                    // --- [核心設定] 產生 800x800 高解析度圖片 ---
+                    // 產生 800x800 高解析度圖片
                     new QRCode(qrDiv, {
                         text: qrContent,
-                        width: 800,  // 設定為 800px
-                        height: 800, // 設定為 800px
+                        width: 800,  
+                        height: 800, 
                         colorDark : "#000000",
                         colorLight : "#ffffff",
-                        typeNumber: 10, // 固定版本確保容量
+                        typeNumber: 10,
                         correctLevel : QRCode.CorrectLevel.L
                     });
-                    // -----------------------------------------
 
-                    // 等待繪製完成
+                    // 等待渲染
                     await new Promise(r => setTimeout(r, 10)); 
 
                     // 學生資訊
-                    const info = document.createElement('div');
-                    info.className = 'student-info';
-                    info.innerHTML = `<b>${student.name}</b><br><span class="student-id">${student.id}</span>`;
+                    const nameDiv = document.createElement('div');
+                    nameDiv.className = 'student-name';
+                    nameDiv.textContent = student.name;
+                    
+                    const idDiv = document.createElement('div');
+                    idDiv.className = 'student-id';
+                    idDiv.textContent = student.id;
 
                     card.appendChild(qrDiv);
-                    card.appendChild(info);
+                    card.appendChild(nameDiv);
+                    card.appendChild(idDiv);
                     previewArea.appendChild(card);
 
                     // 進度條
                     const progress = Math.round(((i + 1) / studentsArray.length) * 100);
                     progressBar.style.width = `${progress}%`;
                     
-                    // 讓瀏覽器有時間渲染畫面
                     if (i % 5 === 0) await new Promise(r => setTimeout(r, 0));
                 }
 
-                statusText.textContent = "✅ 產生完成！請檢查後按下「打包下載」。";
+                statusText.innerHTML = '<i class="fas fa-check-circle"></i> 產生完成！請檢查後按下「打包下載」。';
                 document.getElementById('btn-download').style.display = 'inline-block';
-                btnLoad.textContent = "重新讀取";
+                btnLoad.innerHTML = '<i class="fas fa-sync-alt"></i> 重新讀取';
                 btnLoad.disabled = false;
 
             } catch (err) {
                 console.error(err);
-                statusText.textContent = "❌ 發生錯誤：" + err.message;
-                alert("讀取失敗，請檢查網路或 GAS 網址 (確認權限為'任何人')");
+                statusText.innerHTML = `<span style="color: #e63946;"><i class="fas fa-exclamation-triangle"></i> 錯誤：${err.message}</span>`;
+                alert("讀取失敗，請檢查 GAS 權限或網路狀態。");
                 btnLoad.disabled = false;
             }
         }
@@ -316,7 +424,7 @@
             const btnDownload = document.getElementById('btn-download');
             
             btnDownload.disabled = true;
-            statusText.textContent = "正在打包 ZIP 檔案，檔案較大請稍候...";
+            statusText.innerHTML = '<i class="fas fa-cog fa-spin"></i> 正在打包 ZIP 檔案，檔案較大請稍候...';
 
             const cards = document.querySelectorAll('.qr-card');
             
@@ -325,11 +433,9 @@
                 const img = cards[i].querySelector('img');
                 
                 if (img) {
-                    // 抓取 Base64 (這裡是原本的 800x800 解析度)
                     const imgData = img.src.split(',')[1];
-                    
-                    // 建立資料夾：班級 / ID姓名.png
                     const folder = zip.folder(student.class);
+                    // 檔名：ID姓名.png
                     folder.file(`${student.id}${student.name}.png`, imgData, {base64: true});
                 }
             }
@@ -338,9 +444,9 @@
             
             zip.generateAsync({type:"blob"}).then(function(content) {
                 const today = new Date().toISOString().split('T')[0];
-                saveAs(content, `學生QR_Codes_800px_${today}.zip`);
+                saveAs(content, `學生QR_Codes_HighRes_${today}.zip`);
                 
-                statusText.textContent = "✅ 下載已開始！請查看瀏覽器下載區。";
+                statusText.innerHTML = '<i class="fas fa-check-double"></i> 下載已開始！請查看瀏覽器下載區。';
                 btnDownload.disabled = false;
             });
         }
