@@ -3,150 +3,251 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Code 自動產生器</title>
+    <title>QR Code 產生及打包介面</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Sans+TC:wght@700;900&display=swap" rel="stylesheet">
     
     <style>
+        :root {
+            /* Minecraft 配色定義 */
+            --mc-bg: #DCCFA3;          /* 沙灘背景 */
+            --mc-panel-bg: #C6C6C6;    /* 石頭介面灰 */
+            --mc-border-dark: #373737; /* 深色邊框 */
+            --mc-border-light: #FFFFFF;/* 亮色邊框 */
+            --mc-slot-bg: #8B8B8B;     /* 物品槽深灰 */
+            --mc-btn-face: #999999;    /* 按鈕表面 */
+            --mc-btn-shadow: #585858;  /* 按鈕陰影 */
+            --mc-green-bar: #50C838;   /* 經驗條綠 */
+        }
+
         body {
-            font-family: "Microsoft JhengHei", Arial, sans-serif;
-            background-color: #f0f2f5;
+            font-family: 'Noto Sans TC', Arial, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 30px 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+            
+            /* 背景：沙灘色 + 像素雜點 */
+            background-color: var(--mc-bg);
+            background-image: 
+                radial-gradient(#C6B68D 15%, transparent 16%),
+                radial-gradient(#C6B68D 15%, transparent 16%);
+            background-size: 16px 16px;
+            background-position: 0 0, 8px 8px;
         }
 
-        h1 { color: #333; margin-bottom: 10px; }
-        
-        .controls {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        h1 { 
+            font-family: 'Press Start 2P', cursive;
+            color: #333; 
+            text-shadow: 3px 3px 0 #fff;
+            margin-bottom: 30px; 
             text-align: center;
-            width: 90%;
-            max-width: 800px;
-            margin-bottom: 20px;
+            font-size: 1.8em;
+            line-height: 1.4;
         }
-
-        button {
-            background-color: #007bff;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            font-size: 1em;
-            cursor: pointer;
-            margin: 0 10px;
-            font-weight: bold;
-        }
-        button:hover { background-color: #0056b3; }
-        button:disabled { background-color: #ccc; cursor: not-allowed; }
         
-        #btn-download { background-color: #28a745; display: none; } /* 預設隱藏 */
-        #btn-download:hover { background-color: #218838; }
+        /* Minecraft 風格面板容器 */
+        .mc-panel {
+            background-color: var(--mc-panel-bg);
+            border: 4px solid var(--mc-border-dark);
+            /* 模擬 Minecraft GUI 的立體邊框 */
+            box-shadow: 
+                inset 4px 4px 0 var(--mc-border-light),
+                inset -4px -4px 0 var(--mc-btn-shadow);
+            padding: 25px;
+            width: 95%;
+            max-width: 900px;
+            margin-bottom: 30px;
+            /* 像素字體 */
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.8em;
+            color: #333;
+        }
 
-        /* 進度條 */
+        .panel-desc {
+            margin-bottom: 25px;
+            line-height: 1.6;
+            text-align: center;
+        }
+
+        /* 按鈕區塊 */
+        .btn-group {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 25px;
+        }
+
+        /* Minecraft 石頭按鈕 */
+        .mc-btn {
+            background-color: var(--mc-btn-face);
+            border: 3px solid var(--mc-border-dark);
+            /* 按鈕立體感 */
+            border-top-color: var(--mc-border-light);
+            border-left-color: var(--mc-border-light);
+            border-bottom-color: var(--mc-btn-shadow);
+            border-right-color: var(--mc-btn-shadow);
+            color: #333;
+            padding: 12px 20px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.8em;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .mc-btn:hover {
+            background-color: #AFAFAF;
+        }
+        .mc-btn:active {
+            background-color: var(--mc-btn-shadow);
+            border-top-color: var(--mc-btn-shadow);
+            border-left-color: var(--mc-btn-shadow);
+            border-bottom-color: var(--mc-border-light);
+            border-right-color: var(--mc-border-light);
+            color: #fff;
+        }
+        .mc-btn:disabled {
+            background-color: var(--mc-btn-face);
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        #btn-download { display: none; /* 預設隱藏 */ }
+
+        /* 像素風格進度條 */
         #progress-container {
             width: 100%;
-            background-color: #eee;
-            border-radius: 5px;
-            margin-top: 15px;
-            height: 20px;
+            background-color: var(--mc-slot-bg);
+            border: 3px solid var(--mc-border-dark);
+            height: 24px;
             display: none;
-            overflow: hidden;
+            padding: 2px;
         }
         #progress-bar {
             height: 100%;
             width: 0%;
-            background-color: #4CAF50;
+            background-color: var(--mc-green-bar);
+            /* 像素紋理 */
+            background-image: linear-gradient(
+                to right,
+                transparent 50%,
+                rgba(0,0,0,0.1) 50%
+            );
+            background-size: 10px 100%;
             transition: width 0.2s;
         }
-
-        /* 預覽區域 */
-        #preview-area {
-            width: 90%;
-            max-width: 1200px;
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 20px;
-        }
-
-        /* 班級區塊 */
-        .class-section {
-            grid-column: 1 / -1; /* 跨滿整行 */
-            background-color: #fff;
-            padding: 10px 20px;
-            margin-top: 20px;
-            border-left: 5px solid #007bff;
-            border-radius: 4px;
-            font-size: 1.2em;
+        
+        #status-text {
+            margin-top: 15px;
+            text-align: center;
+            font-family: 'Noto Sans TC', sans-serif;
             font-weight: bold;
-            color: #333;
         }
 
-        /* 單個學生卡片 */
+        /* 預覽區域網格 */
+        #preview-area {
+            width: 95%;
+            max-width: 1100px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+            padding-bottom: 40px;
+        }
+
+        /* 班級標題 (類似木牌或泥土標籤) */
+        .class-section {
+            grid-column: 1 / -1;
+            background-color: #593D29; /* 泥土棕 */
+            color: #fff;
+            padding: 10px 15px;
+            margin-top: 25px;
+            border: 3px solid var(--mc-border-dark);
+            font-family: 'Press Start 2P', cursive;
+            font-size: 1em;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        /* QR Code 卡片 (物品槽風格) */
         .qr-card {
-            background: white;
+            background-color: var(--mc-slot-bg); /* 深灰底 */
             padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border: 3px solid var(--mc-border-dark);
+            /* 內陰影，模擬凹陷 */
+            box-shadow: inset 3px 3px 0 var(--mc-btn-shadow), inset -3px -3px 0 var(--mc-border-light);
             display: flex;
             flex-direction: column;
             align-items: center;
             text-align: center;
         }
         
+        /* [關鍵修改 1] CSS 強制縮小預覽顯示尺寸 */
         .qr-card img {
             margin-bottom: 10px;
-            border: 1px solid #eee;
+            border: 3px solid #fff; /* 給 QR Code 一個白框 */
+            /* 這裡設定預覽的大小，不影響實際下載的解析度 */
+            width: 140px; 
+            height: auto;
+            image-rendering: pixelated; /* 保持像素感 */
         }
 
         .student-info {
+            font-family: 'Noto Sans TC', sans-serif;
             font-size: 0.9em;
-            color: #555;
+            color: #fff;
+            text-shadow: 1px 1px 0 #000;
             word-break: break-all;
+            margin-top: 5px;
+        }
+        .student-info b {
+            color: #FFFF55; /* 班級用亮黃色 */
+            font-size: 1.1em;
         }
         
-        .back-link {
-            margin-top: 20px;
-            color: #666;
-            text-decoration: none;
-        }
-        .back-link:hover { text-decoration: underline; }
+        .back-link-container { margin-top: 20px; }
 
     </style>
 </head>
 <body>
 
-    <h1>QR Code 產生器</h1>
-    <div class="controls">
-        <p>此工具將讀取 Google 試算表，產生全校 QR Code 並依班級打包下載。</p>
-        <button id="btn-load" onclick="loadData()">1. 讀取名單 & 產生預覽</button>
-        <button id="btn-download" onclick="downloadZip()">2. 打包下載 ZIP</button>
+    <h1>麥塊 QR Code 產生器</h1>
+    
+    <div class="mc-panel">
+        <div class="panel-desc">
+            讀取 Google 試算表名單<br>
+            產生高解析度 QR Code 並打包下載
+        </div>
+        
+        <div class="btn-group">
+            <button id="btn-load" class="mc-btn" onclick="loadData()">1. 讀取 & 預覽</button>
+            <button id="btn-download" class="mc-btn" onclick="downloadZip()">2. 下包下載 ZIP</button>
+        </div>
         
         <div id="progress-container">
             <div id="progress-bar"></div>
         </div>
-        <div id="status-text" style="margin-top: 10px; color: #666;"></div>
+        <div id="status-text"></div>
     </div>
 
-    <div id="preview-area"></div>
+    <div id="preview-area">
+        </div>
     
-    <a href="dashboard.html" class="back-link">← 回主控台</a>
+    <div class="back-link-container">
+        <a href="dashboard.html" class="mc-btn">← 回主控台</a>
+    </div>
 
     <script>
-        // --- 1. 你的 GAS 網址 ---
-        // 請務必確認這是你「重新部署 (New version)」後產生的網址，且權限為「任何人」
+        // --- 1. 你的 GAS 網址 (請確保權限正確) ---
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZHGM5xMgNFn9Df6BXMVfSesT3BIfHN91NdZjLK5TkHdEOai476VNIlJaw61n3Bxg9CA/exec";
         // ------------------------------
 
         let allStudents = []; 
         
-        // 1. 讀取資料並產生預覽
         async function loadData() {
             const btnLoad = document.getElementById('btn-load');
             const previewArea = document.getElementById('preview-area');
@@ -162,14 +263,10 @@
             try {
                 const response = await fetch(GOOGLE_SCRIPT_URL);
                 const data = await response.json();
-
                 if (data.error) throw new Error(data.error);
 
-                // 轉換資料格式並排序
                 const studentsArray = Object.entries(data).map(([id, info]) => ({
-                    id: id,
-                    name: info.name,
-                    class: info.class
+                    id: id, name: info.name, class: info.class
                 })).sort((a, b) => {
                     if (a.class === b.class) return a.id.localeCompare(b.id);
                     return a.class.localeCompare(b.class);
@@ -177,11 +274,10 @@
 
                 if (studentsArray.length === 0) throw new Error("沒有學生資料");
 
-                statusText.textContent = `共取得 ${studentsArray.length} 筆資料，開始產生 QR Code...`;
+                statusText.textContent = `取得 ${studentsArray.length} 筆資料，產生中...`;
                 progressContainer.style.display = 'block';
                 
                 let currentClass = "";
-                
                 for (let i = 0; i < studentsArray.length; i++) {
                     const student = studentsArray[i];
                     allStudents.push(student);
@@ -190,30 +286,26 @@
                         currentClass = student.class;
                         const classHeader = document.createElement('div');
                         classHeader.className = 'class-section';
-                        classHeader.textContent = `📂 班級：${currentClass}`;
+                        classHeader.innerHTML = `[ 班級：${currentClass} ]`;
                         previewArea.appendChild(classHeader);
                     }
 
                     const card = document.createElement('div');
                     card.className = 'qr-card';
-                    
                     const qrDiv = document.createElement('div');
-                    // 內容：ID-姓名
                     const qrContent = `${student.id}-${student.name}`;
                     
-                    // --- [核心修正] 強制設定參數以解決 Overflow 問題 ---
+                    // --- [關鍵修改 2] JS 產生高解析度原圖 ---
                     new QRCode(qrDiv, {
                         text: qrContent,
-                        width: 128,
-                        height: 128,
+                        width: 300,  // 設定為 300px 高解析度
+                        height: 300,
                         colorDark : "#000000",
                         colorLight : "#ffffff",
-                        // 1. 強制設定版本 (TypeNumber) 為 10，提供足夠空間放中文
-                        typeNumber: 10,  
-                        // 2. 設定容錯率為 L (Low)，節省空間
+                        typeNumber: 10, // 確保容量
                         correctLevel : QRCode.CorrectLevel.L
                     });
-                    // ------------------------------------------------
+                    // -------------------------------------
 
                     await new Promise(r => setTimeout(r, 10)); 
 
@@ -227,27 +319,24 @@
 
                     const progress = Math.round(((i + 1) / studentsArray.length) * 100);
                     progressBar.style.width = `${progress}%`;
-                    
                     if (i % 10 === 0) await new Promise(r => setTimeout(r, 0));
                 }
 
-                statusText.textContent = "✅ 預覽完成！請檢查後按下載。";
+                statusText.textContent = "✅ 預覽完成！準備就緒。";
                 document.getElementById('btn-download').style.display = 'inline-block';
                 btnLoad.textContent = "重新讀取";
                 btnLoad.disabled = false;
 
             } catch (err) {
                 console.error(err);
-                statusText.textContent = "❌ 發生錯誤：" + err.message;
-                alert("讀取失敗，請檢查網路或 GAS 網址 (記得確認權限為'任何人')");
+                statusText.textContent = "❌ 錯誤：" + err.message;
+                alert("讀取失敗，請檢查網路或 GAS 權限設定。");
                 btnLoad.disabled = false;
             }
         }
 
-        // 2. 打包下載
         async function downloadZip() {
             if (allStudents.length === 0) return;
-
             const zip = new JSZip();
             const statusText = document.getElementById('status-text');
             const btnDownload = document.getElementById('btn-download');
@@ -256,25 +345,21 @@
             statusText.textContent = "正在打包 ZIP 檔案，請稍候...";
 
             const cards = document.querySelectorAll('.qr-card');
-            
             for (let i = 0; i < cards.length; i++) {
                 const student = allStudents[i];
                 const img = cards[i].querySelector('img');
-                
                 if (img) {
+                    // 這裡抓取的是原始高解析度的圖片資料
                     const imgData = img.src.split(',')[1];
                     const folder = zip.folder(student.class);
-                    // 檔名：ID姓名.png
                     folder.file(`${student.id}${student.name}.png`, imgData, {base64: true});
                 }
             }
 
             statusText.textContent = "正在壓縮...";
-            
             zip.generateAsync({type:"blob"}).then(function(content) {
                 const today = new Date().toISOString().split('T')[0];
-                saveAs(content, `學生QR_Codes_${today}.zip`);
-                
+                saveAs(content, `Minecraft_Student_QRs_${today}.zip`);
                 statusText.textContent = "✅ 下載已開始！請查看下載資料夾。";
                 btnDownload.disabled = false;
             });
