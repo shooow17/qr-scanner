@@ -41,14 +41,14 @@
         /* --- 標題區 --- */
         .logo-area {
             text-align: center;
-            margin-bottom: 50px; /* 調整間距 */
+            margin-bottom: 50px; 
         }
 
         h1 {
             /* 字體設定 */
             font-family: 'Press Start 2P', 'Noto Sans TC', sans-serif;
             font-weight: 900; /* 最粗體 */
-            font-size: 3.8em; /* 稍微調整大小以適應較長的標題 */
+            font-size: 3.5em; /* 基礎文字大小 */
             color: #EEEEEE; /* 淺灰色字 */
             
             /* 黑色硬陰影 */
@@ -60,33 +60,32 @@
                 2px 2px 0 #000;
             
             margin-bottom: 0;
-            line-height: 1.3;
+            line-height: 1.4;
             letter-spacing: -2px;
-            word-break: keep-all; /* 盡量不換行 */
+            word-break: keep-all; 
         }
 
-        /* [新增] 標題高亮文字樣式 */
+        /* [修改] 標題高亮文字樣式 */
         .highlight-text {
             color: #FFD700; /* 亮金色 */
+            font-size: 1.4em; /* [修改] 放大 1.4 倍 */
+            margin: 0 5px; /* [修改] 增加一點左右間距，避免太擠 */
+            
             /* 確保高亮字也有強烈的像素邊框 */
             text-shadow: 
-                4px 4px 0 #000,
+                6px 6px 0 #000, /* 陰影也稍微加大 */
                 -2px -2px 0 #000,
                 2px -2px 0 #000,
                 -2px 2px 0 #000,
                 2px 2px 0 #000;
         }
 
-        /* (已移除 .splash-text 與 @keyframes pulse) */
-
         /* --- 選單容器 --- */
         .menu-container {
             display: grid;
-            /* [修改] 強制固定為 4 欄，不自動換行 */
-            grid-template-columns: repeat(4, 1fr);
-            gap: 30px; /* 間距稍作調整 */
+            grid-template-columns: repeat(4, 1fr); /* 強制固定 4 欄 */
+            gap: 30px; 
             width: 95%;
-            /* [修改] 加大最大寬度，讓 4 個方塊能並排 */
             max-width: 1400px;
             margin-bottom: 60px;
         }
@@ -203,24 +202,23 @@
             box-shadow: 2px 2px 0 rgba(0,0,0,0.3);
         }
 
-        /* [修改] RWD: 針對中型螢幕 (平板橫向或小筆電) 的調整 */
+        /* RWD: 中型螢幕 (平板橫向/小筆電) */
         @media (max-width: 1200px) {
-            /* 為了保持4個並排不換行，縮小間距和內容尺寸 */
             .menu-container { gap: 15px; }
             .card-top { height: 150px; }
             .pixel-icon { font-size: 4em; }
             .card-bottom { padding: 15px 5px; }
             .zh-title { font-size: 1.5em; }
             .en-title { font-size: 1em; }
-            h1 { font-size: 2.8em; } /* 標題也縮小一點避免太擠 */
+            h1 { font-size: 2.5em; } 
+            .highlight-text { font-size: 1.3em; } /* 手機板高亮字稍微縮小 */
         }
 
-        /* [修改] RWD: 手機板自動切換為單欄，確保可用性 */
+        /* RWD: 手機板 */
         @media (max-width: 768px) {
-            h1 { font-size: 2.2em; }
-            /* 手機上強制切回單欄，否則4欄無法閱讀 */
+            h1 { font-size: 2em; }
+            .highlight-text { font-size: 1.3em; }
             .menu-container { grid-template-columns: 1fr; max-width: 400px; gap: 30px; }
-            /* 回復原本的大小設定 */
             .card-top { height: 180px; }
             .pixel-icon { font-size: 5em; }
             .card-bottom { padding: 25px 10px; }
@@ -234,7 +232,7 @@
 
     <div class="logo-area">
         <h1>永順國小課後照顧<span class="highlight-text">碼上接</span>回家系統</h1>
-        </div>
+    </div>
 
     <div class="menu-container">
         
