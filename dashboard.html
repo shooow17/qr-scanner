@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>永順國小課後照顧 碼 上接回家系統</title>
+    <title>永順國小課後照顧碼上接回家系統</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Sans+TC:wght@900&display=swap" rel="stylesheet">
     
     <style>
@@ -41,55 +41,53 @@
         /* --- 標題區 --- */
         .logo-area {
             text-align: center;
-            margin-bottom: 60px; /* 增加間距 */
+            margin-bottom: 50px; /* 調整間距 */
         }
 
         h1 {
             /* 字體設定 */
             font-family: 'Press Start 2P', 'Noto Sans TC', sans-serif;
             font-weight: 900; /* 最粗體 */
-            font-size: 4.5em; /* 放大兩倍以上 */
+            font-size: 3.8em; /* 稍微調整大小以適應較長的標題 */
             color: #EEEEEE; /* 淺灰色字 */
             
             /* 黑色硬陰影 */
             text-shadow: 
-                6px 6px 0 #000,
+                5px 5px 0 #000,
                 -2px -2px 0 #000,
                 2px -2px 0 #000,
                 -2px 2px 0 #000,
                 2px 2px 0 #000;
             
-            margin-bottom: 20px;
+            margin-bottom: 0;
             line-height: 1.3;
             letter-spacing: -2px;
+            word-break: keep-all; /* 盡量不換行 */
         }
 
-        .splash-text {
-            font-family: 'Press Start 2P', cursive;
-            color: #FF5555;
-            font-size: 1.2em;
-            text-shadow: 3px 3px 0 #000;
-            transform: rotate(-8deg);
-            animation: pulse 0.8s infinite alternate;
-            display: inline-block;
-            background: #fff;
-            padding: 8px 15px;
-            border: 3px solid #333;
-            box-shadow: 4px 4px 0 rgba(0,0,0,0.2);
+        /* [新增] 標題高亮文字樣式 */
+        .highlight-text {
+            color: #FFD700; /* 亮金色 */
+            /* 確保高亮字也有強烈的像素邊框 */
+            text-shadow: 
+                4px 4px 0 #000,
+                -2px -2px 0 #000,
+                2px -2px 0 #000,
+                -2px 2px 0 #000,
+                2px 2px 0 #000;
         }
 
-        @keyframes pulse {
-            from { transform: scale(1) rotate(-8deg); }
-            to { transform: scale(1.1) rotate(-8deg); }
-        }
+        /* (已移除 .splash-text 與 @keyframes pulse) */
 
         /* --- 選單容器 --- */
         .menu-container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 40px;
-            width: 100%;
-            max-width: 1100px;
+            /* [修改] 強制固定為 4 欄，不自動換行 */
+            grid-template-columns: repeat(4, 1fr);
+            gap: 30px; /* 間距稍作調整 */
+            width: 95%;
+            /* [修改] 加大最大寬度，讓 4 個方塊能並排 */
+            max-width: 1400px;
             margin-bottom: 60px;
         }
 
@@ -147,7 +145,7 @@
 
         .en-title {
             font-family: 'Press Start 2P', cursive;
-            font-size: 1.3em;
+            font-size: 1.2em;
             letter-spacing: 1px;
             margin-bottom: 10px;
             text-shadow: 3px 3px 0 #000;
@@ -159,11 +157,11 @@
             font-size: 1.8em;
             font-weight: 900;
             text-shadow: 3px 3px 0 #000;
-            letter-spacing: 2px;
+            letter-spacing: 1px;
         }
 
         .desc-text {
-            font-size: 1em;
+            font-size: 0.9em;
             color: #ddd;
             margin-top: 8px;
             font-weight: normal;
@@ -205,12 +203,29 @@
             box-shadow: 2px 2px 0 rgba(0,0,0,0.3);
         }
 
-        /* RWD: 手機板自動縮小字體 */
-        @media (max-width: 600px) {
-            h1 { font-size: 2.2em; text-shadow: 3px 3px 0 #000; }
-            .menu-container { grid-template-columns: 1fr; }
+        /* [修改] RWD: 針對中型螢幕 (平板橫向或小筆電) 的調整 */
+        @media (max-width: 1200px) {
+            /* 為了保持4個並排不換行，縮小間距和內容尺寸 */
+            .menu-container { gap: 15px; }
             .card-top { height: 150px; }
             .pixel-icon { font-size: 4em; }
+            .card-bottom { padding: 15px 5px; }
+            .zh-title { font-size: 1.5em; }
+            .en-title { font-size: 1em; }
+            h1 { font-size: 2.8em; } /* 標題也縮小一點避免太擠 */
+        }
+
+        /* [修改] RWD: 手機板自動切換為單欄，確保可用性 */
+        @media (max-width: 768px) {
+            h1 { font-size: 2.2em; }
+            /* 手機上強制切回單欄，否則4欄無法閱讀 */
+            .menu-container { grid-template-columns: 1fr; max-width: 400px; gap: 30px; }
+            /* 回復原本的大小設定 */
+            .card-top { height: 180px; }
+            .pixel-icon { font-size: 5em; }
+            .card-bottom { padding: 25px 10px; }
+            .zh-title { font-size: 1.8em; }
+            .en-title { font-size: 1.2em; }
         }
 
     </style>
@@ -218,9 +233,8 @@
 <body>
 
     <div class="logo-area">
-        <h1>永順國小課後照顧 碼 上接回家系統</h1>
-        <div class="splash-text">System Active!</div>
-    </div>
+        <h1>永順國小課後照顧<span class="highlight-text">碼上接</span>回家系統</h1>
+        </div>
 
     <div class="menu-container">
         
