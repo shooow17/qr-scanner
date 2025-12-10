@@ -139,11 +139,12 @@
     <a href="dashboard.html" class="back-link">← 回主控台</a>
 
     <script>
-        // --- 1. 你的 GAS 網址 (請填入) ---
+        // --- 1. 你的 GAS 網址 ---
+        // 請務必確認這是你「重新部署 (New version)」後產生的網址，且權限為「任何人」
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZHGM5xMgNFn9Df6BXMVfSesT3BIfHN91NdZjLK5TkHdEOai476VNIlJaw61n3Bxg9CA/exec";
         // ------------------------------
 
-        let allStudents = []; // 儲存下載下來的資料
+        let allStudents = []; 
         
         // 1. 讀取資料並產生預覽
         async function loadData() {
@@ -164,7 +165,7 @@
 
                 if (data.error) throw new Error(data.error);
 
-                // 轉換資料格式並排序 (按班級 -> ID)
+                // 轉換資料格式並排序
                 const studentsArray = Object.entries(data).map(([id, info]) => ({
                     id: id,
                     name: info.name,
@@ -179,15 +180,12 @@
                 statusText.textContent = `共取得 ${studentsArray.length} 筆資料，開始產生 QR Code...`;
                 progressContainer.style.display = 'block';
                 
-                // 開始渲染
                 let currentClass = "";
                 
-                // 使用非同步迴圈避免卡死瀏覽器
                 for (let i = 0; i < studentsArray.length; i++) {
                     const student = studentsArray[i];
-                    allStudents.push(student); // 存起來給下載用
+                    allStudents.push(student);
 
-                    // 如果換班級，插入標題
                     if (student.class !== currentClass) {
                         currentClass = student.class;
                         const classHeader = document.createElement('div');
@@ -196,27 +194,29 @@
                         previewArea.appendChild(classHeader);
                     }
 
-                    // 建立卡片
                     const card = document.createElement('div');
                     card.className = 'qr-card';
                     
-                    // 建立 QR Code 容器
                     const qrDiv = document.createElement('div');
-                    // *** 關鍵邏輯 ***
-                    // 內容：ID-姓名 (為了讓掃描器工作)
-                    // 顯示/檔名：ID姓名
+                    // 內容：ID-姓名
                     const qrContent = `${student.id}-${student.name}`;
                     
+                    // --- [核心修正] 強制設定參數以解決 Overflow 問題 ---
                     new QRCode(qrDiv, {
                         text: qrContent,
                         width: 128,
-                        height: 128
+                        height: 128,
+                        colorDark : "#000000",
+                        colorLight : "#ffffff",
+                        // 1. 強制設定版本 (TypeNumber) 為 10，提供足夠空間放中文
+                        typeNumber: 10,  
+                        // 2. 設定容錯率為 L (Low)，節省空間
+                        correctLevel : QRCode.CorrectLevel.L
                     });
+                    // ------------------------------------------------
 
-                    // 等待圖片生成的小技巧 (QRCode.js 是非同步的)
                     await new Promise(r => setTimeout(r, 10)); 
 
-                    // 加上文字
                     const info = document.createElement('div');
                     info.className = 'student-info';
                     info.innerHTML = `<b>${student.class}</b><br>${student.id}${student.name}`;
@@ -225,11 +225,9 @@
                     card.appendChild(info);
                     previewArea.appendChild(card);
 
-                    // 更新進度條
                     const progress = Math.round(((i + 1) / studentsArray.length) * 100);
                     progressBar.style.width = `${progress}%`;
                     
-                    // 每處理 10 筆休息一下，讓畫面渲染
                     if (i % 10 === 0) await new Promise(r => setTimeout(r, 0));
                 }
 
@@ -241,7 +239,7 @@
             } catch (err) {
                 console.error(err);
                 statusText.textContent = "❌ 發生錯誤：" + err.message;
-                alert("讀取失敗，請檢查網路或 GAS 網址");
+                alert("讀取失敗，請檢查網路或 GAS 網址 (記得確認權限為'任何人')");
                 btnLoad.disabled = false;
             }
         }
@@ -257,7 +255,6 @@
             btnDownload.disabled = true;
             statusText.textContent = "正在打包 ZIP 檔案，請稍候...";
 
-            // 從畫面上抓取已經生成的圖片 (這樣不用重新生成)
             const cards = document.querySelectorAll('.qr-card');
             
             for (let i = 0; i < cards.length; i++) {
@@ -265,21 +262,16 @@
                 const img = cards[i].querySelector('img');
                 
                 if (img) {
-                    // 取得 Base64 圖片資料
                     const imgData = img.src.split(',')[1];
-                    
-                    // *** 關鍵邏輯：建立資料夾結構 ***
-                    // 結構：班級資料夾 / ID姓名.png
                     const folder = zip.folder(student.class);
+                    // 檔名：ID姓名.png
                     folder.file(`${student.id}${student.name}.png`, imgData, {base64: true});
                 }
             }
 
             statusText.textContent = "正在壓縮...";
             
-            // 產生 ZIP
             zip.generateAsync({type:"blob"}).then(function(content) {
-                // 下載檔案
                 const today = new Date().toISOString().split('T')[0];
                 saveAs(content, `學生QR_Codes_${today}.zip`);
                 
