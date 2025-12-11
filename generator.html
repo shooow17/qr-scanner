@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Code 自動生成與下載</title>
+    <title>QR Code 智慧產生器</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <style>
@@ -14,6 +15,7 @@
             --primary-color: #4361ee;
             --secondary-color: #3f37c9;
             --success-color: #4cc9f0;
+            --pdf-color: #e63946; /* PDF 按鈕專用紅 */
             --bg-color: #f8f9fa;
             --card-bg: #ffffff;
             --text-main: #2b2d42;
@@ -53,7 +55,7 @@
             font-size: 1.1em;
         }
 
-        /* --- 控制面板 (玻璃擬態風格) --- */
+        /* --- 控制面板 --- */
         .controls {
             background: var(--card-bg);
             padding: 30px 40px;
@@ -61,29 +63,24 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.05);
             text-align: center;
             width: 100%;
-            max-width: 800px;
+            max-width: 900px;
             margin-bottom: 40px;
-            transition: transform 0.3s;
             border: 1px solid rgba(255,255,255,0.8);
-        }
-
-        .controls:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
         }
 
         /* --- 按鈕群 --- */
         .btn-group {
             display: flex;
             justify-content: center;
-            gap: 20px;
+            gap: 15px;
             margin-top: 25px;
+            flex-wrap: wrap;
         }
 
         button {
             border: none;
-            padding: 12px 30px;
-            border-radius: 50px; /* 圓形按鈕 */
+            padding: 12px 25px;
+            border-radius: 50px;
             font-size: 1em;
             cursor: pointer;
             font-weight: bold;
@@ -99,17 +96,22 @@
             background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
             color: white;
         }
-        #btn-load:hover {
-            filter: brightness(1.1);
-            transform: scale(1.05);
-        }
-
+        
+        /* 下載 ZIP (綠色) */
         #btn-download {
             background: linear-gradient(135deg, #11998e, #38ef7d);
             color: white;
             display: none;
         }
-        #btn-download:hover {
+
+        /* [新增] 下載 PDF (紅色) */
+        #btn-pdf {
+            background: linear-gradient(135deg, #FF512F, #DD2476);
+            color: white;
+            display: none;
+        }
+
+        button:hover {
             filter: brightness(1.1);
             transform: scale(1.05);
         }
@@ -157,6 +159,13 @@
             padding-bottom: 50px;
         }
 
+        /* 隱藏的 Canvas 容器 (給 PDF 生成用) */
+        #canvas-container {
+            position: absolute;
+            left: -9999px;
+            top: -9999px;
+        }
+
         /* 班級標題 */
         .class-section {
             grid-column: 1 / -1;
@@ -172,9 +181,7 @@
             gap: 10px;
         }
         
-        .class-icon {
-            color: var(--primary-color);
-        }
+        .class-icon { color: var(--primary-color); }
 
         /* QR Code 卡片 */
         .qr-card {
@@ -186,7 +193,7 @@
             flex-direction: column;
             align-items: center;
             text-align: center;
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: all 0.3s;
             border: 1px solid #f0f0f0;
             position: relative;
             overflow: hidden;
@@ -198,20 +205,16 @@
             border-color: var(--success-color);
         }
         
-        /* 裝飾線條 */
         .qr-card::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 6px;
+            top: 0; left: 0; width: 100%; height: 6px;
             background: linear-gradient(90deg, var(--primary-color), var(--success-color));
-            opacity: 0;
-            transition: opacity 0.3s;
+            opacity: 0; transition: opacity 0.3s;
         }
         .qr-card:hover::before { opacity: 1; }
 
+        /* 預覽圖強制縮小 */
         .qr-card img {
             width: 160px !important;
             height: auto !important;
@@ -237,21 +240,13 @@
         }
         
         .back-link {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            background: white;
-            color: var(--text-main);
-            text-decoration: none;
-            padding: 12px 20px;
+            position: fixed; bottom: 30px; right: 30px;
+            background: white; color: var(--text-main);
+            text-decoration: none; padding: 12px 20px;
             border-radius: 50px;
             box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            font-weight: bold;
-            transition: all 0.3s;
-            z-index: 100;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            font-weight: bold; transition: all 0.3s; z-index: 100;
+            display: flex; align-items: center; gap: 8px;
         }
         .back-link:hover {
             transform: scale(1.05);
@@ -264,13 +259,14 @@
 <body>
 
     <div class="header-area">
-        <h1><i class="fas fa-qrcode"></i>QR Code 自動生成與下載</h1>
-        <div class="subtitle">自動同步 Google 試算表 • 高解析度輸出 • 智慧分班打包</div>
+        <h1><i class="fas fa-qrcode"></i> QR Code 智慧產生器</h1>
+        <div class="subtitle">自動同步 Google 試算表 • 高解析度輸出 • 智慧分班排版</div>
     </div>
     
     <div class="controls">
         <p style="color: #666; margin-bottom: 20px;">
-            系統將自動讀取名單，並排除表頭資料。<br>生成的 QR Code 為 <strong>800x800 高解析度</strong>，適合印刷。
+            系統將自動讀取名單，產生 800x800 高解析度 QR Code。<br>
+            可選擇下載 ZIP 原始檔，或直接輸出 A4 列印版 PDF。
         </p>
         
         <div class="btn-group">
@@ -278,7 +274,10 @@
                 <i class="fas fa-cloud-download-alt"></i> 1. 讀取名單 & 產生預覽
             </button>
             <button id="btn-download" onclick="downloadZip()">
-                <i class="fas fa-file-archive"></i> 2. 打包下載 ZIP
+                <i class="fas fa-file-archive"></i> 2. 下載原始圖 (ZIP)
+            </button>
+            <button id="btn-pdf" onclick="generatePDF()">
+                <i class="fas fa-file-pdf"></i> 3. 輸出列印檔 (PDF)
             </button>
         </div>
         
@@ -289,6 +288,8 @@
     </div>
 
     <div id="preview-area"></div>
+    
+    <div id="canvas-container"></div>
     
     <a href="dashboard.html" class="back-link">
         <i class="fas fa-arrow-left"></i> 回主控台
@@ -319,7 +320,7 @@
 
                 if (data.error) throw new Error(data.error);
 
-                // --- [關鍵修正] 資料過濾與排序 ---
+                // 過濾與排序
                 const studentsArray = Object.entries(data)
                     .map(([id, info]) => ({
                         id: String(id).trim(),
@@ -327,20 +328,16 @@
                         class: String(info.class).trim()
                     }))
                     .filter(student => {
-                        // [過濾邏輯] 排除可能是標題的資料
-                        // 如果 ID 或 姓名 包含這些關鍵字，就跳過
                         const invalidKeywords = ["ID", "id", "學生", "姓名", "班級", "Student", "Name", "Class", "編號"];
                         const isHeader = invalidKeywords.includes(student.id) || invalidKeywords.includes(student.name);
-                        return !isHeader && student.id !== ""; // 確保不是標題且 ID 不為空
+                        return !isHeader && student.id !== ""; 
                     })
                     .sort((a, b) => {
-                        // 先排班級，再排 ID
                         if (a.class === b.class) return a.id.localeCompare(b.id, undefined, {numeric: true});
                         return a.class.localeCompare(b.class, undefined, {numeric: true});
                     });
-                // ---------------------------------
 
-                if (studentsArray.length === 0) throw new Error("沒有有效的學生資料 (或格式錯誤)");
+                if (studentsArray.length === 0) throw new Error("沒有有效的學生資料");
 
                 statusText.textContent = `成功取得 ${studentsArray.length} 筆有效資料，開始繪製...`;
                 progressContainer.style.display = 'block';
@@ -351,7 +348,6 @@
                     const student = studentsArray[i];
                     allStudents.push(student);
 
-                    // 班級標題
                     if (student.class !== currentClass) {
                         currentClass = student.class;
                         const classHeader = document.createElement('div');
@@ -360,12 +356,11 @@
                         previewArea.appendChild(classHeader);
                     }
 
-                    // 卡片
                     const card = document.createElement('div');
                     card.className = 'qr-card';
                     
                     const qrDiv = document.createElement('div');
-                    // 內容：ID-姓名
+                    // ID-姓名 (掃描用)
                     const qrContent = `${student.id}-${student.name}`;
                     
                     // 產生 800x800 高解析度圖片
@@ -379,10 +374,8 @@
                         correctLevel : QRCode.CorrectLevel.L
                     });
 
-                    // 等待渲染
                     await new Promise(r => setTimeout(r, 10)); 
 
-                    // 學生資訊
                     const nameDiv = document.createElement('div');
                     nameDiv.className = 'student-name';
                     nameDiv.textContent = student.name;
@@ -396,15 +389,15 @@
                     card.appendChild(idDiv);
                     previewArea.appendChild(card);
 
-                    // 進度條
                     const progress = Math.round(((i + 1) / studentsArray.length) * 100);
                     progressBar.style.width = `${progress}%`;
                     
                     if (i % 5 === 0) await new Promise(r => setTimeout(r, 0));
                 }
 
-                statusText.innerHTML = '<i class="fas fa-check-circle"></i> 產生完成！請檢查後按下「打包下載」。';
+                statusText.innerHTML = '<i class="fas fa-check-circle"></i> 產生完成！請選擇下載方式。';
                 document.getElementById('btn-download').style.display = 'inline-block';
+                document.getElementById('btn-pdf').style.display = 'inline-block'; // 顯示 PDF 按鈕
                 btnLoad.innerHTML = '<i class="fas fa-sync-alt"></i> 重新讀取';
                 btnLoad.disabled = false;
 
@@ -418,37 +411,128 @@
 
         async function downloadZip() {
             if (allStudents.length === 0) return;
-
             const zip = new JSZip();
             const statusText = document.getElementById('status-text');
-            const btnDownload = document.getElementById('btn-download');
+            const btn = document.getElementById('btn-download');
             
-            btnDownload.disabled = true;
-            statusText.innerHTML = '<i class="fas fa-cog fa-spin"></i> 正在打包 ZIP 檔案，檔案較大請稍候...';
+            btn.disabled = true;
+            statusText.innerHTML = '<i class="fas fa-cog fa-spin"></i> 正在打包 ZIP，檔案較大請稍候...';
 
             const cards = document.querySelectorAll('.qr-card');
-            
             for (let i = 0; i < cards.length; i++) {
                 const student = allStudents[i];
                 const img = cards[i].querySelector('img');
-                
                 if (img) {
                     const imgData = img.src.split(',')[1];
                     const folder = zip.folder(student.class);
-                    // 檔名：ID姓名.png
                     folder.file(`${student.id}${student.name}.png`, imgData, {base64: true});
                 }
             }
 
-            statusText.textContent = "正在壓縮...";
-            
             zip.generateAsync({type:"blob"}).then(function(content) {
                 const today = new Date().toISOString().split('T')[0];
                 saveAs(content, `學生QR_Codes_HighRes_${today}.zip`);
-                
-                statusText.innerHTML = '<i class="fas fa-check-double"></i> 下載已開始！請查看瀏覽器下載區。';
-                btnDownload.disabled = false;
+                statusText.innerHTML = '<i class="fas fa-check-double"></i> ZIP 下載已開始！';
+                btn.disabled = false;
             });
+        }
+
+        // --- [新增功能] 生成 2x4 PDF ---
+        async function generatePDF() {
+            if (allStudents.length === 0) return;
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const statusText = document.getElementById('status-text');
+            const btn = document.getElementById('btn-pdf');
+
+            btn.disabled = true;
+            statusText.innerHTML = '<i class="fas fa-print fa-spin"></i> 正在排版 PDF 文件 (A4 / 8格)...';
+
+            // 版面設定 (單位 mm)
+            const marginX = 10;
+            const marginY = 10;
+            const cardWidth = 90;
+            const cardHeight = 65;
+            const gapX = 10;
+            const gapY = 5;
+            const startX = 10;
+            const startY = 15;
+
+            // 抓取所有圖片
+            const cards = document.querySelectorAll('.qr-card img');
+            
+            for (let i = 0; i < allStudents.length; i++) {
+                const student = allStudents[i];
+                const img = cards[i];
+                
+                // 計算位置 (0-7)
+                const posIndex = i % 8;
+                const col = posIndex % 2; // 0 或 1
+                const row = Math.floor(posIndex / 2); // 0, 1, 2, 3
+
+                // 換頁判斷
+                if (i > 0 && posIndex === 0) {
+                    doc.addPage();
+                }
+
+                // 計算座標
+                const x = startX + col * (cardWidth + gapX);
+                const y = startY + row * (cardHeight + gapY);
+
+                // 1. 畫外框 (卡片邊界)
+                doc.setDrawColor(200); // 淺灰框
+                doc.rect(x, y, cardWidth, cardHeight);
+
+                // 2. 畫 QR Code
+                if (img) {
+                    const imgData = img.src;
+                    // QR Code 大小 45x45 mm，居中
+                    doc.addImage(imgData, 'PNG', x + 22.5, y + 5, 45, 45);
+                }
+
+                // 3. 處理中文字型 (因為 jsPDF 預設不支援中文，我們改用圖片方式或不依賴字型)
+                // 為了避免字型問題，最簡單的解法是把文字轉成圖片，或只用簡單排版
+                // 這裡我們用一個小技巧：直接輸出文字，但如果亂碼，建議用截圖方式
+                // **但 jsPDF 標準版不含中文字型**。
+                // *** 解決方案：我們用 canvas 把文字畫出來轉圖片貼上去 ***
+                
+                // 建立一個隱藏的 canvas 來繪製文字標籤
+                const canvas = document.createElement('canvas');
+                canvas.width = 300;
+                canvas.height = 80;
+                const ctx = canvas.getContext('2d');
+                
+                // 白底
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(0, 0, 300, 80);
+                
+                // 文字設定
+                ctx.fillStyle = "#000000";
+                ctx.textAlign = "center";
+                ctx.font = "bold 36px 'Microsoft JhengHei', sans-serif";
+                ctx.fillText(`${student.class} ${student.name}`, 150, 40);
+                
+                ctx.fillStyle = "#555555";
+                ctx.font = "24px Arial";
+                ctx.fillText(`ID: ${student.id}`, 150, 70);
+
+                const textImgData = canvas.toDataURL("image/png");
+                
+                // 貼上文字圖片 (在 QR Code 下方)
+                doc.addImage(textImgData, 'PNG', x + 5, y + 50, 80, 15); // 調整大小貼上去
+
+                // 4. 進度更新
+                const progress = Math.round(((i + 1) / allStudents.length) * 100);
+                // 稍微延遲讓介面更新
+                if (i % 5 === 0) await new Promise(r => setTimeout(r, 0));
+            }
+
+            statusText.textContent = "正在生成 PDF 檔案...";
+            const today = new Date().toISOString().split('T')[0];
+            doc.save(`學生QR_Code_名牌_${today}.pdf`);
+            
+            statusText.innerHTML = '<i class="fas fa-check-double"></i> PDF 下載完成！';
+            btn.disabled = false;
         }
     </script>
 </body>
