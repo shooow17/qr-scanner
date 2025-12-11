@@ -146,13 +146,13 @@
 
     <div class="main-container">
         <div class="info-panel waiting" id="info-panel">
-            <div id="status-icon">📷</div>
+            <div id="status-icon">📱</div>
             <div id="main-text">請將 QR Code<br>對準右側鏡頭</div>
             <div id="sub-text">保持距離約 15-30 公分</div>
         </div>
 
         <div class="scanner-panel">
-            <h2>📷 掃描鏡頭 ➠ </h2>
+            <h2>📱 掃描鏡頭 ➠ </h2>
             <div id="qr-reader"></div>
             <div id="camera-controls">
                 <select id="camera-select"></select>
@@ -197,7 +197,7 @@
             panel.className = 'info-panel ' + state; // waiting, success, error
 
             if (state === 'waiting') {
-                icon.textContent = '📷';
+                icon.textContent = '📱';
                 main.innerHTML = '請將 QR Code<br>對準右側鏡頭';
                 sub.textContent = '保持距離約 15-30 公分';
             } else if (state === 'success') {
