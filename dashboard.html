@@ -8,9 +8,15 @@
     
     <style>
         :root {
-            /* 參考圖片的配色 */
+            /* --- 活躍功能 (草方塊) --- */
             --mc-green: #70B237;       /* 草方塊綠 */
             --mc-brown: #593D29;       /* 泥土棕 */
+            
+            /* --- [新增] 開發中功能 (石頭) --- */
+            --mc-stone-light: #9E9E9E; /* 石頭亮面 (灰色) */
+            --mc-stone-dark: #424242;  /* 石頭暗面 (深灰) */
+
+            /* --- 全域設定 --- */
             --mc-bg: #DCCFA3;          /* 沙灘背景色 */
             --mc-border: #1D1D1D;      /* 深黑色邊框 */
             
@@ -45,35 +51,28 @@
         }
 
         h1 {
-            /* 字體設定 */
             font-family: 'Press Start 2P', 'Noto Sans TC', sans-serif;
-            font-weight: 900; /* 最粗體 */
-            font-size: 3.5em; /* 基礎文字大小 */
-            color: #EEEEEE; /* 淺灰色字 */
-            
-            /* 黑色硬陰影 */
+            font-weight: 900;
+            font-size: 3.5em;
+            color: #EEEEEE;
             text-shadow: 
                 5px 5px 0 #000,
                 -2px -2px 0 #000,
                 2px -2px 0 #000,
                 -2px 2px 0 #000,
                 2px 2px 0 #000;
-            
             margin-bottom: 0;
             line-height: 1.4;
             letter-spacing: -2px;
             word-break: keep-all; 
         }
 
-        /* [修改] 標題高亮文字樣式 */
         .highlight-text {
-            color: #FFD700; /* 亮金色 */
-            font-size: 1.4em; /* [修改] 放大 1.4 倍 */
-            margin: 0 5px; /* [修改] 增加一點左右間距，避免太擠 */
-            
-            /* 確保高亮字也有強烈的像素邊框 */
+            color: #FFD700;
+            font-size: 1.4em;
+            margin: 0 5px;
             text-shadow: 
-                6px 6px 0 #000, /* 陰影也稍微加大 */
+                6px 6px 0 #000,
                 -2px -2px 0 #000,
                 2px -2px 0 #000,
                 -2px 2px 0 #000,
@@ -83,7 +82,7 @@
         /* --- 選單容器 --- */
         .menu-container {
             display: grid;
-            grid-template-columns: repeat(4, 1fr); /* 強制固定 4 欄 */
+            grid-template-columns: repeat(4, 1fr); /* 4 欄 */
             gap: 30px; 
             width: 95%;
             max-width: 1400px;
@@ -96,36 +95,32 @@
             flex-direction: column;
             text-decoration: none;
             position: relative;
-            
-            /* 最外層粗框 */
             border: 4px solid var(--mc-border);
-            background-color: var(--mc-border); /* 填補縫隙 */
-            
-            /* 陰影增加層次感 */
+            background-color: var(--mc-border);
             box-shadow: 8px 8px 0 rgba(0,0,0,0.3);
             transition: transform 0.1s, box-shadow 0.1s;
         }
 
-        .mc-card:hover {
+        /* 預設 (綠色) 互動效果 */
+        .mc-card:not(.gray):hover {
             transform: translate(-4px, -4px);
             box-shadow: 12px 12px 0 rgba(0,0,0,0.3);
             filter: brightness(1.1);
         }
-
-        .mc-card:active {
+        .mc-card:not(.gray):active {
             transform: translate(4px, 4px);
             box-shadow: 4px 4px 0 rgba(0,0,0,0.3);
         }
 
-        /* 上半部：綠色區 (放圖示) */
+        /* --- 卡片上半部 (圖示區) --- */
         .card-top {
-            background-color: var(--mc-green);
+            background-color: var(--mc-green); /* 預設綠色 */
             height: 180px;
             display: flex;
             justify-content: center;
             align-items: center;
-            box-shadow: var(--inset-light), var(--inset-dark); /* 內發光質感 */
-            border-bottom: 4px solid rgba(0,0,0,0.1); /* 分隔線 */
+            box-shadow: var(--inset-light), var(--inset-dark);
+            border-bottom: 4px solid rgba(0,0,0,0.1);
         }
 
         .pixel-icon {
@@ -133,41 +128,65 @@
             filter: drop-shadow(4px 4px 0 rgba(0,0,0,0.4));
         }
 
-        /* 下半部：棕色區 (放文字) */
+        /* --- 卡片下半部 (文字區) --- */
         .card-bottom {
-            background-color: var(--mc-brown);
+            background-color: var(--mc-brown); /* 預設棕色 */
             padding: 25px 10px;
             text-align: center;
             box-shadow: var(--inset-light), var(--inset-dark);
             color: #fff;
+            flex-grow: 1; /* 確保高度一致 */
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start; /* 文字靠上 */
         }
 
+        /* --- [新增] 灰色卡片樣式 (開發中) --- */
+        .mc-card.gray .card-top {
+            background-color: var(--mc-stone-light); /* 淺灰 */
+        }
+        .mc-card.gray .card-bottom {
+            background-color: var(--mc-stone-dark); /* 深灰 */
+        }
+        /* 灰色卡片的互動效果 (比較沉重) */
+        .mc-card.gray {
+            cursor: not-allowed; /* 禁止符號 */
+        }
+        .mc-card.gray:hover {
+            transform: none; /* 不浮動 */
+            filter: grayscale(0.5); /* 稍微變暗 */
+        }
+
+        /* --- 文字排版 --- */
         .en-title {
             font-family: 'Press Start 2P', cursive;
-            font-size: 1.2em;
+            font-size: 1.1em; /* 稍微縮小以容納長單字 */
             letter-spacing: 1px;
             margin-bottom: 10px;
             text-shadow: 3px 3px 0 #000;
             text-transform: uppercase;
+            min-height: 1.2em; /* 保持高度 */
         }
 
         .zh-title {
             font-family: 'Noto Sans TC', sans-serif;
-            font-size: 1.8em;
+            font-size: 1.6em; /* 稍微縮小 */
             font-weight: 900;
             text-shadow: 3px 3px 0 #000;
-            letter-spacing: 1px;
+            letter-spacing: 2px;
+            margin-bottom: 5px;
         }
 
         .desc-text {
-            font-size: 0.9em;
+            font-size: 0.85em;
             color: #ddd;
             margin-top: 8px;
             font-weight: normal;
             text-shadow: 2px 2px 0 #000;
+            line-height: 1.4;
         }
 
-        /* --- 後台管理 (基岩灰風格) --- */
+        /* --- 後台管理 --- */
         .admin-section {
             width: 100%;
             text-align: center;
@@ -193,35 +212,28 @@
             text-shadow: 2px 2px 0 #000;
         }
 
-        .admin-btn:hover {
-            transform: translate(-2px, -2px);
-            box-shadow: 8px 8px 0 rgba(0,0,0,0.35);
-        }
-        .admin-btn:active {
-            transform: translate(2px, 2px);
-            box-shadow: 2px 2px 0 rgba(0,0,0,0.3);
-        }
+        .admin-btn:hover { transform: translate(-2px, -2px); box-shadow: 8px 8px 0 rgba(0,0,0,0.35); }
+        .admin-btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 rgba(0,0,0,0.3); }
 
-        /* RWD: 中型螢幕 (平板橫向/小筆電) */
+        /* RWD */
         @media (max-width: 1200px) {
             .menu-container { gap: 15px; }
             .card-top { height: 150px; }
-            .pixel-icon { font-size: 4em; }
-            .card-bottom { padding: 15px 5px; }
-            .zh-title { font-size: 1.5em; }
-            .en-title { font-size: 1em; }
+            .pixel-icon { font-size: 3.5em; }
+            .zh-title { font-size: 1.4em; }
+            .en-title { font-size: 0.9em; }
+            .desc-text { font-size: 0.75em; }
             h1 { font-size: 2.5em; } 
-            .highlight-text { font-size: 1.3em; } /* 手機板高亮字稍微縮小 */
+            .highlight-text { font-size: 1.3em; }
         }
 
-        /* RWD: 手機板 */
         @media (max-width: 768px) {
             h1 { font-size: 2em; }
             .highlight-text { font-size: 1.3em; }
+            /* 手機板切為單欄 */
             .menu-container { grid-template-columns: 1fr; max-width: 400px; gap: 30px; }
             .card-top { height: 180px; }
             .pixel-icon { font-size: 5em; }
-            .card-bottom { padding: 25px 10px; }
             .zh-title { font-size: 1.8em; }
             .en-title { font-size: 1.2em; }
         }
@@ -237,9 +249,7 @@
     <div class="menu-container">
         
         <a href="index.html" class="mc-card" target="_blank">
-            <div class="card-top">
-                <div class="pixel-icon">📱</div>
-            </div>
+            <div class="card-top"><div class="pixel-icon">📷</div></div>
             <div class="card-bottom">
                 <div class="en-title">SCANNER</div>
                 <div class="zh-title">家長掃描站</div>
@@ -248,9 +258,7 @@
         </a>
 
         <a href="view.html" class="mc-card" target="_blank">
-            <div class="card-top">
-                <div class="pixel-icon">👮</div>
-            </div>
+            <div class="card-top"><div class="pixel-icon">🛡️</div></div>
             <div class="card-bottom">
                 <div class="en-title">GUARD VIEW</div>
                 <div class="zh-title">警衛室看板</div>
@@ -259,9 +267,7 @@
         </a>
 
         <a href="directory.html" class="mc-card" target="_blank">
-            <div class="card-top">
-                <div class="pixel-icon">🚪</div>
-            </div>
+            <div class="card-top"><div class="pixel-icon">💎</div></div>
             <div class="card-bottom">
                 <div class="en-title">CLASSROOM</div>
                 <div class="zh-title">各班教室入口</div>
@@ -270,13 +276,47 @@
         </a>
 
         <a href="generator.html" class="mc-card" target="_blank">
-            <div class="card-top">
-                <div class="pixel-icon">🖨️</div>
-            </div>
+            <div class="card-top"><div class="pixel-icon">🖨️</div></div>
             <div class="card-bottom">
                 <div class="en-title">GENERATOR</div>
                 <div class="zh-title">QR碼產生器</div>
                 <div class="desc-text">Create Codes</div>
+            </div>
+        </a>
+
+        <a href="javascript:void(0)" class="mc-card gray" onclick="alert('【家長系統】開發中，敬請期待！\n功能：班級申請、個資填寫、繳費查詢')">
+            <div class="card-top"><div class="pixel-icon">👨‍👩‍👧‍👦</div></div>
+            <div class="card-bottom">
+                <div class="en-title">PARENTS</div>
+                <div class="zh-title">家長系統</div>
+                <div class="desc-text">個資填寫 • 繳費</div>
+            </div>
+        </a>
+
+        <a href="javascript:void(0)" class="mc-card gray" onclick="alert('【學生管理系統】開發中，敬請期待！\n功能：資料查詢、開班作業、補助申請')">
+            <div class="card-top"><div class="pixel-icon">🎓</div></div>
+            <div class="card-bottom">
+                <div class="en-title">MANAGEMENT</div>
+                <div class="zh-title">學生管理</div>
+                <div class="desc-text">開班 • 補助 • 訊息</div>
+            </div>
+        </a>
+
+        <a href="javascript:void(0)" class="mc-card gray" onclick="alert('【繳費系統】開發中，敬請期待！\n功能：製作繳費單、對帳、薪資處理')">
+            <div class="card-top"><div class="pixel-icon">💰</div></div>
+            <div class="card-bottom">
+                <div class="en-title">PAYMENT</div>
+                <div class="zh-title">繳費系統</div>
+                <div class="desc-text">繳費單 • 對帳 • 薪資</div>
+            </div>
+        </a>
+
+        <a href="javascript:void(0)" class="mc-card gray" onclick="alert('【工作日誌系統】開發中，敬請期待！\n功能：線上點名、突發狀況紀錄')">
+            <div class="card-top"><div class="pixel-icon">📝</div></div>
+            <div class="card-bottom">
+                <div class="en-title">WORK LOG</div>
+                <div class="zh-title">工作日誌</div>
+                <div class="desc-text">點名 • 紀錄</div>
             </div>
         </a>
 
@@ -285,7 +325,7 @@
     <div class="admin-section">
         <a href="management.html" class="admin-btn" target="_blank">
             <div class="admin-btn-inner">
-                🛠️ 管理介面 (RESET DB)
+                ⚙️ 管理介面 (RESET DB)
             </div>
         </a>
     </div>
