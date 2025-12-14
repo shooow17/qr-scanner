@@ -3,172 +3,289 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>自動清除介面</title>
+    <title>系統後台管理</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    
     <style>
-        body { 
-            font-family: "Microsoft JhengHei", Arial, sans-serif; 
-            background-color: #f0f0f0; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh; 
-            margin: 0; 
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f4f7f6;
+            margin: 0; padding: 20px;
+            color: #333;
+            display: flex; flex-direction: column; align-items: center;
         }
-        .container { 
-            text-align: center; 
-            background-color: #fff; 
-            padding: 40px; 
-            border-radius: 12px; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1); 
-            width: 90%;
-            max-width: 500px;
-        }
-        h1 { color: #d32f2f; margin-bottom: 20px; }
-        p { color: #555; font-size: 1.1em; line-height: 1.6; }
-        
-        button { 
-            background-color: #d32f2f; 
-            color: white; 
-            border: none; 
-            padding: 15px 30px; 
-            border-radius: 8px; 
-            font-size: 1.2em; 
-            cursor: pointer; 
-            font-weight: bold; 
-            margin-top: 20px;
-        }
-        button:hover { background-color: #b71c1c; }
 
-        /* [新] 時間顯示區塊 */
-        .status-box {
-            margin-top: 30px;
-            padding: 15px;
-            background-color: #e3f2fd;
-            border-radius: 8px;
-            color: #0d47a1;
+        h1 { color: #2c3e50; margin-bottom: 30px; }
+
+        .container {
+            width: 95%; max-width: 1000px;
+            display: grid; gap: 20px;
+        }
+
+        /* 卡片樣式 */
+        .card {
+            background: white; padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        .card-title {
+            font-size: 1.2em; font-weight: bold;
+            color: #2c3e50; border-left: 5px solid #3498db;
+            padding-left: 10px; margin-bottom: 20px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+
+        /* 按鈕樣式 */
+        .btn-danger {
+            background-color: #e74c3c; color: white;
+            border: none; padding: 10px 20px;
+            border-radius: 5px; cursor: pointer;
+            font-size: 1em; font-weight: bold;
+            transition: background 0.2s;
+        }
+        .btn-danger:hover { background-color: #c0392b; }
+
+        .btn-primary {
+            background-color: #3498db; color: white;
+            border: none; padding: 8px 15px;
+            border-radius: 5px; cursor: pointer;
             font-size: 0.9em;
         }
-        #clock {
-            font-size: 1.5em;
-            font-weight: bold;
-            margin: 10px 0;
-            font-family: monospace;
+        .btn-primary:hover { background-color: #2980b9; }
+
+        /* 圖表區 */
+        .chart-container {
+            position: relative; height: 400px; width: 100%;
         }
-        .auto-badge {
-            display: inline-block;
-            background-color: #28a745;
-            color: white;
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-size: 0.8em;
-            vertical-align: middle;
-            margin-left: 5px;
+
+        /* 狀態文字 */
+        #db-status { font-weight: bold; margin-left: 10px; }
+        .status-ok { color: green; }
+        .status-warn { color: orange; }
+
+        /* 日期選擇器 */
+        input[type="date"] {
+            padding: 5px 10px; border: 1px solid #ddd;
+            border-radius: 5px; font-family: inherit;
         }
+        
+        .back-link {
+            margin-top: 30px; text-decoration: none; color: #7f8c8d;
+            border: 1px solid #bdc3c7; padding: 10px 20px; border-radius: 50px;
+            transition: all 0.2s;
+        }
+        .back-link:hover { background: #fff; color: #2c3e50; border-color: #2c3e50; }
+
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>⚠️ 請小心操作：系統管理</h1>
-        <p>此操作將會刪除所有班級的掃描佇列和警衛室的紀錄。</p>
-        <button onclick="manualClear()">🔥 手動清空所有資料庫 🔥</button>
 
-        <div class="status-box">
-            <div>目前系統時間</div>
-            <div id="clock">--:--:--</div>
-            <div style="margin-top: 5px;">
-                自動排程已啟動 <span class="auto-badge">ON</span>
+    <h1>⚙️ 系統後台管理</h1>
+
+    <div class="container">
+        
+        <div class="card">
+            <div class="card-title">
+                資料庫維護
+                <span style="font-size: 0.8em; font-weight: normal; color: #666;">
+                    狀態: <span id="db-status">檢測中...</span>
+                </span>
             </div>
-            <div style="color: #666; font-size: 0.9em; margin-top: 5px;">
-                將於每天 <strong>16:00</strong> 與 <strong>18:00</strong> 自動執行清空<br>
-                (請保持此頁面開啟)
+            <p>請於每日放學結束後 (約 18:30) 執行此操作，以清空今日的即時排隊名單。</p>
+            <p style="color: #e74c3c; font-size: 0.9em;">※ 注意：此操作只會清空 Firebase (即時看板)，不會刪除 Google 試算表裡的永久紀錄。</p>
+            <button class="btn-danger" onclick="resetDatabase()">🗑️ 清空即時資料庫 (每日重置)</button>
+        </div>
+
+        <div class="card">
+            <div class="card-title">
+                📊 放學人流統計
+                <div>
+                    <input type="date" id="stats-date">
+                    <button class="btn-primary" onclick="loadStats()">查詢</button>
+                </div>
+            </div>
+            <p id="stats-info" style="color: #666; font-size: 0.9em;">請選擇日期並點擊查詢。</p>
+            <div class="chart-container">
+                <canvas id="trafficChart"></canvas>
             </div>
         </div>
+
     </div>
 
+    <a href="dashboard.html" class="back-link">← 回主控台</a>
+
     <script>
-        // --- 2. 你的 Firebase 設定 (已填入) ---
+        // --- 設定 (請填入您的資訊) ---
         const firebaseConfig = {
-          apiKey: "AIzaSyB_-fHCMhi-URwyBqzAIipmffWwvNgzJJc",
-          authDomain: "qr-scanner-app-2c73d.firebaseapp.com",
-          databaseURL: "https://qr-scanner-app-2c73d-default-rtdb.asia-southeast1.firebasedatabase.app",
-          projectId: "qr-scanner-app-2c73d",
-          storageBucket: "qr-scanner-app-2c73d.firebasestorage.app",
-          messagingSenderId: "385628927398",
-          appId: "1:385628927398:web:00239f1b2acebd6e790b67"
+            // 請貼上您的 Firebase Config
+             apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT.firebaseapp.com",
+            databaseURL: "https://YOUR_DB_URL.firebasedatabase.app",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef"
         };
+        
+        // 請確認這是重新部署後的 GAS 網址
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZHGM5xMgNFn9Df6BXMVfSesT3BIfHN91NdZjLK5TkHdEOai476VNIlJaw61n3Bxg9CA/exec";
+        // ---------------------------
 
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
+        // 初始化 Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.database();
 
-        // [新] 核心清除邏輯 (不含確認視窗，給自動排程用)
-        function executeClear(source) {
-            console.log(`[${source}] 正在執行資料庫清空...`);
+        // 監聽資料庫狀態 (簡單檢查 queues 節點是否有資料)
+        const queuesRef = db.ref('queues');
+        queuesRef.on('value', (snapshot) => {
+            const val = snapshot.val();
+            const statusEl = document.getElementById('db-status');
+            if (val) {
+                const count = Object.keys(val).length; // 粗略計算班級數
+                statusEl.textContent = `使用中 (約 ${count} 班級有資料)`;
+                statusEl.className = "status-warn";
+            } else {
+                statusEl.textContent = "乾淨 (無殘留資料)";
+                statusEl.className = "status-ok";
+            }
+        });
+
+        // 1. 清空資料庫
+        function resetDatabase() {
+            if (!confirm("確定要清空 Firebase 資料庫嗎？\n這將會移除所有目前在排隊和廣播中的學生資料。\n(建議於放學結束後執行)")) {
+                return;
+            }
             
-            Promise.all([
-                database.ref("alerts").remove(),
-                database.ref("queues").remove()
-            ]).then(() => {
-                console.log(`[${source}] ✅ 資料庫已成功清空！`);
-                // 如果是手動按的，才跳 Alert
-                if (source === 'Manual') {
-                    alert("✅ 資料庫已成功清空！");
+            // 清空 queues (排隊) 和 alerts (警衛室通知)
+            const updates = {};
+            updates['queues'] = null;
+            updates['alerts'] = null;
+
+            db.ref().update(updates)
+                .then(() => {
+                    alert("✅ 資料庫已成功重置！明天又是新的一天。");
+                })
+                .catch((error) => {
+                    alert("❌ 重置失敗：" + error.message);
+                });
+        }
+
+        // 2. 統計圖表邏輯
+        let myChart = null; // 儲存圖表實例
+
+        // 初始化日期為今天
+        document.getElementById('stats-date').valueAsDate = new Date();
+
+        async function loadStats() {
+            const dateInput = document.getElementById('stats-date').value;
+            const btn = document.querySelector('button[onclick="loadStats()"]');
+            const info = document.getElementById('stats-info');
+            
+            if (!dateInput) return alert("請選擇日期");
+
+            btn.disabled = true;
+            btn.textContent = "讀取中...";
+            info.textContent = "正在從 Google 試算表讀取日誌...";
+
+            try {
+                // 呼叫 GAS 取得所有日誌 (加上 op=get_log 參數)
+                const response = await fetch(`${GOOGLE_SCRIPT_URL}?op=get_log`);
+                const data = await response.json();
+
+                // 篩選出選定日期的資料
+                // 資料格式範例: "2023-12-14 16:05:22"
+                const targetLogs = data.filter(log => log.time.startsWith(dateInput));
+                
+                info.textContent = `📅 ${dateInput} 共有 ${targetLogs.length} 人次接送紀錄。`;
+
+                // 進行統計 (每10分鐘一組)
+                const buckets = {};
+                // 初始化 12:00 ~ 19:00 的空桶子 (確保圖表X軸連續)
+                for (let h = 12; h <= 18; h++) {
+                    for (let m = 0; m < 60; m += 10) {
+                        const timeLabel = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+                        buckets[timeLabel] = 0;
+                    }
                 }
-            }).catch(err => {
-                console.error(`[${source}] ❌ 清空失敗: ${err.message}`);
-                if (source === 'Manual') {
-                    alert(`❌ 清空失敗: ${err.message}`);
+
+                targetLogs.forEach(log => {
+                    // log.time 是 "2023-12-14 16:05:22"
+                    // 取出 HH:mm
+                    const timePart = log.time.split(' ')[1]; // "16:05:22"
+                    const [h, m, s] = timePart.split(':');
+                    
+                    // 無條件捨去到 10 分鐘 (例如 16:05 -> 16:00, 16:18 -> 16:10)
+                    const bucketM = Math.floor(parseInt(m) / 10) * 10;
+                    const key = `${h}:${String(bucketM).padStart(2,'0')}`;
+                    
+                    if (buckets[key] !== undefined) {
+                        buckets[key]++;
+                    }
+                });
+
+                // 準備繪圖資料
+                const labels = Object.keys(buckets);
+                const values = Object.values(buckets);
+
+                renderChart(labels, values);
+
+            } catch (err) {
+                console.error(err);
+                info.textContent = "❌ 讀取失敗，請檢查 GAS 網址或網路。";
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "查詢";
+            }
+        }
+
+        function renderChart(labels, values) {
+            const ctx = document.getElementById('trafficChart').getContext('2d');
+            
+            // 如果舊圖表存在，先銷毀
+            if (myChart) {
+                myChart.destroy();
+            }
+
+            myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '接送人數',
+                        data: values,
+                        backgroundColor: 'rgba(52, 152, 219, 0.6)',
+                        borderColor: 'rgba(52, 152, 219, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 } // 確保Y軸是整數
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        title: {
+                            display: true,
+                            text: '時段人流統計 (每10分鐘)'
+                        }
+                    }
                 }
             });
         }
-
-        // 手動清除按鈕 (含確認)
-        function manualClear() {
-            if (!confirm("【嚴重警告】\n你確定要「永久刪除」所有資料嗎？\n\n這將會清空：\n1. 所有班級的等待學生\n2. 所有警衛室的訊息紀錄\n\n此動作無法復原！")) {
-                return;
-            }
-            if (!confirm("請再次確認：真的要清空嗎？")) return;
-            
-            executeClear('Manual');
-        }
-
-        // [新] 自動排程邏輯
-        // 為了防止同一分鐘內重複執行，我們使用一個標記
-        let lastClearTimeStr = "";
-
-        function checkSchedule() {
-            const now = new Date();
-            const hours = now.getHours();
-            const minutes = now.getMinutes();
-            const seconds = now.getSeconds();
-
-            // 更新畫面時鐘 (補零)
-            const timeString = 
-                String(hours).padStart(2, '0') + ":" + 
-                String(minutes).padStart(2, '0') + ":" + 
-                String(seconds).padStart(2, '0');
-            document.getElementById('clock').innerText = timeString;
-
-            // 檢查是否為 16:00 或 18:00
-            // 我們檢查分鐘為 00，且秒數小於 2 (確保只觸發一次，但也避免瀏覽器卡頓錯過第0秒)
-            if ((hours === 16 || hours === 18) && minutes === 0) {
-                // 產生一個標記，例如 "16:00"
-                const currentClearMark = `${hours}:${minutes}`;
-                
-                // 如果這個時間點還沒執行過
-                if (lastClearTimeStr !== currentClearMark) {
-                    executeClear(`Auto-${timeString}`);
-                    lastClearTimeStr = currentClearMark; // 標記已執行，這一分鐘內不會再跑
-                }
-            }
-        }
-
-        // 每秒檢查一次
-        setInterval(checkSchedule, 1000);
-        // 立即執行一次以顯示時間
-        checkSchedule();
-
+        
+        // 頁面載入後自動查一次今天
+        // window.onload = loadStats; 
     </script>
 </body>
 </html>
