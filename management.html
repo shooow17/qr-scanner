@@ -39,35 +39,55 @@
             display: flex; justify-content: space-between; align-items: center;
         }
 
+        /* [新增] 排行榜樣式 */
+        .ranking-box {
+            display: flex; gap: 20px; flex-wrap: wrap;
+        }
+        .rank-col {
+            flex: 1; min-width: 250px;
+            background: #f8f9fa; padding: 15px;
+            border-radius: 10px; border: 1px solid #e9ecef;
+        }
+        .rank-header {
+            font-weight: bold; color: #555; margin-bottom: 10px;
+            border-bottom: 2px solid #ddd; padding-bottom: 5px;
+        }
+        .rank-item {
+            display: flex; justify-content: space-between;
+            padding: 8px 0; border-bottom: 1px dashed #eee;
+        }
+        .rank-item:nth-child(2) { color: #e74c3c; font-weight: bold; } /* 第一名紅色 */
+        .rank-item:nth-child(3) { color: #e67e22; font-weight: bold; } /* 第二名橘色 */
+        .rank-item:nth-child(4) { color: #f1c40f; font-weight: bold; } /* 第三名金色 */
+        
+        .badge {
+            background: #e0e0e0; color: #333; padding: 2px 8px;
+            border-radius: 10px; font-size: 0.85em;
+        }
+
         /* 按鈕樣式 */
         .btn-danger {
             background-color: #e74c3c; color: white;
             border: none; padding: 10px 20px;
             border-radius: 5px; cursor: pointer;
-            font-size: 1em; font-weight: bold;
-            transition: background 0.2s;
+            font-size: 1em; font-weight: bold; transition: background 0.2s;
         }
         .btn-danger:hover { background-color: #c0392b; }
 
         .btn-primary {
             background-color: #3498db; color: white;
             border: none; padding: 8px 15px;
-            border-radius: 5px; cursor: pointer;
-            font-size: 0.9em;
+            border-radius: 5px; cursor: pointer; font-size: 0.9em;
         }
         .btn-primary:hover { background-color: #2980b9; }
 
-        /* 圖表區 */
-        .chart-container {
-            position: relative; height: 400px; width: 100%;
-        }
+        .chart-container { position: relative; height: 350px; width: 100%; }
 
         /* 狀態文字 */
         #db-status { font-weight: bold; margin-left: 10px; }
         .status-ok { color: green; }
         .status-warn { color: orange; }
 
-        /* 日期選擇器 */
         input[type="date"] {
             padding: 5px 10px; border: 1px solid #ddd;
             border-radius: 5px; font-family: inherit;
@@ -92,17 +112,33 @@
             <div class="card-title">
                 資料庫維護
                 <span style="font-size: 0.8em; font-weight: normal; color: #666;">
-                    狀態: <span id="db-status">檢測中...</span>
+                    Firebase 狀態: <span id="db-status">檢測中...</span>
                 </span>
             </div>
-            <p>請於每日放學結束後 (約 18:30) 執行此操作，以清空今日的即時排隊名單。</p>
-            <p style="color: #e74c3c; font-size: 0.9em;">※ 注意：此操作只會清空 Firebase (即時看板)，不會刪除 Google 試算表裡的永久紀錄。</p>
+            <p>請於每日放學結束後執行此操作，以清空今日的即時排隊名單。</p>
             <button class="btn-danger" onclick="resetDatabase()">🗑️ 清空即時資料庫 (每日重置)</button>
         </div>
 
         <div class="card">
+            <div class="card-title">🏆 歷史數據亮點 (All Time)</div>
+            <div class="ranking-box">
+                <div class="rank-col">
+                    <div class="rank-header">📅 單日接送人數最多 (Top 3)</div>
+                    <div id="top-dates">讀取中...</div>
+                </div>
+                <div class="rank-col">
+                    <div class="rank-header">⏰ 平均人次最多時段 (Top 3)</div>
+                    <div id="top-slots">讀取中...</div>
+                </div>
+            </div>
+            <p style="font-size: 0.85em; color: #888; margin-top: 10px;">
+                * 時段統計以每 10 分鐘為單位，計算所有日期的平均值。
+            </p>
+        </div>
+
+        <div class="card">
             <div class="card-title">
-                📊 放學人流統計
+                📊 單日詳細圖表
                 <div>
                     <input type="date" id="stats-date">
                     <button class="btn-primary" onclick="loadStats()">查詢</button>
@@ -121,14 +157,14 @@
     <script>
         // --- 設定 (請填入您的資訊) ---
         const firebaseConfig = {
-            // 請貼上您的 Firebase Config
+            // 請貼上您的 Firebase Config (那串真的鑰匙)
              apiKey: "AIzaSyB_-fHCMhi-URwyBqzAIipmffWwvNgzJJc",
-            authDomain: "qr-scanner-app-2c73d.firebaseapp.com",
-            databaseURL: "https://qr-scanner-app-2c73d-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "qr-scanner-app-2c73d",
-            storageBucket: "qr-scanner-app-2c73d.firebasestorage.app",
-            messagingSenderId: "385628927398",
-            appId: "1:385628927398:web:00239f1b2acebd6e790b67"
+    authDomain: "qr-scanner-app-2c73d.firebaseapp.com",
+    databaseURL: "https://qr-scanner-app-2c73d-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "qr-scanner-app-2c73d",
+    storageBucket: "qr-scanner-app-2c73d.firebasestorage.app",
+    messagingSenderId: "385628927398",
+    appId: "1:385628927398:web:00239f1b2acebd6e790b67"
         };
         
         // 請確認這是重新部署後的 GAS 網址
@@ -141,14 +177,12 @@
         }
         const db = firebase.database();
 
-        // 監聽資料庫狀態 (簡單檢查 queues 節點是否有資料)
-        const queuesRef = db.ref('queues');
-        queuesRef.on('value', (snapshot) => {
+        // 監聽狀態
+        db.ref('queues').on('value', (snapshot) => {
             const val = snapshot.val();
             const statusEl = document.getElementById('db-status');
             if (val) {
-                const count = Object.keys(val).length; // 粗略計算班級數
-                statusEl.textContent = `使用中 (約 ${count} 班級有資料)`;
+                statusEl.textContent = `使用中 (約 ${Object.keys(val).length} 班級)`;
                 statusEl.className = "status-warn";
             } else {
                 statusEl.textContent = "乾淨 (無殘留資料)";
@@ -156,57 +190,113 @@
             }
         });
 
-        // 1. 清空資料庫
         function resetDatabase() {
-            if (!confirm("確定要清空 Firebase 資料庫嗎？\n這將會移除所有目前在排隊和廣播中的學生資料。\n(建議於放學結束後執行)")) {
-                return;
-            }
-            
-            // 清空 queues (排隊) 和 alerts (警衛室通知)
-            const updates = {};
-            updates['queues'] = null;
-            updates['alerts'] = null;
-
-            db.ref().update(updates)
-                .then(() => {
-                    alert("✅ 資料庫已成功重置！明天又是新的一天。");
-                })
-                .catch((error) => {
-                    alert("❌ 重置失敗：" + error.message);
-                });
+            if (!confirm("確定要清空 Firebase 資料庫嗎？(建議於放學後執行)")) return;
+            db.ref().update({ 'queues': null, 'alerts': null })
+                .then(() => alert("✅ 資料庫已成功重置！"))
+                .catch((error) => alert("❌ 重置失敗：" + error.message));
         }
 
-        // 2. 統計圖表邏輯
-        let myChart = null; // 儲存圖表實例
+        // --- 統計與圖表邏輯 ---
+        let myChart = null; 
+        document.getElementById('stats-date').valueAsDate = new Date(); // 預設今天
 
-        // 初始化日期為今天
-        document.getElementById('stats-date').valueAsDate = new Date();
+        // 儲存所有快取資料，避免重複讀取
+        let cachedLogs = null;
 
+        async function fetchAllLogs() {
+            if (cachedLogs) return cachedLogs;
+            const response = await fetch(`${GOOGLE_SCRIPT_URL}?op=get_log`);
+            const data = await response.json();
+            cachedLogs = data;
+            return data;
+        }
+
+        // [新增] 計算排行榜邏輯
+        function calculateRankings(logs) {
+            // 1. 準備容器
+            const dateCounts = {}; // { "2023-12-01": 50, "2023-12-02": 60 }
+            const slotCounts = {}; // { "16:00": 120, "16:10": 150 } (這是總次數)
+            const uniqueDates = new Set(); // 用來計算總天數
+
+            logs.forEach(log => {
+                // log.time = "2023-12-05 16:05:22"
+                const [datePart, timePart] = log.time.split(' ');
+                
+                // 統計單日人數
+                if (!dateCounts[datePart]) dateCounts[datePart] = 0;
+                dateCounts[datePart]++;
+                
+                uniqueDates.add(datePart);
+
+                // 統計時段 (每10分鐘)
+                const [h, m, s] = timePart.split(':');
+                const bucketM = Math.floor(parseInt(m) / 10) * 10;
+                const timeKey = `${h}:${String(bucketM).padStart(2,'0')}`;
+                
+                if (!slotCounts[timeKey]) slotCounts[timeKey] = 0;
+                slotCounts[timeKey]++;
+            });
+
+            // --- 產生「最忙日期」Top 3 ---
+            const sortedDates = Object.entries(dateCounts)
+                .sort((a, b) => b[1] - a[1]) // 降序排列
+                .slice(0, 3); // 取前三
+
+            // --- 產生「最忙時段」Top 3 (平均) ---
+            const totalDays = uniqueDates.size || 1; // 避免除以 0
+            const sortedSlots = Object.entries(slotCounts)
+                .map(([slot, count]) => ({
+                    slot: slot,
+                    avg: (count / totalDays).toFixed(1) // 計算平均
+                }))
+                .sort((a, b) => b.avg - a.avg) // 降序
+                .slice(0, 3);
+
+            // --- 渲染到畫面上 ---
+            renderRankList('top-dates', sortedDates.map(d => `${d[0]} <span class="badge">${d[1]} 人</span>`));
+            renderRankList('top-slots', sortedSlots.map(s => `${s.slot} ~ <span class="badge">平均 ${s.avg} 人</span>`));
+        }
+
+        function renderRankList(elementId, items) {
+            const el = document.getElementById(elementId);
+            if (items.length === 0) {
+                el.innerHTML = '<div style="color:#999">暫無資料</div>';
+                return;
+            }
+            let html = '';
+            items.forEach((itemHTML, index) => {
+                const rankIcon = index === 0 ? '🥇' : (index === 1 ? '🥈' : '🥉');
+                html += `<div class="rank-item">
+                            <span>${rankIcon} 第 ${index + 1} 名</span>
+                            <span>${itemHTML}</span>
+                         </div>`;
+            });
+            el.innerHTML = html;
+        }
+
+        // 載入資料主程式
         async function loadStats() {
             const dateInput = document.getElementById('stats-date').value;
             const btn = document.querySelector('button[onclick="loadStats()"]');
             const info = document.getElementById('stats-info');
             
-            if (!dateInput) return alert("請選擇日期");
-
             btn.disabled = true;
             btn.textContent = "讀取中...";
-            info.textContent = "正在從 Google 試算表讀取日誌...";
+            info.textContent = "正在分析資料...";
 
             try {
-                // 呼叫 GAS 取得所有日誌 (加上 op=get_log 參數)
-                const response = await fetch(`${GOOGLE_SCRIPT_URL}?op=get_log`);
-                const data = await response.json();
-
-                // 篩選出選定日期的資料
-                // 資料格式範例: "2023-12-14 16:05:22"
-                const targetLogs = data.filter(log => log.time.startsWith(dateInput));
+                // 讀取資料 (如果之前讀過就用快取)
+                const data = await fetchAllLogs();
                 
+                // [新增] 執行排行榜計算 (全量資料)
+                calculateRankings(data);
+
+                // --- 以下是圖表邏輯 (針對單日) ---
+                const targetLogs = data.filter(log => log.time.startsWith(dateInput));
                 info.textContent = `📅 ${dateInput} 共有 ${targetLogs.length} 人次接送紀錄。`;
 
-                // 進行統計 (每10分鐘一組)
                 const buckets = {};
-                // 初始化 12:00 ~ 19:00 的空桶子 (確保圖表X軸連續)
                 for (let h = 12; h <= 18; h++) {
                     for (let m = 0; m < 60; m += 10) {
                         const timeLabel = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
@@ -215,29 +305,20 @@
                 }
 
                 targetLogs.forEach(log => {
-                    // log.time 是 "2023-12-14 16:05:22"
-                    // 取出 HH:mm
-                    const timePart = log.time.split(' ')[1]; // "16:05:22"
+                    const timePart = log.time.split(' ')[1];
                     const [h, m, s] = timePart.split(':');
-                    
-                    // 無條件捨去到 10 分鐘 (例如 16:05 -> 16:00, 16:18 -> 16:10)
                     const bucketM = Math.floor(parseInt(m) / 10) * 10;
                     const key = `${h}:${String(bucketM).padStart(2,'0')}`;
-                    
-                    if (buckets[key] !== undefined) {
-                        buckets[key]++;
-                    }
+                    if (buckets[key] !== undefined) buckets[key]++;
                 });
 
-                // 準備繪圖資料
-                const labels = Object.keys(buckets);
-                const values = Object.values(buckets);
-
-                renderChart(labels, values);
+                renderChart(Object.keys(buckets), Object.values(buckets));
 
             } catch (err) {
                 console.error(err);
-                info.textContent = "❌ 讀取失敗，請檢查 GAS 網址或網路。";
+                info.textContent = "❌ 讀取失敗";
+                document.getElementById('top-dates').innerHTML = "資料讀取失敗";
+                document.getElementById('top-slots').innerHTML = "資料讀取失敗";
             } finally {
                 btn.disabled = false;
                 btn.textContent = "查詢";
@@ -246,46 +327,29 @@
 
         function renderChart(labels, values) {
             const ctx = document.getElementById('trafficChart').getContext('2d');
-            
-            // 如果舊圖表存在，先銷毀
-            if (myChart) {
-                myChart.destroy();
-            }
-
+            if (myChart) myChart.destroy();
             myChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: '接送人數',
+                        label: '人數',
                         data: values,
-                        backgroundColor: 'rgba(52, 152, 219, 0.6)',
-                        borderColor: 'rgba(52, 152, 219, 1)',
-                        borderWidth: 1
+                        backgroundColor: '#3498db',
+                        borderRadius: 4
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: { stepSize: 1 } // 確保Y軸是整數
-                        }
-                    },
-                    plugins: {
-                        legend: { display: false },
-                        title: {
-                            display: true,
-                            text: '時段人流統計 (每10分鐘)'
-                        }
-                    }
+                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+                    plugins: { legend: { display: false } }
                 }
             });
         }
         
-        // 頁面載入後自動查一次今天
-        // window.onload = loadStats; 
+        // 自動載入一次
+        window.onload = loadStats;
     </script>
 </body>
 </html>
