@@ -5,13 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>114學年度 兒童課後照顧班線上報名</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
     <style>
         body {
             font-family: 'Noto Sans TC', sans-serif;
-            background-color: #fce4ec; /* 溫馨的淡粉色背景 */
+            background-color: #fce4ec;
             margin: 0; padding: 20px;
             color: #333;
             display: flex; justify-content: center;
@@ -27,7 +25,6 @@
         h1 { text-align: center; color: #d81b60; margin-bottom: 20px; }
         h2 { border-left: 5px solid #d81b60; padding-left: 10px; margin-top: 30px; color: #880e4f; font-size: 1.3em;}
 
-        /* 注意事項區塊 */
         .notice-box {
             background-color: #fff3e0;
             border: 1px solid #ffe0b2;
@@ -38,16 +35,35 @@
         .notice-box strong { color: #e65100; }
         .notice-box ul { padding-left: 20px; margin: 10px 0; }
 
-        /* 表單樣式 */
         .form-group { margin-bottom: 15px; }
         label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; }
-        input[type="text"], input[type="tel"], select {
+        
+        input[type="text"], select {
             width: 100%; padding: 10px;
             border: 1px solid #ccc; border-radius: 5px;
-            font-size: 1em; box-sizing: border-box; /* 確保 padding 不會撐開寬度 */
+            font-size: 1em; box-sizing: border-box;
         }
-        
-        /* Checkbox 區塊 */
+
+        /* [新增] 手機號碼專用樣式 */
+        .phone-input-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .phone-input-group input {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1em;
+            text-align: center;
+        }
+        /* 括號與橫線的裝飾文字 */
+        .phone-sep {
+            font-weight: bold;
+            color: #888;
+            font-size: 1.2em;
+        }
+
         .checkbox-group {
             display: flex; flex-direction: column; gap: 8px;
             background: #fafafa; padding: 15px; border-radius: 5px; border: 1px solid #eee;
@@ -55,7 +71,6 @@
         .checkbox-item { display: flex; align-items: center; }
         .checkbox-item input { margin-right: 10px; transform: scale(1.2); }
 
-        /* 按鈕 */
         .btn-submit {
             width: 100%;
             background-color: #d81b60; color: white;
@@ -64,6 +79,7 @@
             margin-top: 30px; transition: background 0.3s;
         }
         .btn-submit:hover { background-color: #ad1457; }
+        .btn-submit:disabled { background-color: #ccc; cursor: not-allowed; }
 
         .required { color: red; margin-left: 3px; }
     </style>
@@ -75,14 +91,14 @@
 
         <div class="notice-box">
             <h3>📢 報名注意事項 (請家長詳閱)</h3>
-            [cite_start]<p><strong>一、實施日期：</strong>114年9月1日 至 115年6月30日，每日放學後至 17:30 [cite: 2]。</p>
-            [cite_start]<p><strong>二、收費標準：</strong>每小時25元，一學期收費兩次。中途請假或退出不得退費 [cite: 4]。</p>
+            <p><strong>一、實施日期：</strong>114年9月1日 至 115年6月30日，每日放學後至 17:30。</p>
+            <p><strong>二、收費標準：</strong>每小時25元，一學期收費兩次。中途請假或退出不得退費。</p>
             <p><strong>三、重要日程：</strong></p>
             <ul>
-                [cite_start]<li><strong>報名截止：</strong>114年6月2日 (一) 前 [cite: 10]。</li>
-                [cite_start]<li><strong>錄取公告：</strong>114年6月17日 (二) 抽籤並公告於學校首頁 [cite: 19]。</li>
+                <li><strong>報名截止：</strong>114年6月2日 (一) 前。</li>
+                <li><strong>錄取公告：</strong>114年6月17日 (二) 抽籤並公告於學校首頁。</li>
             </ul>
-            [cite_start]<p><strong>四、配合事項：</strong>錄取後若長期缺席或無法配合 17:30 接回孩子，將暫停次一期報名資格 [cite: 11, 16]。</p>
+            <p><strong>四、配合事項：</strong>錄取後若長期缺席或無法配合 17:30 接回孩子，將暫停次一期報名資格。</p>
             <p style="font-size:0.9em; color:#666;">* 詳細資訊若有更動，依學校最新公告為準。</p>
         </div>
 
@@ -110,16 +126,16 @@
                     <input type="checkbox" name="identity" value="一般生" checked> 一般生
                 </label>
                 <label class="checkbox-item">
-                    [cite_start]<input type="checkbox" name="identity" value="低收入戶"> 低收入戶 (需證明) [cite: 21]
+                    <input type="checkbox" name="identity" value="低收入戶"> 低收入戶 (需證明)
                 </label>
                 <label class="checkbox-item">
-                    [cite_start]<input type="checkbox" name="identity" value="身心障礙"> 身心障礙 (需手冊影本) [cite: 21]
+                    <input type="checkbox" name="identity" value="身心障礙"> 身心障礙 (需手冊影本)
                 </label>
                 <label class="checkbox-item">
-                    [cite_start]<input type="checkbox" name="identity" value="原住民"> 原住民 (需戶口名簿) [cite: 21]
+                    <input type="checkbox" name="identity" value="原住民"> 原住民 (需戶口名簿)
                 </label>
                 <label class="checkbox-item">
-                    [cite_start]<input type="checkbox" name="identity" value="家庭突遭變故"> 家庭突遭變故/特殊原因 (需導師簽註) [cite: 18, 21]
+                    <input type="checkbox" name="identity" value="家庭突遭變故"> 家庭突遭變故/特殊原因 (需導師簽註)
                 </label>
             </div>
 
@@ -141,9 +157,18 @@
                 <label>與學生關係<span class="required">*</span></label>
                 <input type="text" id="relation" placeholder="如: 父、母、祖母..." required>
             </div>
+            
             <div class="form-group">
-                <label>聯絡電話<span class="required">*</span></label>
-                <input type="tel" id="phone" placeholder="手機或市話" required>
+                <label>聯絡電話 (手機或市話)<span class="required">*</span></label>
+                <div class="phone-input-group">
+                    <span class="phone-sep">(</span>
+                    <input type="tel" id="phone1" placeholder="09xx" maxlength="4" style="flex:1.2;" required>
+                    <span class="phone-sep">)</span>
+                    <input type="tel" id="phone2" placeholder="xxx" maxlength="4" style="flex:1;" required>
+                    <span class="phone-sep">-</span>
+                    <input type="tel" id="phone3" placeholder="xxx" maxlength="4" style="flex:1;" required>
+                </div>
+                <small style="color:#888;">例：(0912) 345 - 678 或 (02) 2345 - 6789</small>
             </div>
 
             <button type="submit" class="btn-submit">確認報名</button>
@@ -152,27 +177,11 @@
     </div>
 
     <script>
-        // --- 設定區 ---
-        const CURRENT_YEAR = "114"; // 可以在這裡修改學年度
-        
-        // Firebase 設定 (使用您原本的設定)
-        const firebaseConfig = {
-            apiKey: "AIzaSyB_-fHCMhi-URwyBqzAIipmffWwvNgzJJc",
-            authDomain: "qr-scanner-app-2c73d.firebaseapp.com",
-            databaseURL: "https://qr-scanner-app-2c73d-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "qr-scanner-app-2c73d",
-            storageBucket: "qr-scanner-app-2c73d.firebasestorage.app",
-            messagingSenderId: "385628927398",
-            appId: "1:385628927398:web:00239f1b2acebd6e790b67"
-        };
+        // ★★★ 請將下方的網址換成您剛剛部署好的 Google Apps Script 網址 ★★★
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/您的ID/exec";
+        // -------------------------------------------------------------
 
-        // 初始化 Firebase
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-        const db = firebase.database();
-
-        // 動態修改標題年份
+        const CURRENT_YEAR = "114";
         document.title = `${CURRENT_YEAR}學年度 兒童課後照顧班線上報名`;
         document.getElementById('page-title').innerText = `${CURRENT_YEAR}學年度 兒童課後照顧班報名`;
 
@@ -181,45 +190,54 @@
 
             const btn = document.querySelector('.btn-submit');
             btn.disabled = true;
-            btn.textContent = "處理中...";
+            btn.textContent = "資料傳送中...";
 
-            // 收集身分 (複選)
+            // 收集身分
             const identities = [];
             document.querySelectorAll('input[name="identity"]:checked').forEach((checkbox) => {
                 identities.push(checkbox.value);
             });
+            const identityString = identities.join(", ");
 
-            // 建立資料物件
+            // [修改] 組合電話號碼 (加上括號與橫線，確保試算表視為文字)
+            const p1 = document.getElementById('phone1').value.trim();
+            const p2 = document.getElementById('phone2').value.trim();
+            const p3 = document.getElementById('phone3').value.trim();
+            // 組合格式: (09xx) 345-678
+            const fullPhone = `(${p1}) ${p2}-${p3}`;
+
             const formData = {
-                timestamp: new Date().toISOString(), // 報名時間
+                timestamp: new Date().toLocaleString(),
                 grade: document.getElementById('grade').value,
                 class: document.getElementById('class').value,
                 num: document.getElementById('num').value,
                 studentName: document.getElementById('studentName').value,
-                identities: identities, // 陣列
+                identities: identityString, 
                 goHomeMethod: document.getElementById('goHomeMethod').value,
                 parentName: document.getElementById('parentName').value,
                 relation: document.getElementById('relation').value,
-                phone: document.getElementById('phone').value,
-                status: 'pending' // 預設狀態：審核中/未抽籤
+                phone: fullPhone // 送出組合後的電話
             };
 
-            // 寫入 Firebase: registrations/114/亂數ID
-            const path = `registrations/${CURRENT_YEAR}`;
-            
-            db.ref(path).push(formData)
-                .then(() => {
-                    alert(`✅ 報名成功！\n學生：${formData.studentName}\n我們已收到您的資料。`);
-                    document.getElementById('regForm').reset();
-                    window.scrollTo(0, 0);
-                })
-                .catch((error) => {
-                    alert("❌ 報名失敗，請稍後再試或聯繫學校。\n錯誤：" + error.message);
-                })
-                .finally(() => {
-                    btn.disabled = false;
-                    btn.textContent = "確認報名";
-                });
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: "POST",
+                body: JSON.stringify(formData),
+                headers: { "Content-Type": "text/plain" } 
+            })
+            .then(response => response.text())
+            .then(data => {
+                alert(`✅ 報名成功！\n學生：${formData.studentName}\n資料已存入雲端試算表。`);
+                document.getElementById('regForm').reset();
+                window.scrollTo(0, 0);
+            })
+            .catch((error) => {
+                console.error("Error:", error);
+                alert("❌ 傳送失敗，請檢查網路或聯繫學校。");
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.textContent = "確認報名";
+            });
         }
     </script>
 </body>
