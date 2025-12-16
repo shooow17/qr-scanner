@@ -3,449 +3,223 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>永順國小 - 家長專區</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <title>114學年度 兒童課後照顧班線上報名</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
     <style>
-        :root {
-            --primary: #4361ee;
-            --secondary: #3f37c9;
-            --bg: #f4f7f6;
-            --text: #333;
-            --white: #ffffff;
-            --gray: #e0e0e0;
-            --success: #28a745;
-        }
-
         body {
-            font-family: "Microsoft JhengHei", sans-serif;
-            background-color: var(--bg);
-            margin: 0;
-            padding: 0;
-            color: var(--text);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #fce4ec; /* 溫馨的淡粉色背景 */
+            margin: 0; padding: 20px;
+            color: #333;
+            display: flex; justify-content: center;
         }
 
-        /* --- 頂部導航 --- */
-        .navbar {
-            width: 100%;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            padding: 15px 0;
-            text-align: center;
-            color: var(--white);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        .navbar h1 { margin: 0; font-size: 1.5em; }
-        .navbar p { margin: 5px 0 0; font-size: 0.9em; opacity: 0.9; }
-
-        /* --- 分頁切換按鈕 (Tabs) --- */
-        .tabs {
-            display: flex;
-            width: 100%;
-            max-width: 800px;
-            background: var(--white);
-            margin-top: 20px;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        }
-        
-        .tab-btn {
-            flex: 1;
-            padding: 15px;
-            border: none;
-            background: var(--white);
-            font-size: 1em;
-            font-weight: bold;
-            color: #666;
-            cursor: pointer;
-            transition: all 0.3s;
-            border-bottom: 4px solid transparent;
-        }
-        
-        .tab-btn i { margin-right: 5px; }
-
-        .tab-btn.active {
-            color: var(--primary);
-            border-bottom-color: var(--primary);
-            background-color: #f8f9fa;
+        .container {
+            width: 100%; max-width: 800px;
+            background: white;
+            padding: 30px; border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
         }
 
-        /* --- 內容區塊 --- */
-        .content-area {
-            width: 90%;
-            max-width: 800px;
-            margin: 20px 0 50px 0;
-        }
+        h1 { text-align: center; color: #d81b60; margin-bottom: 20px; }
+        h2 { border-left: 5px solid #d81b60; padding-left: 10px; margin-top: 30px; color: #880e4f; font-size: 1.3em;}
 
-        .tab-content { display: none; animation: fadeIn 0.3s; }
-        .tab-content.active { display: block; }
-
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* --- 表單樣式 (報名表) --- */
-        .form-card {
-            background: var(--white);
-            padding: 25px;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-            margin-bottom: 20px;
-        }
-
-        .section-title {
-            font-size: 1.2em;
-            color: var(--primary);
-            border-left: 5px solid var(--primary);
-            padding-left: 10px;
-            margin-bottom: 20px;
-            margin-top: 10px;
-            font-weight: bold;
-        }
-
-        /* 申請須知捲動區 */
+        /* 注意事項區塊 */
         .notice-box {
-            background-color: #f8f9fa;
-            border: 1px solid #ddd;
-            padding: 15px;
-            height: 200px;
-            overflow-y: scroll;
-            border-radius: 8px;
-            font-size: 0.9em;
-            line-height: 1.6;
-            margin-bottom: 15px;
-            color: #555;
+            background-color: #fff3e0;
+            border: 1px solid #ffe0b2;
+            padding: 20px; border-radius: 10px;
+            font-size: 0.95em; line-height: 1.6;
+            margin-bottom: 25px;
         }
-        .notice-box ul { padding-left: 20px; }
-        .notice-box li { margin-bottom: 5px; }
+        .notice-box strong { color: #e65100; }
+        .notice-box ul { padding-left: 20px; margin: 10px 0; }
 
-        .form-group { margin-bottom: 20px; }
-        .form-group label { display: block; margin-bottom: 8px; font-weight: bold; color: #444; }
+        /* 表單樣式 */
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; }
+        input[type="text"], input[type="tel"], select {
+            width: 100%; padding: 10px;
+            border: 1px solid #ccc; border-radius: 5px;
+            font-size: 1em; box-sizing: border-box; /* 確保 padding 不會撐開寬度 */
+        }
         
-        input[type="text"], input[type="tel"], select, textarea {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 1em;
-            box-sizing: border-box;
-            transition: border 0.3s;
-        }
-        input:focus { border-color: var(--primary); outline: none; }
-
-        /* Checkbox & Radio 優化 */
+        /* Checkbox 區塊 */
         .checkbox-group {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+            display: flex; flex-direction: column; gap: 8px;
+            background: #fafafa; padding: 15px; border-radius: 5px; border: 1px solid #eee;
         }
-        .checkbox-label {
-            display: flex;
-            align-items: center;
-            background: #f8f9fa;
-            padding: 10px;
-            border-radius: 8px;
-            cursor: pointer;
-            border: 1px solid transparent;
-        }
-        .checkbox-label:hover { background: #eef2ff; }
-        .checkbox-label input { margin-right: 10px; transform: scale(1.2); }
+        .checkbox-item { display: flex; align-items: center; }
+        .checkbox-item input { margin-right: 10px; transform: scale(1.2); }
 
         /* 按鈕 */
         .btn-submit {
             width: 100%;
-            padding: 15px;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white;
-            border: none;
-            border-radius: 50px;
-            font-size: 1.2em;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
-            transition: transform 0.2s;
+            background-color: #d81b60; color: white;
+            padding: 15px; font-size: 1.2em; font-weight: bold;
+            border: none; border-radius: 50px; cursor: pointer;
+            margin-top: 30px; transition: background 0.3s;
         }
-        .btn-submit:hover { transform: translateY(-2px); }
-        .btn-submit:disabled { background: #ccc; cursor: not-allowed; }
+        .btn-submit:hover { background-color: #ad1457; }
 
-        /* --- QR Code 分頁樣式 --- */
-        .qr-placeholder {
-            text-align: center;
-            padding: 40px;
-        }
-        .qr-display {
-            background: white;
-            padding: 20px;
-            display: inline-block;
-            border-radius: 10px;
-            border: 1px solid #ddd;
-            margin: 20px 0;
-        }
-        
-        /* --- 繳費分頁樣式 --- */
-        .payment-status {
-            text-align: center;
-            padding: 30px;
-            background: #fff3cd;
-            color: #856404;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-
-        .back-link {
-            margin-top: 20px;
-            color: #666;
-            text-decoration: none;
-            display: block;
-            text-align: center;
-        }
-
-        /* RWD */
-        @media (max-width: 600px) {
-            .tabs { border-radius: 0; }
-            .tab-btn { font-size: 0.9em; padding: 10px; }
-            .content-area { width: 95%; }
-        }
+        .required { color: red; margin-left: 3px; }
     </style>
 </head>
 <body>
 
-    <div class="navbar">
-        <h1><i class="fas fa-graduation-cap"></i> 永順國小</h1>
-        <p>兒童課後照顧 - 家長專區</p>
-    </div>
+    <div class="container">
+        <h1 id="page-title">114學年度 兒童課後照顧班報名</h1>
 
-    <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('register')">
-            <i class="fas fa-edit"></i> 線上報名
-        </button>
-        <button class="tab-btn" onclick="switchTab('qrcode')">
-            <i class="fas fa-qrcode"></i> 我的 QR Code
-        </button>
-        <button class="tab-btn" onclick="switchTab('payment')">
-            <i class="fas fa-money-bill-wave"></i> 繳費查詢
-        </button>
-    </div>
+        <div class="notice-box">
+            <h3>📢 報名注意事項 (請家長詳閱)</h3>
+            [cite_start]<p><strong>一、實施日期：</strong>114年9月1日 至 115年6月30日，每日放學後至 17:30 [cite: 2]。</p>
+            [cite_start]<p><strong>二、收費標準：</strong>每小時25元，一學期收費兩次。中途請假或退出不得退費 [cite: 4]。</p>
+            <p><strong>三、重要日程：</strong></p>
+            <ul>
+                [cite_start]<li><strong>報名截止：</strong>114年6月2日 (一) 前 [cite: 10]。</li>
+                [cite_start]<li><strong>錄取公告：</strong>114年6月17日 (二) 抽籤並公告於學校首頁 [cite: 19]。</li>
+            </ul>
+            [cite_start]<p><strong>四、配合事項：</strong>錄取後若長期缺席或無法配合 17:30 接回孩子，將暫停次一期報名資格 [cite: 11, 16]。</p>
+            <p style="font-size:0.9em; color:#666;">* 詳細資訊若有更動，依學校最新公告為準。</p>
+        </div>
 
-    <div class="content-area">
-        
-        <div id="tab-register" class="tab-content active">
+        <form id="regForm" onsubmit="submitForm(event)">
             
-            <div class="form-card">
-                <div class="section-title">申請須知 (114學年度)</div>
-                <div class="notice-box">
-                    <p><strong>一、實施時間：</strong>114年9月1日（一）至115年6月30日（二），每日放學後至17:30。若需提前接回請至警衛室登記。</p>
-                    <p><strong>二、收費標準：</strong>每小時25元，採一學期收費兩次。中途退出不退費。<br>
-                    - 第一期 (9/1~11/6)：低年級$5000 / 中年級$3575 / 高年級$3050<br>
-                    - 第二期 (11/7~1/19)：低年級$5700 / 中年級$4125 / 高年級$3300</p>
-                    <p><strong>三、活動內容：</strong>以身心健康優先，指導作業次之。</p>
-                    <p><strong>四、截止日期：</strong>請於 114/6/2（一）前完成報名。</p>
-                    <p><strong>五、配合事項：</strong><br>
-                    1. 遵守校規。<br>
-                    2. 聽從老師指導。<br>
-                    3. 請假需事先告知。<br>
-                    4. 務必於 17:30 前接回。<br>
-                    5. 準時繳費。</p>
-                    <p><strong>六、特殊身分：</strong>低收、身障、原住民請檢附證明文件交予導師。</p>
+            <h2>📝 學生基本資料</h2>
+            <div class="form-group">
+                <label>目前就讀班級<span class="required">*</span></label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="grade" placeholder="年級 (如: 1)" required style="width:30%">
+                    <input type="text" id="class" placeholder="班級 (如: 2)" required style="width:30%">
+                    <input type="text" id="num" placeholder="座號" required style="width:30%">
                 </div>
-                <div class="checkbox-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="agree-check">
-                        我已詳閱上述規定，並願意配合學校辦法。
-                    </label>
-                </div>
+                <small style="color:#888;">請填寫「目前」的班級座號</small>
+            </div>
+            
+            <div class="form-group">
+                <label>學生姓名<span class="required">*</span></label>
+                <input type="text" id="studentName" required>
             </div>
 
-            <form id="reg-form" onsubmit="submitForm(event)">
-                <div class="form-card">
-                    <div class="section-title">學生基本資料</div>
-                    <div class="form-group">
-                        <label>目前班級 (113學年度)：</label>
-                        <div style="display: flex; gap: 10px;">
-                            <input type="number" name="grade" placeholder="年級" required style="width: 80px;">
-                            <input type="text" name="class" placeholder="班級 (如 A)" required style="width: 80px;">
-                            <input type="number" name="seat_num" placeholder="座號" required style="width: 80px;">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>學生姓名：</label>
-                        <input type="text" name="student_name" required>
-                    </div>
-                    <div class="form-group">
-                        <label>學生學號 (ID)：</label>
-                        <input type="text" name="student_id" placeholder="請輸入學號 (必填)" required>
-                    </div>
-                </div>
-
-                <div class="form-card">
-                    <div class="section-title">接送與身分</div>
-                    <div class="form-group">
-                        <label>放學回家方式：</label>
-                        <div class="checkbox-group">
-                            <label class="checkbox-label">
-                                <input type="radio" name="pickup_method" value="家長接送" checked> 家長接送 (請準時17:30)
-                            </label>
-                            <label class="checkbox-label">
-                                <input type="radio" name="pickup_method" value="自行回家"> 自行排路隊回家 (走大門)
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>申請身分 (可複選)：</label>
-                        <div class="checkbox-group">
-                            <label class="checkbox-label"><input type="checkbox" name="status" value="一般生"> 一般生</label>
-                            <label class="checkbox-label"><input type="checkbox" name="status" value="低收入戶"> 低收入戶 (需附證明)</label>
-                            <label class="checkbox-label"><input type="checkbox" name="status" value="身心障礙"> 身心障礙 (需附手冊)</label>
-                            <label class="checkbox-label"><input type="checkbox" name="status" value="原住民"> 原住民 (需附戶口名簿)</label>
-                            <label class="checkbox-label"><input type="checkbox" name="status" value="突遭變故"> 家庭突遭變故 (需導師簽註)</label>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-card">
-                    <div class="section-title">緊急聯絡資料</div>
-                    <div class="form-group">
-                        <label>緊急聯絡人姓名：</label>
-                        <input type="text" name="contact_name" required>
-                    </div>
-                    <div class="form-group">
-                        <label>關係：</label>
-                        <input type="text" name="relationship" placeholder="例如：父、母、祖母" required>
-                    </div>
-                    <div class="form-group">
-                        <label>聯絡電話：</label>
-                        <input type="tel" name="phone" placeholder="09xx-xxx-xxx" required>
-                    </div>
-                    <div class="form-group">
-                        <label>家長簽名 (請輸入全名)：</label>
-                        <input type="text" name="parent_sign" placeholder="視同電子簽名" required>
-                    </div>
-                </div>
-
-                <button type="submit" class="btn-submit" id="submit-btn">確認送出報名表</button>
-            </form>
-        </div>
-
-        <div id="tab-qrcode" class="tab-content">
-            <div class="form-card qr-placeholder">
-                <div class="section-title">我的接送 QR Code</div>
-                <p>請輸入學號以查詢或產生您的 QR Code</p>
-                <div class="form-group">
-                    <input type="text" id="qr-input-id" placeholder="輸入學號...">
-                    <button onclick="generateMyQR()" class="btn-submit" style="margin-top: 10px;">顯示 QR Code</button>
-                </div>
-                
-                <div id="my-qr-container" style="display:none; text-align: center;">
-                    <div id="qr-display" class="qr-display"></div>
-                    <p style="color: #666; font-size: 0.9em;">請截圖保存，接送時出示給鏡頭掃描</p>
-                </div>
+            <h2>🆔 申請身分 (可複選)</h2>
+            <div class="checkbox-group">
+                <label class="checkbox-item">
+                    <input type="checkbox" name="identity" value="一般生" checked> 一般生
+                </label>
+                <label class="checkbox-item">
+                    [cite_start]<input type="checkbox" name="identity" value="低收入戶"> 低收入戶 (需證明) [cite: 21]
+                </label>
+                <label class="checkbox-item">
+                    [cite_start]<input type="checkbox" name="identity" value="身心障礙"> 身心障礙 (需手冊影本) [cite: 21]
+                </label>
+                <label class="checkbox-item">
+                    [cite_start]<input type="checkbox" name="identity" value="原住民"> 原住民 (需戶口名簿) [cite: 21]
+                </label>
+                <label class="checkbox-item">
+                    [cite_start]<input type="checkbox" name="identity" value="家庭突遭變故"> 家庭突遭變故/特殊原因 (需導師簽註) [cite: 18, 21]
+                </label>
             </div>
-        </div>
 
-        <div id="tab-payment" class="tab-content">
-            <div class="form-card">
-                <div class="section-title">繳費狀態查詢</div>
-                <div class="payment-status">
-                    <i class="fas fa-info-circle"></i> 目前尚無待繳費用
-                </div>
-                <p style="text-align: center; color: #999;">(此功能開發中，未來將結合繳費單下載)</p>
+            <h2>🏠 回家方式</h2>
+            <div class="form-group">
+                <select id="goHomeMethod" required>
+                    <option value="" disabled selected>請選擇...</option>
+                    <option value="家長接送">1. 家長接送 (請準時 17:30)</option>
+                    <option value="自行排路隊">2. 自行排路隊回家 (走大門)</option>
+                </select>
             </div>
-        </div>
+
+            <h2>📞 緊急聯絡資料</h2>
+            <div class="form-group">
+                <label>家長/聯絡人姓名<span class="required">*</span></label>
+                <input type="text" id="parentName" required>
+            </div>
+            <div class="form-group">
+                <label>與學生關係<span class="required">*</span></label>
+                <input type="text" id="relation" placeholder="如: 父、母、祖母..." required>
+            </div>
+            <div class="form-group">
+                <label>聯絡電話<span class="required">*</span></label>
+                <input type="tel" id="phone" placeholder="手機或市話" required>
+            </div>
+
+            <button type="submit" class="btn-submit">確認報名</button>
+        </form>
 
     </div>
-
-    <a href="dashboard.html" class="back-link">回主控台</a>
 
     <script>
-        // --- 設定 ---
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZHGM5xMgNFn9Df6BXMVfSesT3BIfHN91NdZjLK5TkHdEOai476VNIlJaw61n3Bxg9CA/exec";
-        // -----------
+        // --- 設定區 ---
+        const CURRENT_YEAR = "114"; // 可以在這裡修改學年度
+        
+        // Firebase 設定 (使用您原本的設定)
+        const firebaseConfig = {
+            apiKey: "AIzaSyB_-fHCMhi-URwyBqzAIipmffWwvNgzJJc",
+            authDomain: "qr-scanner-app-2c73d.firebaseapp.com",
+            databaseURL: "https://qr-scanner-app-2c73d-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "qr-scanner-app-2c73d",
+            storageBucket: "qr-scanner-app-2c73d.firebasestorage.app",
+            messagingSenderId: "385628927398",
+            appId: "1:385628927398:web:00239f1b2acebd6e790b67"
+        };
 
-        // 分頁切換邏輯
-        function switchTab(tabName) {
-            // 移除所有 active
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            
-            // 加上 active
-            document.querySelector(`button[onclick="switchTab('${tabName}')"]`).classList.add('active');
-            document.getElementById(`tab-${tabName}`).classList.add('active');
+        // 初始化 Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
         }
+        const db = firebase.database();
 
-        // 報名表送出邏輯
+        // 動態修改標題年份
+        document.title = `${CURRENT_YEAR}學年度 兒童課後照顧班線上報名`;
+        document.getElementById('page-title').innerText = `${CURRENT_YEAR}學年度 兒童課後照顧班報名`;
+
         function submitForm(e) {
             e.preventDefault();
-            
-            const checkbox = document.getElementById('agree-check');
-            if (!checkbox.checked) {
-                alert("請先勾選「我已詳閱申請須知」！");
-                checkbox.focus();
-                return;
-            }
 
-            const btn = document.getElementById('submit-btn');
+            const btn = document.querySelector('.btn-submit');
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 資料傳送中...';
+            btn.textContent = "處理中...";
 
-            // 收集資料
-            const formData = new FormData(e.target);
-            const data = Object.fromEntries(formData.entries());
-            
-            // 處理多選 Checkbox (身分)
-            const statusChecks = document.querySelectorAll('input[name="status"]:checked');
-            const statusList = Array.from(statusChecks).map(cb => cb.value).join(", ");
-            data.status = statusList || "未勾選";
-
-            // 加上 type 標記，讓後端知道這是「報名資料」
-            data.type = "register"; 
-            data.timestamp = new Date().toISOString();
-
-            // 傳送至 GAS
-            fetch(GOOGLE_SCRIPT_URL, {
-                method: 'POST',
-                mode: 'no-cors', // 重要：跨網域傳送
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            })
-            .then(() => {
-                alert("✅ 報名成功！\n資料已送出至學校系統。");
-                e.target.reset();
-                btn.disabled = false;
-                btn.innerHTML = "確認送出報名表";
-            })
-            .catch(err => {
-                console.error(err);
-                alert("❌ 傳送失敗，請檢查網路。");
-                btn.disabled = false;
-                btn.innerHTML = "確認送出報名表";
+            // 收集身分 (複選)
+            const identities = [];
+            document.querySelectorAll('input[name="identity"]:checked').forEach((checkbox) => {
+                identities.push(checkbox.value);
             });
-        }
 
-        // [預留] 產生 QR Code
-        function generateMyQR() {
-            const id = document.getElementById('qr-input-id').value.trim();
-            if (!id) return alert("請輸入學號");
+            // 建立資料物件
+            const formData = {
+                timestamp: new Date().toISOString(), // 報名時間
+                grade: document.getElementById('grade').value,
+                class: document.getElementById('class').value,
+                num: document.getElementById('num').value,
+                studentName: document.getElementById('studentName').value,
+                identities: identities, // 陣列
+                goHomeMethod: document.getElementById('goHomeMethod').value,
+                parentName: document.getElementById('parentName').value,
+                relation: document.getElementById('relation').value,
+                phone: document.getElementById('phone').value,
+                status: 'pending' // 預設狀態：審核中/未抽籤
+            };
+
+            // 寫入 Firebase: registrations/114/亂數ID
+            const path = `registrations/${CURRENT_YEAR}`;
             
-            const container = document.getElementById('my-qr-container');
-            const qrDiv = document.getElementById('qr-display');
-            qrDiv.innerHTML = ""; // 清空
-            
-            // 這裡假設格式是 ID- (因為家長可能還不知道系統裡的姓名，先用 ID 生成)
-            // 實際上應該要 call API 確認姓名，這裡先做簡易版
-            new QRCode(qrDiv, {
-                text: id, // 這裡只放 ID，因為系統相容純 ID 格式
-                width: 200,
-                height: 200
-            });
-            
-            container.style.display = 'block';
+            db.ref(path).push(formData)
+                .then(() => {
+                    alert(`✅ 報名成功！\n學生：${formData.studentName}\n我們已收到您的資料。`);
+                    document.getElementById('regForm').reset();
+                    window.scrollTo(0, 0);
+                })
+                .catch((error) => {
+                    alert("❌ 報名失敗，請稍後再試或聯繫學校。\n錯誤：" + error.message);
+                })
+                .finally(() => {
+                    btn.disabled = false;
+                    btn.textContent = "確認報名";
+                });
         }
     </script>
 </body>
