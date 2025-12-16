@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>課後照顧班 - 行政管理系統</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; font-family: "Noto Sans TC", sans-serif; }
+        .nav-tabs .nav-link.active { background-color: #fff; border-color: #dee2e6 #dee2e6 #fff; color: #d81b60; font-weight: bold; }
+        .nav-link { color: #555; }
+        .card { border: none; shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 10px; margin-bottom: 20px; }
+        .btn-pink { background-color: #d81b60; color: white; }
+        .btn-pink:hover { background-color: #ad1457; color: white; }
+        .loading-mask {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.8); z-index: 9999;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 1.5rem; color: #d81b60;
+        }
+        .table th { background-color: #fce4ec; color: #880e4f; }
+    </style>
+</head>
+<body>
+
+    <div id="loading" class="loading-mask">資料讀取中...</div>
+
+    <div class="container py-4">
+        <h2 class="mb-4 text-center" style="color:#d81b60;">🎓 課後照顧班行政管理</h2>
+
+        <ul class="nav nav-tabs mb-3" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="student-tab" data-bs-toggle="tab" data-bs-target="#student-pane" type="button">1. 學生編班管理</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings-pane" type="button">2. 班級與老師設定</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="myTabContent">
+            
+            <div class="tab-pane fade show active" id="student-pane">
+                <div class="card p-3">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="m-0">📋 學生報名與編班列表</h5>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="fetchData()">🔄 重新整理</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>年級</th>
+                                    <th>姓名</th>
+                                    <th>身分</th>
+                                    <th>家長/電話</th>
+                                    <th style="min-width: 150px;">編入班級 (最後一步)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="studentTableBody">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="settings-pane">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card p-3">
+                            <h5>👩‍🏫 老師名單管理</h5>
+                            <div class="input-group mb-3">
+                                <input type="text" id="tName" class="form-control" placeholder="姓名">
+                                <input type="text" id="tPhone" class="form-control" placeholder="電話">
+                                <input type="text" id="tCert" class="form-control" placeholder="證書字號">
+                                <button class="btn btn-pink" onclick="addTeacher()">新增</button>
+                            </div>
+                            <table class="table table-sm table-bordered">
+                                <thead><tr><th>姓名</th><th>電話</th><th>證書</th><th>操作</th></tr></thead>
+                                <tbody id="teacherTableBody"></tbody>
+                            </table>
+                            <button class="btn btn-primary w-100 mt-2" onclick="saveSettings('teachers')">💾 儲存老師名單</button>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="card p-3">
+                            <h5>🏫 班級名稱與老師配置</h5>
+                            <div class="input-group mb-3">
+                                <input type="text" id="cName" class="form-control" placeholder="班級名稱 (如: A班)">
+                                <button class="btn btn-pink" onclick="addClass()">新增班級</button>
+                            </div>
+                            <small class="text-muted mb-2 d-block">請從下方「配置老師」下拉選單指派老師</small>
+                            <table class="table table-sm table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>班級名稱</th>
+                                        <th style="width: 40%;">配置老師</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="classTableBody"></tbody>
+                            </table>
+                            <button class="btn btn-primary w-100 mt-2" onclick="saveSettings('classes')">💾 儲存班級設定</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // ★★★ 請替換您的 GAS 網址 ★★★
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZHGM5xMgNFn9Df6BXMVfSesT3BIfHN91NdZjLK5TkHdEOai476VNIlJaw61n3Bxg9CA/exec";
+        
+        // 本地暫存資料
+        let teachers = []; // [name, phone, cert]
+        let classes = [];  // [className, assignedTeacher]
+        let students = []; 
+
+        // 初始化
+        window.onload = function() {
+            fetchData();
+        };
+
+        // --- 核心：讀取所有資料 ---
+        async function fetchData() {
+            showLoading(true);
+            try {
+                // 1. 讀取設定 (老師、班級)
+                const resSettings = await fetch(`${GOOGLE_SCRIPT_URL}?op=get_settings`);
+                const dataSettings = await resSettings.json();
+                teachers = dataSettings.teachers || [];
+                classes = dataSettings.classes || [];
+
+                // 2. 讀取學生報名資料
+                const resStudents = await fetch(`${GOOGLE_SCRIPT_URL}?op=get_registrations`);
+                students = await resStudents.json();
+
+                renderAll();
+            } catch (e) {
+                alert("讀取失敗：" + e.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function renderAll() {
+            renderTeachers();
+            renderClasses();
+            renderStudents();
+        }
+
+        // --- A. 老師管理邏輯 ---
+        function renderTeachers() {
+            const tbody = document.getElementById('teacherTableBody');
+            tbody.innerHTML = '';
+            teachers.forEach((t, index) => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${t[0]}</td>
+                        <td>${t[1]}</td>
+                        <td>${t[2]}</td>
+                        <td><button class="btn btn-sm btn-danger" onclick="removeTeacher(${index})">刪</button></td>
+                    </tr>`;
+            });
+            // 同步更新班級表格中的下拉選單
+            renderClasses();
+        }
+
+        function addTeacher() {
+            const n = document.getElementById('tName').value.trim();
+            const p = document.getElementById('tPhone').value.trim();
+            const c = document.getElementById('tCert').value.trim();
+            if (!n) return alert("請輸入姓名");
+            teachers.push([n, p, c]);
+            document.getElementById('tName').value = ''; 
+            document.getElementById('tPhone').value = ''; 
+            document.getElementById('tCert').value = '';
+            renderTeachers();
+        }
+
+        function removeTeacher(index) {
+            teachers.splice(index, 1);
+            renderTeachers();
+        }
+
+        // --- B. 班級管理邏輯 ---
+        function renderClasses() {
+            const tbody = document.getElementById('classTableBody');
+            tbody.innerHTML = '';
+            
+            // 產生老師下拉選單的 HTML 選項
+            let teacherOptions = '<option value="">(未指定)</option>';
+            teachers.forEach(t => {
+                teacherOptions += `<option value="${t[0]}">${t[0]}</option>`;
+            });
+
+            classes.forEach((c, index) => {
+                // c[0] 是班級名, c[1] 是已選老師
+                // 在這裡生成下拉選單，並將已選的老師設為 selected
+                const currentTeacher = c[1] || "";
+                
+                // 動態產生選單 HTML，加入 selected 判斷
+                const selectHTML = `
+                    <select class="form-select form-select-sm" onchange="updateClassTeacher(${index}, this.value)">
+                        ${teacherOptions.replace(`value="${currentTeacher}"`, `value="${currentTeacher}" selected`)}
+                    </select>
+                `;
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${c[0]}</td>
+                        <td>${selectHTML}</td>
+                        <td><button class="btn btn-sm btn-danger" onclick="removeClass(${index})">刪</button></td>
+                    </tr>`;
+            });
+        }
+
+        function addClass() {
+            const n = document.getElementById('cName').value.trim();
+            if (!n) return alert("請輸入班級名稱");
+            classes.push([n, ""]); // 新增班級，預設無老師
+            document.getElementById('cName').value = '';
+            renderClasses();
+        }
+
+        function removeClass(index) {
+            classes.splice(index, 1);
+            renderClasses();
+        }
+
+        function updateClassTeacher(index, teacherName) {
+            classes[index][1] = teacherName;
+            // 注意：這裡只更新本地變數，使用者需按「儲存」才會寫入
+        }
+
+        // --- C. 學生編班邏輯 ---
+        function renderStudents() {
+            const tbody = document.getElementById('studentTableBody');
+            tbody.innerHTML = '';
+
+            // 產生班級選單選項
+            let classOptions = '<option value="">(尚未分班)</option>';
+            classes.forEach(c => {
+                classOptions += `<option value="${c[0]}">${c[0]}</option>`;
+            });
+
+            if (students.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center">尚無報名資料</td></tr>';
+                return;
+            }
+
+            students.forEach((s) => {
+                // 產生下拉選單，並鎖定目前選擇
+                const currentClass = s.assignedClass || "";
+                const selectHTML = `
+                    <select class="form-select" onchange="updateStudentClass(${s.rowIndex}, this.value)">
+                        ${classOptions.replace(`value="${currentClass}"`, `value="${currentClass}" selected`)}
+                    </select>
+                `;
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${s.grade}年${s.classStr}班 ${s.num}號</td>
+                        <td>${s.name}</td>
+                        <td><span class="badge bg-info text-dark">${s.identity}</span></td>
+                        <td>${s.parent} / ${s.phone}</td>
+                        <td>${selectHTML}</td>
+                    </tr>`;
+            });
+        }
+
+        // 更新單一學生的班級 (即時儲存)
+        function updateStudentClass(rowIndex, className) {
+            showLoading(true);
+            const payload = {
+                type: 'update_student_class',
+                rowIndex: rowIndex,
+                className: className
+            };
+
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: "POST",
+                body: JSON.stringify(payload),
+                headers: { "Content-Type": "text/plain" }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status !== 'success') alert('儲存失敗');
+            })
+            .catch(err => alert('連線錯誤'))
+            .finally(() => showLoading(false));
+        }
+
+        // --- D. 儲存設定 (批次) ---
+        function saveSettings(target) {
+            showLoading(true);
+            let payload = {
+                type: 'save_settings',
+                target: target,
+                rows: []
+            };
+
+            if (target === 'teachers') payload.rows = teachers;
+            if (target === 'classes') payload.rows = classes;
+
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: "POST",
+                body: JSON.stringify(payload),
+                headers: { "Content-Type": "text/plain" }
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert('✅ 設定已儲存！');
+            })
+            .catch(err => alert('儲存失敗'))
+            .finally(() => showLoading(false));
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'flex' : 'none';
+        }
+    </script>
+</body>
+</html>
