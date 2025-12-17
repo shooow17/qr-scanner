@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>家長接送掃描站</title>
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <title>家長接送掃描站 (外接掃描器版)</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
@@ -15,97 +14,116 @@
             font-family: 'Noto Sans TC', sans-serif;
             background-color: #f0f2f5;
             height: 100vh;
-            overflow: hidden; 
-            display: flex;
-        }
-
-        /* 左側資訊區 */
-        .info-panel {
-            flex: 4;
-            background-color: white;
             display: flex; flex-direction: column;
             justify-content: center; align-items: center;
-            padding: 40px;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-            z-index: 10;
         }
 
-        /* 右側鏡頭區 */
-        .camera-panel {
-            flex: 6;
-            background-color: #000;
-            display: flex; justify-content: center; align-items: center;
-            position: relative;
+        /* 隱藏的輸入框 (負責接收掃描槍訊號) */
+        #scannerInput {
+            position: absolute;
+            opacity: 0; 
+            top: -1000px;
         }
 
-        h1 { color: #2c3e50; font-size: 2.5rem; margin-bottom: 10px; text-align: center; }
-        .sub-title { color: #7f8c8d; font-size: 1.2rem; margin-bottom: 50px; }
+        /* 主容器 */
+        .main-container {
+            background-color: white;
+            padding: 50px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 90%;
+            max-width: 600px;
+            border: 2px solid #e0e0e0;
+            cursor: text; 
+        }
 
+        h1 { color: #2c3e50; font-size: 2.5rem; margin-bottom: 10px; }
+        .sub-title { color: #7f8c8d; font-size: 1.2rem; margin-bottom: 40px; }
+
+        /* 狀態顯示卡片 */
         .status-card {
-            width: 100%; max-width: 400px;
-            padding: 40px 20px; border-radius: 20px;
-            text-align: center; background: #f8f9fa;
-            border: 2px dashed #bdc3c7;
-            transition: all 0.3s ease;
+            padding: 40px;
+            border-radius: 15px;
+            background: #f8f9fa;
+            border: 3px dashed #bdc3c7;
+            transition: all 0.2s ease;
         }
 
         .status-card.success {
-            background-color: #d4edda; border: 2px solid #28a745;
-            color: #155724; transform: scale(1.05);
+            background-color: #d4edda;
+            border: 3px solid #28a745;
+            color: #155724;
+            transform: scale(1.02);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.2);
         }
+
         .status-card.processing {
-            background-color: #fff3cd; border: 2px solid #ffc107;
+            background-color: #fff3cd;
+            border: 3px solid #ffc107;
             color: #856404;
         }
 
-        .icon { font-size: 5rem; margin-bottom: 20px; display: block; }
-        .message { font-size: 1.5rem; font-weight: bold; margin-bottom: 10px; }
-        .student-name { font-size: 2.2rem; font-weight: 900; color: #2c3e50; margin-top: 10px; }
-        
-        #reader { width: 100%; height: 100%; object-fit: cover; }
-        #reader__dashboard_section_csr span { display: none; }
-        #reader video { object-fit: cover; width: 100% !important; height: 100% !important; border-radius: 0; }
+        .icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+        .message { font-size: 1.8rem; font-weight: bold; margin-bottom: 10px; }
+        .student-name { font-size: 2.5rem; font-weight: 900; color: #2c3e50; margin-top: 10px; }
+        .class-badge { background: #333; color: white; padding: 5px 15px; border-radius: 8px; font-size: 1.2rem; margin-top: 10px; display: inline-block;}
+
+        .focus-hint {
+            margin-top: 30px;
+            font-size: 0.9rem;
+            color: #bdc3c7;
+        }
+        .focus-indicator {
+            display: inline-block;
+            width: 10px; height: 10px;
+            background-color: #e74c3c;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        .focused .focus-indicator {
+            background-color: #2ecc71;
+        }
 
         .back-btn {
-            margin-top: auto; text-decoration: none; color: #95a5a6;
-            border: 1px solid #ddd; padding: 10px 20px; border-radius: 50px;
+            margin-top: 40px;
+            display: inline-block;
+            text-decoration: none;
+            color: #95a5a6;
+            border: 1px solid #ddd;
+            padding: 10px 30px;
+            border-radius: 50px;
             transition: 0.2s;
         }
         .back-btn:hover { background: #2c3e50; color: white; }
 
-        @media (max-width: 768px) {
-            body { flex-direction: column-reverse; }
-            .info-panel { flex: 1; padding: 20px; }
-            .camera-panel { flex: 1; }
-            h1 { font-size: 1.8rem; }
-        }
     </style>
 </head>
 <body>
 
-    <div class="info-panel">
-        <div>
-            <h1>家長接送掃描站</h1>
-            <div class="sub-title">請將 QR Code 對準右側鏡頭</div>
-        </div>
+    <input type="text" id="scannerInput" autocomplete="off" />
+
+    <div class="main-container" id="mainContainer">
+        <h1>家長接送掃描站</h1>
+        <div class="sub-title">請使用掃描槍掃描學生條碼</div>
 
         <div id="statusCard" class="status-card">
-            <span class="icon">📷</span>
-            <div class="message">等待掃描...</div>
-            <div class="student-name" id="studentNameDisplay"></div>
+            <span class="icon">🔫</span>
+            <div class="message">準備就緒</div>
+            <div class="student-name" id="studentNameDisplay">請掃描...</div>
+        </div>
+
+        <div class="focus-hint" id="focusStatus">
+            <span class="focus-indicator"></span> 系統待命狀態
         </div>
 
         <a href="dashboard.html" class="back-btn">回主控台</a>
     </div>
 
-    <div class="camera-panel">
-        <div id="reader"></div>
-    </div>
-
     <audio id="scanSound" src="https://www.soundjay.com/buttons/beep-01a.mp3"></audio>
 
     <script>
-        // --- 設定 (Firebase & GAS) ---
+        // --- 設定區 ---
         const firebaseConfig = {
             apiKey: "AIzaSyB_-fHCMhi-URwyBqzAIipmffWwvNgzJJc",
             authDomain: "qr-scanner-app-2c73d.firebaseapp.com",
@@ -116,6 +134,7 @@
             appId: "1:385628927398:web:00239f1b2acebd6e790b67"
         };
         
+        // ★★★ 請務必確認這是您最新部署的 GAS 網址 ★★★
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZHGM5xMgNFn9Df6BXMVfSesT3BIfHN91NdZjLK5TkHdEOai476VNIlJaw61n3Bxg9CA/exec";
 
         // 初始化 Firebase
@@ -125,28 +144,58 @@
         const db = firebase.database();
 
         let isLocked = false;
-        const LOCK_DURATION = 3000; 
+        const LOCK_DURATION = 3000; // 鎖定時間，防止重複掃描
 
-        function onScanSuccess(decodedText, decodedResult) {
-            if (isLocked) return;
+        // --- 1. 確保輸入框隨時聚焦 ---
+        const input = document.getElementById('scannerInput');
+        const mainContainer = document.getElementById('mainContainer');
+        const focusStatus = document.getElementById('focusStatus');
+
+        function keepFocus() {
+            input.focus();
+        }
+
+        document.addEventListener('click', keepFocus);
+        
+        input.addEventListener('focus', () => {
+            mainContainer.classList.add('focused');
+            focusStatus.innerHTML = '<span class="focus-indicator"></span> 系統連線正常，可掃描';
+        });
+        input.addEventListener('blur', () => {
+            mainContainer.classList.remove('focused');
+            focusStatus.innerHTML = '<span class="focus-indicator"></span> ⚠️ 請點擊畫面以啟用掃描';
+            setTimeout(keepFocus, 100);
+        });
+
+        window.onload = keepFocus;
+
+        // --- 2. 監聽掃描槍輸入 (Enter鍵) ---
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                const content = this.value.trim();
+                this.value = ''; 
+
+                if (content.length > 0) {
+                    processScan(content);
+                }
+            }
+        });
+
+        // --- 3. 處理掃描邏輯 ---
+        function processScan(content) {
+            if (isLocked) return; 
+            
             isLocked = true;
             document.getElementById('scanSound').play().catch(e => {});
 
-            updateUI("processing", "資料查詢中...", decodedText);
+            updateUI("processing", "資料查詢中...", content);
             
-            // 呼叫 GAS 查資料並存檔
-            sendToSheetAndFirebase(decodedText);
-
-            setTimeout(() => {
-                resetUI();
-                isLocked = false;
-            }, LOCK_DURATION);
+            // 呼叫 GAS 查資料
+            sendToSheetAndFirebase(content);
         }
 
-        function onScanFailure(error) {}
-
         function sendToSheetAndFirebase(content) {
-            // 1. 先送去 GAS 紀錄日誌，並查詢班級
+            // 送去 GAS 紀錄日誌，並查詢班級
             fetch(GOOGLE_SCRIPT_URL, {
                 method: "POST",
                 body: JSON.stringify({
@@ -158,14 +207,13 @@
             .then(res => res.json())
             .then(data => {
                 if(data.status === 'success') {
-                    // GAS 回傳成功，拿到學生姓名與班級
                     const studentName = data.name;
-                    const className = data.className; // 來自 GAS 的回傳 (例如: "1A")
+                    const className = data.className; 
 
-                    // 2. ★ 關鍵步驟：推播到 Firebase ★
+                    // ★ 推播到 Firebase，讓看板更新 ★
                     pushToFirebase(studentName, className);
 
-                    updateUI("success", "✅ 掃描成功", studentName);
+                    updateUI("success", "✅ 掃描成功", studentName, className);
                 } else {
                     updateUI("processing", "⚠️ 查詢失敗", data.message);
                 }
@@ -173,25 +221,34 @@
             .catch(err => {
                 console.error(err);
                 updateUI("processing", "⚠️ 連線錯誤", "請檢查網路");
+            })
+            .finally(() => {
+                setTimeout(() => {
+                    resetUI();
+                    isLocked = false;
+                    keepFocus(); 
+                }, LOCK_DURATION);
             });
         }
 
         function pushToFirebase(name, className) {
-            // 推送到 Firebase 的 queues 節點，包含班級資訊
-            const newRef = db.ref('queues').push();
+            // 推送到對應班級的頻道
+            const targetPath = className && className !== "(未分班)" ? `queues/${className}` : `queues/unknown`;
+            
+            const newRef = db.ref(targetPath).push();
             newRef.set({
+                id: Date.now().toString(),
+                name: name,
                 studentName: name,
-                className: className, // 這裡讓 directory.html 可以過濾
-                timestamp: firebase.database.ServerValue.TIMESTAMP,
+                className: className,
+                timestamp: new Date().toISOString(),
                 status: 'waiting'
             }).then(() => {
-                console.log(`Firebase 推播成功: ${name} (${className})`);
-            }).catch(e => {
-                console.error("Firebase 推播失敗", e);
+                console.log(`Firebase 推播成功: ${targetPath}`);
             });
         }
 
-        function updateUI(state, msg, detail) {
+        function updateUI(state, msg, detail, className) {
             const card = document.getElementById('statusCard');
             const iconEl = card.querySelector('.icon');
             const msgEl = card.querySelector('.message');
@@ -203,13 +260,13 @@
                 card.classList.add('processing');
                 iconEl.textContent = "⏳";
                 msgEl.textContent = msg;
-                nameEl.textContent = detail;
+                nameEl.innerHTML = detail;
             } 
             else if (state === "success") {
                 card.classList.add('success');
                 iconEl.textContent = "✅";
                 msgEl.textContent = msg;
-                nameEl.textContent = detail;
+                nameEl.innerHTML = `${detail}<br><span class="class-badge">${className || '未分班'}</span>`;
             }
         }
 
@@ -220,17 +277,10 @@
             const nameEl = document.getElementById('studentNameDisplay');
 
             card.classList.remove('success', 'processing');
-            iconEl.textContent = "📷";
-            msgEl.textContent = "等待掃描...";
-            nameEl.textContent = "";
+            iconEl.textContent = "🔫";
+            msgEl.textContent = "準備就緒";
+            nameEl.textContent = "請掃描...";
         }
-
-        const html5QrcodeScanner = new Html5QrcodeScanner(
-            "reader", 
-            { fps: 10, qrbox: {width: 400, height: 400}, aspectRatio: 1.0 },
-            false
-        );
-        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
 
     </script>
 </body>
