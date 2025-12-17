@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>警衛室整合系統 (大字版)</title>
+    <title>警衛室整合系統 (彈窗版)</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
@@ -36,136 +36,64 @@
             display: flex;
             flex-direction: column;
             gap: 15px;
-            height: 95vh; /* 盡量佔滿畫面 */
+            height: 95vh;
         }
 
-        h1 { 
-            font-size: 1.8em; 
-            margin: 0; 
-            color: #1B5E20; 
-            border-bottom: 2px solid #E8F5E9;
-            padding-bottom: 5px;
+        /* 標題與狀態列 */
+        .header-bar {
+            display: flex; justify-content: space-between; align-items: center; width: 100%;
+            border-bottom: 2px solid #E8F5E9; padding-bottom: 10px;
         }
+        h1 { font-size: 1.8em; margin: 0; color: #1B5E20; }
+        .loading-bar { background: #fff3cd; color: #856404; padding: 5px 15px; border-radius: 20px; font-size: 0.9em; font-weight: bold;}
+        .loading-bar.ready { background: #d4edda; color: #155724; }
 
-        /* --- 上半部：顯示區 (15格) --- */
+        /* --- 顯示區 (15格) --- */
         #alert-grid {
             display: grid;
             grid-template-columns: repeat(5, 1fr); 
             gap: 10px;
             width: 100%;
+            flex-grow: 1; /* 佔據大部分空間 */
+            align-content: start;
         }
 
         .alert-item {
-            padding: 5px;
-            border-radius: 8px;
-            text-align: left;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            line-height: 1.2; 
-            height: 90px; /* 高度縮小一點，留空間給下方大字 */
-            position: relative; 
-            transition: all 0.3s ease;
+            padding: 5px; border-radius: 8px; text-align: left; overflow: hidden;
+            display: flex; flex-direction: column; justify-content: center;
+            line-height: 1.2; height: 90px; position: relative; transition: all 0.3s ease;
         }
-
         .alert-item.newest {
-            background-color: #fff3e0;
-            border: 3px solid #ff5722;
-            animation: flash-border 1.5s infinite;
-            z-index: 10;
-            transform: scale(1.02);
+            background-color: #fff3e0; border: 3px solid #ff5722;
+            animation: flash-border 1.5s infinite; z-index: 10; transform: scale(1.02);
             box-shadow: 0 4px 12px rgba(255, 87, 34, 0.3);
         }
-
-        .alert-item.normal {
-            background-color: #f5f5f5;
-            border: 1px solid #bdbdbd;
-        }
-
+        .alert-item.normal { background-color: #f5f5f5; border: 1px solid #bdbdbd; }
         .placeholder {
-            background-color: #fdfdfd;
-            border: 1px dashed #A5D6A7;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2em;
-            color: #ccc;
-            height: 90px;
+            background-color: #fdfdfd; border: 1px dashed #A5D6A7;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2em; color: #ccc; height: 90px;
         }
-
         @keyframes flash-border {
             0% { border-color: #ff5722; box-shadow: 0 0 5px rgba(255, 87, 34, 0.5); }
             50% { border-color: #ffccbc; box-shadow: 0 0 15px rgba(255, 87, 34, 0.8); }
             100% { border-color: #ff5722; box-shadow: 0 0 5px rgba(255, 87, 34, 0.5); }
         }
-
         .delete-btn {
-            position: absolute; top: 2px; right: 2px;
-            width: 20px; height: 20px; line-height: 20px; 
-            text-align: center; font-size: 14px; font-weight: bold;
-            color: #aaa; background-color: rgba(255,255,255,0.8);
-            border-radius: 50%; cursor: pointer;
+            position: absolute; top: 2px; right: 2px; width: 20px; height: 20px;
+            line-height: 20px; text-align: center; font-size: 14px; font-weight: bold;
+            color: #aaa; background-color: rgba(255,255,255,0.8); border-radius: 50%; cursor: pointer;
         }
         .delete-btn:hover { background-color: #d84315; color: white; }
-
         .alert-message { font-size: 0.9em; color: #333; font-weight: bold; }
         .alert-message .student-name { color: #388E3C; display: block; font-size: 1.2em; margin-bottom: 2px; }
         .alert-message .status { color: #d84315; font-size: 0.9em; }
         .alert-time { font-size: 0.8em; color: #777; margin-top: 2px; display: block; }
 
-        /* --- 下半部：大字掃描區 --- */
-        .bottom-section {
-            flex-grow: 1; /* 佔滿剩餘空間 */
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        /* 核心修改：巨大顯示區 */
-        .big-display-area {
-            flex-grow: 1;
-            background: #f8f9fa;
-            border: 4px dashed #bdc3c7;
-            border-radius: 15px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s ease;
-            min-height: 200px;
-        }
-        
-        .big-display-area.success { background-color: #d4edda; border: 4px solid #28a745; color: #155724; }
-        .big-display-area.error { background-color: #f8d7da; border: 4px solid #dc3545; color: #721c24; }
-
-        /* 姓名超大字 */
-        .scan-main-text {
-            font-size: 5em; /* 超大 */
-            font-weight: 900;
-            line-height: 1.2;
-            margin: 0;
-        }
-        
-        /* 班級或狀態副標題 */
-        .scan-sub-text {
-            font-size: 2em;
-            margin-top: 10px;
-            background: #333;
-            color: #fff;
-            padding: 5px 20px;
-            border-radius: 50px;
-        }
-        
-        /* 一般狀態下的副標題樣式 */
-        .big-display-area:not(.success):not(.error) .scan-sub-text {
-            background: transparent;
-            color: #888;
-            font-size: 1.5em;
-        }
-
+        /* --- 底部控制區 --- */
         .controls {
-            display: flex; justify-content: space-between; align-items: center;
+            display: flex; justify-content: flex-end; align-items: center; gap: 10px;
+            padding-top: 10px; border-top: 2px solid #eee;
         }
         .controls button {
             color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 1em;
@@ -173,46 +101,89 @@
         #btn-clear-local { background-color: #FF9800; }
         #btn-export { background-color: #00796b; }
         
-        .loading-bar { width: 100%; background: #fff3cd; color: #856404; padding: 5px; border-radius: 4px; font-size: 0.9em; }
-        .loading-bar.ready { background: #d4edda; color: #155724; }
+        .status-indicator { margin-right: auto; color: #888; font-weight: bold; display: flex; align-items: center; gap: 5px; }
+        .status-dot { width: 10px; height: 10px; background: #ccc; border-radius: 50%; display: inline-block; }
+        .status-dot.active { background: #2ecc71; box-shadow: 0 0 5px #2ecc71; }
+
+        /* --- ★★★ 核心修改：彈出視窗 (Overlay) ★★★ --- */
+        #scanOverlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: rgba(0, 0, 0, 0.7); /* 半透明黑底 */
+            z-index: 9999; /* 最上層 */
+            display: flex; justify-content: center; align-items: center;
+            opacity: 0; visibility: hidden; /* 預設隱藏 */
+            transition: opacity 0.2s, visibility 0.2s;
+            backdrop-filter: blur(5px); /* 背景模糊效果 */
+        }
+
+        #scanOverlay.show { opacity: 1; visibility: visible; }
+
+        .overlay-card {
+            background: white;
+            padding: 40px 60px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            transform: scale(0.8);
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            min-width: 300px;
+        }
+
+        #scanOverlay.show .overlay-card { transform: scale(1); }
+
+        /* 成功樣式 */
+        .overlay-card.success { border: 8px solid #28a745; background-color: #f0fff4; }
+        .overlay-card.success .main-text { color: #155724; }
+        .overlay-card.success .icon { color: #28a745; }
+
+        /* 失敗樣式 */
+        .overlay-card.error { border: 8px solid #dc3545; background-color: #fff5f5; }
+        .overlay-card.error .main-text { color: #721c24; }
+        .overlay-card.error .icon { color: #dc3545; }
+
+        .overlay-card .icon { font-size: 5em; margin-bottom: 10px; display: block; }
+        .overlay-card .main-text { font-size: 4em; font-weight: 900; margin: 10px 0; line-height: 1.1; }
+        .overlay-card .sub-text { font-size: 2em; background: #333; color: white; padding: 5px 20px; border-radius: 50px; display: inline-block; }
 
         /* RWD */
-        @media (max-width: 1024px) {
-            #alert-grid { grid-template-columns: repeat(3, 1fr); }
-            .scan-main-text { font-size: 3.5em; }
-        }
-        @media (max-width: 600px) {
-            .container { padding: 10px; width: 98%; height: auto; }
+        @media (max-width: 1024px) { #alert-grid { grid-template-columns: repeat(3, 1fr); } }
+        @media (max-width: 600px) { 
+            .container { padding: 10px; width: 98%; } 
             #alert-grid { grid-template-columns: 1fr; }
-            .scan-main-text { font-size: 2.5em; }
+            .overlay-card { width: 80%; padding: 20px; }
+            .overlay-card .main-text { font-size: 2.5em; }
         }
     </style>
 </head>
 <body>
 
     <input type="password" id="scannerInput" autocomplete="off" />
-
     <audio id="scanSound" src="https://www.soundjay.com/buttons/beep-01a.mp3"></audio>
     <audio id="errorSound" src="https://www.soundjay.com/buttons/beep-05.mp3"></audio>
 
+    <div id="scanOverlay">
+        <div id="overlayCard" class="overlay-card">
+            <span class="icon" id="overlayIcon">✅</span>
+            <div class="main-text" id="overlayName">王小明</div>
+            <div class="sub-text" id="overlayClass">五年三班</div>
+        </div>
+    </div>
+
     <div class="container">
-        <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+        <div class="header-bar">
             <h1>警衛室即時看板</h1>
-            <div id="loadingStatus" class="loading-bar" style="width:auto; padding:5px 15px;">⏳ 下載名單中...</div>
+            <div id="loadingStatus" class="loading-bar">⏳ 下載名單中...</div>
         </div>
 
         <div id="alert-grid"></div>
 
-        <div class="bottom-section">
-            <div id="displayArea" class="big-display-area">
-                <div id="mainText" class="scan-main-text">請掃描條碼</div>
-                <div id="subText" class="scan-sub-text">準備就緒</div>
+        <div class="controls">
+            <div class="status-indicator">
+                <span class="status-dot active"></span> 掃描系統運作中
             </div>
-
-            <div class="controls">
-                <button id="btn-export" onclick="exportReport()">匯出報表</button>
-                <button id="btn-clear-local" onclick="clearLocalScreen()">清除畫面資料</button>
-            </div>
+            <button id="btn-export" onclick="exportReport()">匯出報表</button>
+            <button id="btn-clear-local" onclick="clearLocalScreen()">清除畫面資料</button>
         </div>
     </div>
 
@@ -238,6 +209,10 @@
         let alertHistory = []; 
         let allStudents = [];
         let isDataReady = false;
+        
+        // 計時器變數
+        let overlayTimer = null;
+        let lockTimer = null;
         let isLocked = false;
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -374,41 +349,60 @@
 
             if (student) {
                 playAudio('scanSound');
-                // 顯示大字
-                updateDisplay("success", student.name, student.className);
+                // 顯示彈出視窗
+                showOverlay("success", student.name, student.className);
                 
                 pushToFirebaseQueue(student.name, student.className, searchId);
                 logToGAS(student.name, student.className);
                 
+                // 鎖定 1 秒避免連刷，但彈窗顯示 3 秒
                 isLocked = true;
-                setTimeout(() => { resetDisplay(); isLocked = false; }, 3000);
+                if(lockTimer) clearTimeout(lockTimer);
+                lockTimer = setTimeout(() => { isLocked = false; }, 1000);
+
             } else {
                 playAudio('errorSound');
-                updateDisplay("error", "查無此人", searchId);
+                showOverlay("error", "查無此人", searchId);
+                
                 isLocked = true;
-                setTimeout(() => { resetDisplay(); isLocked = false; }, 1500);
+                if(lockTimer) clearTimeout(lockTimer);
+                lockTimer = setTimeout(() => { isLocked = false; }, 1000);
             }
         }
 
-        // --- 核心：大字顯示切換 ---
-        function updateDisplay(type, mainText, subText) {
-            const area = document.getElementById('displayArea');
-            const main = document.getElementById('mainText');
-            const sub = document.getElementById('subText');
+        // --- ★★★ 核心：彈窗控制邏輯 ★★★ ---
+        function showOverlay(type, mainText, subText) {
+            const overlay = document.getElementById('scanOverlay');
+            const card = document.getElementById('overlayCard');
+            const icon = document.getElementById('overlayIcon');
+            const nameEl = document.getElementById('overlayName');
+            const classEl = document.getElementById('overlayClass');
 
-            area.className = "big-display-area " + type;
-            main.textContent = mainText;
-            sub.textContent = subText;
-        }
+            // 1. 設定內容
+            if (type === 'success') {
+                card.className = "overlay-card success";
+                icon.textContent = "✅";
+                nameEl.textContent = mainText;
+                classEl.textContent = subText;
+                classEl.style.display = "inline-block";
+            } else {
+                card.className = "overlay-card error";
+                icon.textContent = "⚠️";
+                nameEl.textContent = mainText;
+                classEl.textContent = "請確認條碼";
+                classEl.style.display = "inline-block";
+            }
 
-        function resetDisplay() {
-            const area = document.getElementById('displayArea');
-            const main = document.getElementById('mainText');
-            const sub = document.getElementById('subText');
+            // 2. 顯示彈窗
+            overlay.classList.add('show');
 
-            area.className = "big-display-area";
-            main.textContent = "請掃描條碼";
-            sub.textContent = "準備就緒";
+            // 3. 重置計時器 (如果使用者連續掃描，重算 3 秒)
+            if (overlayTimer) clearTimeout(overlayTimer);
+
+            // 4. 設定 3 秒後自動關閉
+            overlayTimer = setTimeout(() => {
+                overlay.classList.remove('show');
+            }, 3000);
         }
 
         function pushToFirebaseQueue(name, className, id) {
