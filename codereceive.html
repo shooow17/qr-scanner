@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>警衛室整合系統 (顯示+掃描)</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body { 
+            font-family: 'Noto Sans TC', Arial, sans-serif; 
+            background-color: #E8F5E9; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            flex-direction: column; 
+            min-height: 100vh; 
+            margin: 0; 
+            padding: 20px 0; 
+            color: #333; 
+            box-sizing: border-box;
+        }
+
+        /* 隱藏掃描輸入框 */
+        #scannerInput { position: absolute; top: -1000px; opacity: 0; } 
+
+        .container { 
+            text-align: center; 
+            background-color: #ffffff; 
+            padding: 30px; 
+            border-radius: 12px; 
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1); 
+            width: 95%; 
+            max-width: 1200px; 
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        h1 { 
+            font-size: 2.2em; 
+            margin: 0; 
+            color: #1B5E20; 
+            border-bottom: 2px solid #E8F5E9;
+            padding-bottom: 15px;
+        }
+
+        /* --- 上半部：顯示區 (來自 view.html) --- */
+        #alert-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr); 
+            gap: 15px;
+            width: 100%;
+        }
+
+        .alert-item {
+            padding: 10px;
+            border-radius: 8px;
+            text-align: left;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            line-height: 1.3; 
+            height: 110px; 
+            position: relative; 
+            transition: all 0.3s ease;
+        }
+
+        .alert-item.newest {
+            background-color: #fff3e0;
+            border: 3px solid #ff5722;
+            animation: flash-border 1.5s infinite;
+            z-index: 10;
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(255, 87, 34, 0.3);
+        }
+
+        .alert-item.normal {
+            background-color: #f5f5f5;
+            border: 1px solid #bdbdbd;
+        }
+
+        .placeholder {
+            background-color: #fdfdfd;
+            border: 1px dashed #A5D6A7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            color: #ccc;
+            height: 110px;
+        }
+
+        @keyframes flash-border {
+            0% { border-color: #ff5722; box-shadow: 0 0 5px rgba(255, 87, 34, 0.5); }
+            50% { border-color: #ffccbc; box-shadow: 0 0 15px rgba(255, 87, 34, 0.8); }
+            100% { border-color: #ff5722; box-shadow: 0 0 5px rgba(255, 87, 34, 0.5); }
+        }
+
+        .delete-btn {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 24px;  
+            height: 24px; 
+            line-height: 24px; 
+            text-align: center; 
+            font-size: 18px; 
+            font-weight: bold;
+            color: #aaa;
+            background-color: rgba(255,255,255,0.8);
+            border-radius: 50%; 
+            cursor: pointer;
+        }
+        .delete-btn:hover { background-color: #d84315; color: white; }
+
+        .alert-message { font-size: 1em; color: #333; font-weight: bold; }
+        .alert-message .student-name { color: #388E3C; display: block; font-size: 1.3em; margin-bottom: 3px; }
+        .alert-message .status { color: #d84315; font-size: 0.9em; }
+        .alert-time { font-size: 0.8em; color: #777; margin-top: 5px; display: block; }
+
+        /* --- 下半部：掃描與控制區 (整合 index.html) --- */
+        .bottom-section {
+            border-top: 3px solid #eee;
+            padding-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .scanner-status-box {
+            background: #f8f9fa;
+            border: 3px dashed #bdc3c7;
+            border-radius: 10px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s ease;
+        }
+        
+        .scanner-status-box.success { background-color: #d4edda; border: 3px solid #28a745; color: #155724; }
+        .scanner-status-box.error { background-color: #f8d7da; border: 3px solid #dc3545; color: #721c24; }
+
+        .scan-info-left { display: flex; align-items: center; gap: 20px; text-align: left;}
+        .scan-icon { font-size: 3em; }
+        .scan-text h3 { margin: 0; font-size: 1.5em; }
+        .scan-text p { margin: 5px 0 0; color: #666; font-size: 0.9em; }
+        .scanner-status-box.success .scan-text p, .scanner-status-box.error .scan-text p { color: inherit; font-weight: bold;}
+
+        .scan-result-right { text-align: right; }
+        .scan-result-name { font-size: 2em; font-weight: 900; }
+        .scan-result-class { background: #333; color: white; padding: 2px 10px; border-radius: 5px; font-size: 1em; }
+
+        .controls {
+            display: flex;
+            justify-content: flex-end; 
+            gap: 10px; 
+        }
+        .controls button {
+            color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-size: 0.9em;
+        }
+        #btn-clear-local { background-color: #FF9800; }
+        #btn-export { background-color: #00796b; }
+        
+        .loading-bar {
+            width: 100%;
+            background: #fff3cd;
+            color: #856404;
+            padding: 5px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+        .loading-bar.ready { background: #d4edda; color: #155724; }
+
+        /* RWD */
+        @media (max-width: 1024px) {
+            #alert-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+        @media (max-width: 600px) {
+            .container { padding: 10px; width: 98%; }
+            #alert-grid { grid-template-columns: 1fr; }
+            .scanner-status-box { flex-direction: column; text-align: center; gap: 10px; }
+            .scan-info-left { flex-direction: column; text-align: center; gap: 5px; }
+            .scan-result-right { text-align: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <input type="password" id="scannerInput" autocomplete="off" />
+
+    <audio id="scanSound" src="https://www.soundjay.com/buttons/beep-01a.mp3"></audio>
+    <audio id="errorSound" src="https://www.soundjay.com/buttons/beep-05.mp3"></audio>
+
+    <div class="container">
+        <h1>警衛室即時看板</h1>
+        
+        <div id="loadingStatus" class="loading-bar">⏳ 正在下載學生名單...</div>
+
+        <div id="alert-grid"></div>
+
+        <div class="bottom-section">
+            
+            <div id="statusCard" class="scanner-status-box">
+                <div class="scan-info-left">
+                    <div class="scan-icon">🔫</div>
+                    <div class="scan-text">
+                        <h3 id="statusTitle">準備就緒</h3>
+                        <p id="statusDesc">請直接掃描學生條碼</p>
+                    </div>
+                </div>
+                <div class="scan-result-right">
+                    <div class="scan-result-name" id="studentNameDisplay">---</div>
+                    <span class="scan-result-class" id="studentClassDisplay">等待中</span>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button id="btn-export" onclick="exportReport()">匯出報表 (CSV)</button>
+                <button id="btn-clear-local" onclick="clearLocalScreen()">清除畫面資料</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. 設定與初始化 ---
+        const firebaseConfig = {
+          apiKey: "AIzaSyB_-fHCMhi-URwyBqzAIipmffWwvNgzJJc",
+          authDomain: "qr-scanner-app-2c73d.firebaseapp.com",
+          databaseURL: "https://qr-scanner-app-2c73d-default-rtdb.asia-southeast1.firebasedatabase.app",
+          projectId: "qr-scanner-app-2c73d",
+          storageBucket: "qr-scanner-app-2c73d.firebasestorage.app",
+          messagingSenderId: "385628927398",
+          appId: "1:385628927398:web:00239f1b2acebd6e790b67"
+        };
+        
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZHGM5xMgNFn9Df6BXMVfSesT3BIfHN91NdZjLK5TkHdEOai476VNIlJaw61n3Bxg9CA/exec";
+
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const alertsRef = database.ref("alerts"); // 讀取顯示用
+        const queuesRef = database.ref("queues"); // 寫入掃描用
+        
+        // --- 2. 顯示端變數 (View) ---
+        const MAX_ALERTS = 10; // 格子數量調整為 10 讓畫面不要太長
+        let alertHistory = []; 
+
+        // --- 3. 掃描端變數 (Scanner) ---
+        let allStudents = [];
+        let isDataReady = false;
+        let isLocked = false;
+
+        // --- 4. 啟動程序 ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // A. 初始化顯示網格
+            setupAlertListener();
+            
+            // B. 下載學生名單 (掃描用)
+            fetchStudentList();
+
+            // C. 綁定掃描輸入事件
+            setupScannerInput();
+
+            // D. 確保焦點永遠在輸入框
+            keepFocus();
+            document.addEventListener('click', () => {
+                // 稍微延遲避免點擊按鈕時衝突
+                setTimeout(keepFocus, 200);
+            });
+        });
+
+        // ==========================================
+        //  功能區塊 A: 顯示邏輯 (來自 view.html)
+        // ==========================================
+        
+        function setupAlertListener() {
+            alertsRef.limitToLast(MAX_ALERTS).on('child_added', (snapshot) => {
+                const alertData = snapshot.val();
+                alertData.key = snapshot.key; 
+                alertHistory.push(alertData); 
+                renderGrid(); 
+            });
+
+            alertsRef.on('value', (snapshot) => {
+                if (!snapshot.exists()) {
+                    alertHistory = [];
+                    renderGrid(); 
+                }
+            });
+
+            alertsRef.on('child_removed', (snapshot) => {
+                alertHistory = alertHistory.filter(item => item.key !== snapshot.key);
+                renderGrid();
+            });
+            
+            renderGrid();
+        }
+
+        function maskName(n) {
+            if (!n) return "";
+            if (n.length <= 1) return n;
+            if (n.length === 2) return n.substring(0, 1) + "O";
+            let masked = n.substring(0, 1);
+            masked += "O".repeat(n.length - 2);
+            masked += n.substring(n.length - 1);
+            return masked;
+        }
+
+        function renderGrid() {
+            const gridElement = document.getElementById('alert-grid');
+            gridElement.innerHTML = ''; 
+            const itemsToDisplay = alertHistory.slice(-MAX_ALERTS).reverse();
+
+            for (let i = 0; i < MAX_ALERTS; i++) {
+                const item = itemsToDisplay[i];
+                const cell = document.createElement('div');
+                
+                if (item) {
+                    if (i === 0) cell.className = 'alert-item newest';
+                    else cell.className = 'alert-item normal';
+                    
+                    const maskedName = maskName(item.name);
+                    const localTime = new Date(item.timestamp).toLocaleString('zh-TW', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+                    cell.innerHTML = `
+                        <div class="delete-btn" onclick="deleteAlert('${item.key}')">×</div>
+                        <div class="alert-message">
+                            <span class="student-name">${maskedName} (${item.class})</span>
+                            <span class="status">${item.status}</span>
+                        </div>
+                        <span class="alert-time">${localTime}</span>
+                    `;
+                } else {
+                    cell.className = 'alert-item placeholder';
+                    cell.textContent = '---'; 
+                }
+                gridElement.appendChild(cell);
+            }
+        }
+
+        function deleteAlert(key) {
+            if (!confirm("確定刪除此訊息？")) return;
+            if (key) alertsRef.child(key).remove();
+            keepFocus(); // 刪除後立刻把焦點抓回來
+        }
+
+        function clearLocalScreen() {
+            if (!confirm("清除畫面上所有資料？(不影響資料庫)")) return;
+            alertHistory = [];
+            renderGrid();
+            keepFocus();
+        }
+
+        function exportReport() {
+            if (alertHistory.length === 0) return alert("無資料可匯出");
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF時間,班級,姓名,狀態\r\n";
+            [...alertHistory].reverse().forEach(item => {
+                const time = new Date(item.timestamp).toLocaleString('zh-TW');
+                csvContent += `"${time}","${item.class}","${item.name}","${item.status}"\r\n`;
+            });
+            const link = document.createElement("a");
+            link.href = encodeURI(csvContent);
+            link.download = `警衛室報表_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+            keepFocus();
+        }
+
+        // ==========================================
+        //  功能區塊 B: 掃描邏輯 (來自 index.html)
+        // ==========================================
+
+        function fetchStudentList() {
+            const statusEl = document.getElementById('loadingStatus');
+            fetch(`${GOOGLE_SCRIPT_URL}?op=students`)
+                .then(res => res.json())
+                .then(data => {
+                    allStudents = data;
+                    isDataReady = true;
+                    statusEl.textContent = `✅ 學生名單已更新 (共 ${data.length} 人)`;
+                    statusEl.classList.add('ready');
+                })
+                .catch(err => {
+                    statusEl.textContent = "❌ 名單下載失敗，請檢查網路";
+                    console.error(err);
+                });
+        }
+
+        function setupScannerInput() {
+            const input = document.getElementById('scannerInput');
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    let content = this.value.trim();
+                    this.value = ''; 
+                    if (content.length > 0) {
+                        content = fixGarbledInput(content);
+                        processScan(content);
+                    }
+                }
+            });
+            input.addEventListener('blur', () => setTimeout(keepFocus, 100));
+        }
+
+        function keepFocus() { 
+            document.getElementById('scannerInput').focus(); 
+        }
+
+        function fixGarbledInput(str) {
+            const map = {
+                'ㄅ': '1', 'ㄉ': '2', 'ˇ': '3', 'ˋ': '4', 'ㄓ': '5',
+                'ˊ': '6', '˙': '7', 'ㄚ': '8', 'ㄞ': '9', 'ㄢ': '0', 'ㄦ': '-' 
+            };
+            let fixedStr = '';
+            for (let char of str) fixedStr += map[char] || char;
+            return fixedStr;
+        }
+
+        function processScan(rawInput) {
+            if (isLocked) return;
+            if (!isDataReady) {
+                alert("名單下載中，請稍候...");
+                return;
+            }
+
+            const searchId = rawInput.split('-')[0].trim();
+            const student = allStudents.find(s => String(s.id) === searchId);
+
+            if (student) {
+                // 1. 成功：更新下方 UI
+                playAudio('scanSound');
+                updateScannerUI("success", "✅ 掃描成功", student.name, student.className);
+                
+                // 2. 寫入 Firebase (queues) 讓系統廣播
+                pushToFirebaseQueue(student.name, student.className, searchId);
+                
+                // 3. 寫入 GAS 日誌
+                logToGAS(student.name, student.className);
+
+                // 4. (選擇性) 如果 GAS 處理速度慢，您也可以在這裡直接手動塞入 alerts 
+                // alertsRef.push({ ... }) 
+                // 但通常為了避免重複，我們讓 GAS 去處理 queues -> alerts 的轉換
+
+                isLocked = true;
+                setTimeout(() => { resetScannerUI(); isLocked = false; }, 3000);
+
+            } else {
+                playAudio('errorSound');
+                updateScannerUI("error", "❌ 查無此人", `ID: ${searchId}`, "錯誤");
+                isLocked = true;
+                setTimeout(() => { resetScannerUI(); isLocked = false; }, 1500);
+            }
+        }
+
+        function updateScannerUI(state, title, name, className) {
+            const box = document.getElementById('statusCard');
+            const icon = box.querySelector('.scan-icon');
+            const titleEl = document.getElementById('statusTitle');
+            const descEl = document.getElementById('statusDesc');
+            const nameEl = document.getElementById('studentNameDisplay');
+            const classEl = document.getElementById('studentClassDisplay');
+
+            box.className = "scanner-status-box " + state;
+            
+            if (state === 'success') {
+                icon.textContent = "✅";
+                titleEl.textContent = title;
+                descEl.textContent = "已發送通知";
+                nameEl.textContent = name;
+                classEl.textContent = className;
+                classEl.style.display = "inline-block";
+            } else {
+                icon.textContent = "⚠️";
+                titleEl.textContent = title;
+                descEl.textContent = "請確認條碼是否正確";
+                nameEl.textContent = name;
+                classEl.style.display = "none";
+            }
+        }
+
+        function resetScannerUI() {
+            const box = document.getElementById('statusCard');
+            box.className = "scanner-status-box";
+            box.querySelector('.scan-icon').textContent = "🔫";
+            document.getElementById('statusTitle').textContent = "準備就緒";
+            document.getElementById('statusDesc').textContent = "請直接掃描學生條碼";
+            document.getElementById('studentNameDisplay').textContent = "---";
+            document.getElementById('studentClassDisplay').textContent = "等待中";
+        }
+
+        function pushToFirebaseQueue(name, className, id) {
+            const targetPath = (className && className !== "(未分班)") ? `queues/${className}` : `queues/unknown`;
+            database.ref(targetPath).push().set({
+                id: id,
+                name: name,
+                studentName: name, // 兼容性
+                className: className,
+                timestamp: new Date().toISOString(),
+                status: 'waiting'
+            });
+        }
+
+        function logToGAS(name, className) {
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: "POST",
+                body: JSON.stringify({ type: 'scan', content: `${name} (${className})` }),
+                headers: { "Content-Type": "text/plain" }
+            }).catch(e => console.error("Log error", e));
+        }
+
+        function playAudio(id) {
+            const audio = document.getElementById(id);
+            if (audio) audio.play().catch(e => {});
+        }
+
+    </script>
+</body>
+</html>
