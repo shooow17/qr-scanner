@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>警衛室整合系統 (顯示+掃描)</title>
+    <title>警衛室整合系統 (大字版)</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
@@ -18,53 +18,53 @@
             flex-direction: column; 
             min-height: 100vh; 
             margin: 0; 
-            padding: 10px 0; /* 縮減上下留白 */
+            padding: 10px 0;
             color: #333; 
             box-sizing: border-box;
         }
 
-        /* 隱藏掃描輸入框 */
         #scannerInput { position: absolute; top: -1000px; opacity: 0; } 
 
         .container { 
             text-align: center; 
             background-color: #ffffff; 
-            padding: 25px; 
+            padding: 20px; 
             border-radius: 12px; 
             box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1); 
             width: 95%; 
             max-width: 1200px; 
             display: flex;
             flex-direction: column;
-            gap: 15px; /* 縮減元件間距 */
+            gap: 15px;
+            height: 95vh; /* 盡量佔滿畫面 */
         }
 
         h1 { 
-            font-size: 2em; 
+            font-size: 1.8em; 
             margin: 0; 
             color: #1B5E20; 
             border-bottom: 2px solid #E8F5E9;
-            padding-bottom: 10px;
+            padding-bottom: 5px;
         }
 
         /* --- 上半部：顯示區 (15格) --- */
         #alert-grid {
             display: grid;
-            grid-template-columns: repeat(5, 1fr); /* 5欄 */
-            gap: 12px;
+            grid-template-columns: repeat(5, 1fr); 
+            gap: 10px;
             width: 100%;
         }
 
         .alert-item {
-            padding: 8px 10px;
+            padding: 5px;
             border-radius: 8px;
             text-align: left;
             overflow: hidden;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            line-height: 1.3; 
-            height: 105px; /* 稍微縮小高度以容納3列 */
+            line-height: 1.2; 
+            height: 90px; /* 高度縮小一點，留空間給下方大字 */
             position: relative; 
             transition: all 0.3s ease;
         }
@@ -91,7 +91,7 @@
             justify-content: center;
             font-size: 1.2em;
             color: #ccc;
-            height: 105px;
+            height: 90px;
         }
 
         @keyframes flash-border {
@@ -101,93 +101,90 @@
         }
 
         .delete-btn {
-            position: absolute;
-            top: 2px;
-            right: 2px;
-            width: 22px;  
-            height: 22px; 
-            line-height: 22px; 
-            text-align: center; 
-            font-size: 16px; 
-            font-weight: bold;
-            color: #aaa;
-            background-color: rgba(255,255,255,0.8);
-            border-radius: 50%; 
-            cursor: pointer;
+            position: absolute; top: 2px; right: 2px;
+            width: 20px; height: 20px; line-height: 20px; 
+            text-align: center; font-size: 14px; font-weight: bold;
+            color: #aaa; background-color: rgba(255,255,255,0.8);
+            border-radius: 50%; cursor: pointer;
         }
         .delete-btn:hover { background-color: #d84315; color: white; }
 
-        .alert-message { font-size: 1em; color: #333; font-weight: bold; }
+        .alert-message { font-size: 0.9em; color: #333; font-weight: bold; }
         .alert-message .student-name { color: #388E3C; display: block; font-size: 1.2em; margin-bottom: 2px; }
         .alert-message .status { color: #d84315; font-size: 0.9em; }
-        .alert-time { font-size: 0.8em; color: #777; margin-top: 4px; display: block; }
+        .alert-time { font-size: 0.8em; color: #777; margin-top: 2px; display: block; }
 
-        /* --- 下半部：掃描與控制區 --- */
+        /* --- 下半部：大字掃描區 --- */
         .bottom-section {
-            border-top: 2px solid #eee;
-            padding-top: 15px;
+            flex-grow: 1; /* 佔滿剩餘空間 */
             display: flex;
             flex-direction: column;
             gap: 10px;
         }
 
-        .scanner-status-box {
+        /* 核心修改：巨大顯示區 */
+        .big-display-area {
+            flex-grow: 1;
             background: #f8f9fa;
-            border: 3px dashed #bdc3c7;
-            border-radius: 10px;
-            padding: 15px 20px;
+            border: 4px dashed #bdc3c7;
+            border-radius: 15px;
             display: flex;
+            flex-direction: column;
             align-items: center;
-            justify-content: space-between;
+            justify-content: center;
             transition: all 0.2s ease;
+            min-height: 200px;
         }
         
-        .scanner-status-box.success { background-color: #d4edda; border: 3px solid #28a745; color: #155724; }
-        .scanner-status-box.error { background-color: #f8d7da; border: 3px solid #dc3545; color: #721c24; }
+        .big-display-area.success { background-color: #d4edda; border: 4px solid #28a745; color: #155724; }
+        .big-display-area.error { background-color: #f8d7da; border: 4px solid #dc3545; color: #721c24; }
 
-        .scan-info-left { display: flex; align-items: center; gap: 15px; text-align: left;}
-        .scan-icon { font-size: 2.5em; }
-        .scan-text h3 { margin: 0; font-size: 1.4em; }
-        .scan-text p { margin: 3px 0 0; color: #666; font-size: 0.9em; }
-        .scanner-status-box.success .scan-text p, .scanner-status-box.error .scan-text p { color: inherit; font-weight: bold;}
-
-        .scan-result-right { text-align: right; }
-        .scan-result-name { font-size: 1.8em; font-weight: 900; }
-        .scan-result-class { background: #333; color: white; padding: 2px 8px; border-radius: 5px; font-size: 0.9em; }
+        /* 姓名超大字 */
+        .scan-main-text {
+            font-size: 5em; /* 超大 */
+            font-weight: 900;
+            line-height: 1.2;
+            margin: 0;
+        }
+        
+        /* 班級或狀態副標題 */
+        .scan-sub-text {
+            font-size: 2em;
+            margin-top: 10px;
+            background: #333;
+            color: #fff;
+            padding: 5px 20px;
+            border-radius: 50px;
+        }
+        
+        /* 一般狀態下的副標題樣式 */
+        .big-display-area:not(.success):not(.error) .scan-sub-text {
+            background: transparent;
+            color: #888;
+            font-size: 1.5em;
+        }
 
         .controls {
-            display: flex;
-            justify-content: flex-end; 
-            gap: 10px; 
+            display: flex; justify-content: space-between; align-items: center;
         }
         .controls button {
-            color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-size: 0.9em;
+            color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 1em;
         }
         #btn-clear-local { background-color: #FF9800; }
         #btn-export { background-color: #00796b; }
         
-        .loading-bar {
-            width: 100%;
-            background: #fff3cd;
-            color: #856404;
-            padding: 5px;
-            border-radius: 4px;
-            font-size: 0.9em;
-            margin-bottom: 5px;
-        }
+        .loading-bar { width: 100%; background: #fff3cd; color: #856404; padding: 5px; border-radius: 4px; font-size: 0.9em; }
         .loading-bar.ready { background: #d4edda; color: #155724; }
 
         /* RWD */
         @media (max-width: 1024px) {
             #alert-grid { grid-template-columns: repeat(3, 1fr); }
-            .alert-item { height: auto; padding: 10px; }
+            .scan-main-text { font-size: 3.5em; }
         }
         @media (max-width: 600px) {
-            .container { padding: 10px; width: 98%; }
+            .container { padding: 10px; width: 98%; height: auto; }
             #alert-grid { grid-template-columns: 1fr; }
-            .scanner-status-box { flex-direction: column; text-align: center; gap: 10px; }
-            .scan-info-left { flex-direction: column; text-align: center; gap: 5px; }
-            .scan-result-right { text-align: center; }
+            .scan-main-text { font-size: 2.5em; }
         }
     </style>
 </head>
@@ -199,37 +196,28 @@
     <audio id="errorSound" src="https://www.soundjay.com/buttons/beep-05.mp3"></audio>
 
     <div class="container">
-        <h1>警衛室即時看板</h1>
-        
-        <div id="loadingStatus" class="loading-bar">⏳ 正在下載學生名單...</div>
+        <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+            <h1>警衛室即時看板</h1>
+            <div id="loadingStatus" class="loading-bar" style="width:auto; padding:5px 15px;">⏳ 下載名單中...</div>
+        </div>
 
         <div id="alert-grid"></div>
 
         <div class="bottom-section">
-            
-            <div id="statusCard" class="scanner-status-box">
-                <div class="scan-info-left">
-                    <div class="scan-icon">🔫</div>
-                    <div class="scan-text">
-                        <h3 id="statusTitle">準備就緒</h3>
-                        <p id="statusDesc">請直接掃描學生條碼</p>
-                    </div>
-                </div>
-                <div class="scan-result-right">
-                    <div class="scan-result-name" id="studentNameDisplay">---</div>
-                    <span class="scan-result-class" id="studentClassDisplay">等待中</span>
-                </div>
+            <div id="displayArea" class="big-display-area">
+                <div id="mainText" class="scan-main-text">請掃描條碼</div>
+                <div id="subText" class="scan-sub-text">準備就緒</div>
             </div>
 
             <div class="controls">
-                <button id="btn-export" onclick="exportReport()">匯出報表 (CSV)</button>
+                <button id="btn-export" onclick="exportReport()">匯出報表</button>
                 <button id="btn-clear-local" onclick="clearLocalScreen()">清除畫面資料</button>
             </div>
         </div>
     </div>
 
     <script>
-        // --- 1. 設定與初始化 ---
+        // --- 設定 ---
         const firebaseConfig = {
           apiKey: "AIzaSyB_-fHCMhi-URwyBqzAIipmffWwvNgzJJc",
           authDomain: "qr-scanner-app-2c73d.firebaseapp.com",
@@ -239,39 +227,28 @@
           messagingSenderId: "385628927398",
           appId: "1:385628927398:web:00239f1b2acebd6e790b67"
         };
-        
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZHGM5xMgNFn9Df6BXMVfSesT3BIfHN91NdZjLK5TkHdEOai476VNIlJaw61n3Bxg9CA/exec";
 
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
-        const alertsRef = database.ref("alerts"); // 讀取顯示用
-        const queuesRef = database.ref("queues"); // 寫入掃描用
+        const alertsRef = database.ref("alerts");
+        const queuesRef = database.ref("queues");
         
-        // ★★★ 核心修改：恢復為 15 格 ★★★
         const MAX_ALERTS = 15; 
-        
         let alertHistory = []; 
-
-        // --- 3. 掃描端變數 (Scanner) ---
         let allStudents = [];
         let isDataReady = false;
         let isLocked = false;
 
-        // --- 4. 啟動程序 ---
         document.addEventListener('DOMContentLoaded', () => {
             setupAlertListener();
             fetchStudentList();
             setupScannerInput();
             keepFocus();
-            document.addEventListener('click', () => {
-                setTimeout(keepFocus, 200);
-            });
+            document.addEventListener('click', () => setTimeout(keepFocus, 200));
         });
 
-        // ==========================================
-        //  功能區塊 A: 顯示邏輯
-        // ==========================================
-        
+        // --- 顯示功能 (Grid) ---
         function setupAlertListener() {
             alertsRef.limitToLast(MAX_ALERTS).on('child_added', (snapshot) => {
                 const alertData = snapshot.val();
@@ -279,19 +256,13 @@
                 alertHistory.push(alertData); 
                 renderGrid(); 
             });
-
             alertsRef.on('value', (snapshot) => {
-                if (!snapshot.exists()) {
-                    alertHistory = [];
-                    renderGrid(); 
-                }
+                if (!snapshot.exists()) { alertHistory = []; renderGrid(); }
             });
-
             alertsRef.on('child_removed', (snapshot) => {
                 alertHistory = alertHistory.filter(item => item.key !== snapshot.key);
                 renderGrid();
             });
-            
             renderGrid();
         }
 
@@ -313,17 +284,13 @@
             for (let i = 0; i < MAX_ALERTS; i++) {
                 const item = itemsToDisplay[i];
                 const cell = document.createElement('div');
-                
                 if (item) {
-                    if (i === 0) cell.className = 'alert-item newest';
-                    else cell.className = 'alert-item normal';
-                    
-                    const maskedName = maskName(item.name);
+                    cell.className = (i === 0) ? 'alert-item newest' : 'alert-item normal';
                     const localTime = new Date(item.timestamp).toLocaleString('zh-TW', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
                     cell.innerHTML = `
                         <div class="delete-btn" onclick="deleteAlert('${item.key}')">×</div>
                         <div class="alert-message">
-                            <span class="student-name">${maskedName} (${item.class})</span>
+                            <span class="student-name">${maskName(item.name)} (${item.class})</span>
                             <span class="status">${item.status}</span>
                         </div>
                         <span class="alert-time">${localTime}</span>
@@ -337,20 +304,20 @@
         }
 
         function deleteAlert(key) {
-            if (!confirm("確定刪除此訊息？")) return;
+            if (!confirm("刪除此訊息？")) return;
             if (key) alertsRef.child(key).remove();
             keepFocus(); 
         }
 
         function clearLocalScreen() {
-            if (!confirm("清除畫面上所有資料？(不影響資料庫)")) return;
+            if (!confirm("清除畫面資料？")) return;
             alertHistory = [];
             renderGrid();
             keepFocus();
         }
 
         function exportReport() {
-            if (alertHistory.length === 0) return alert("無資料可匯出");
+            if (alertHistory.length === 0) return alert("無資料");
             let csvContent = "data:text/csv;charset=utf-8,\uFEFF時間,班級,姓名,狀態\r\n";
             [...alertHistory].reverse().forEach(item => {
                 const time = new Date(item.timestamp).toLocaleString('zh-TW');
@@ -358,15 +325,12 @@
             });
             const link = document.createElement("a");
             link.href = encodeURI(csvContent);
-            link.download = `警衛室報表_${new Date().toISOString().split('T')[0]}.csv`;
+            link.download = `報表_${new Date().toISOString().split('T')[0]}.csv`;
             link.click();
             keepFocus();
         }
 
-        // ==========================================
-        //  功能區塊 B: 掃描邏輯
-        // ==========================================
-
+        // --- 掃描功能 (Scanner) ---
         function fetchStudentList() {
             const statusEl = document.getElementById('loadingStatus');
             fetch(`${GOOGLE_SCRIPT_URL}?op=students`)
@@ -374,13 +338,10 @@
                 .then(data => {
                     allStudents = data;
                     isDataReady = true;
-                    statusEl.textContent = `✅ 學生名單已更新 (共 ${data.length} 人)`;
+                    statusEl.textContent = `✅ 已更新 (${data.length}人)`;
                     statusEl.classList.add('ready');
                 })
-                .catch(err => {
-                    statusEl.textContent = "❌ 名單下載失敗，請檢查網路";
-                    console.error(err);
-                });
+                .catch(err => { statusEl.textContent = "❌ 下載失敗"; });
         }
 
         function setupScannerInput() {
@@ -389,24 +350,16 @@
                 if (e.key === 'Enter') {
                     let content = this.value.trim();
                     this.value = ''; 
-                    if (content.length > 0) {
-                        content = fixGarbledInput(content);
-                        processScan(content);
-                    }
+                    if (content.length > 0) processScan(fixGarbledInput(content));
                 }
             });
             input.addEventListener('blur', () => setTimeout(keepFocus, 100));
         }
 
-        function keepFocus() { 
-            document.getElementById('scannerInput').focus(); 
-        }
+        function keepFocus() { document.getElementById('scannerInput').focus(); }
 
         function fixGarbledInput(str) {
-            const map = {
-                'ㄅ': '1', 'ㄉ': '2', 'ˇ': '3', 'ˋ': '4', 'ㄓ': '5',
-                'ˊ': '6', '˙': '7', 'ㄚ': '8', 'ㄞ': '9', 'ㄢ': '0', 'ㄦ': '-' 
-            };
+            const map = {'ㄅ':'1', 'ㄉ':'2', 'ˇ':'3', 'ˋ':'4', 'ㄓ':'5', 'ˊ':'6', '˙':'7', 'ㄚ':'8', 'ㄞ':'9', 'ㄢ':'0', 'ㄦ':'-'};
             let fixedStr = '';
             for (let char of str) fixedStr += map[char] || char;
             return fixedStr;
@@ -414,82 +367,61 @@
 
         function processScan(rawInput) {
             if (isLocked) return;
-            if (!isDataReady) {
-                alert("名單下載中，請稍候...");
-                return;
-            }
+            if (!isDataReady) return alert("名單下載中...");
 
             const searchId = rawInput.split('-')[0].trim();
             const student = allStudents.find(s => String(s.id) === searchId);
 
             if (student) {
                 playAudio('scanSound');
-                updateScannerUI("success", "✅ 掃描成功", student.name, student.className);
+                // 顯示大字
+                updateDisplay("success", student.name, student.className);
+                
                 pushToFirebaseQueue(student.name, student.className, searchId);
                 logToGAS(student.name, student.className);
+                
                 isLocked = true;
-                setTimeout(() => { resetScannerUI(); isLocked = false; }, 3000);
-
+                setTimeout(() => { resetDisplay(); isLocked = false; }, 3000);
             } else {
                 playAudio('errorSound');
-                updateScannerUI("error", "❌ 查無此人", `ID: ${searchId}`, "錯誤");
+                updateDisplay("error", "查無此人", searchId);
                 isLocked = true;
-                setTimeout(() => { resetScannerUI(); isLocked = false; }, 1500);
+                setTimeout(() => { resetDisplay(); isLocked = false; }, 1500);
             }
         }
 
-        function updateScannerUI(state, title, name, className) {
-            const box = document.getElementById('statusCard');
-            const icon = box.querySelector('.scan-icon');
-            const titleEl = document.getElementById('statusTitle');
-            const descEl = document.getElementById('statusDesc');
-            const nameEl = document.getElementById('studentNameDisplay');
-            const classEl = document.getElementById('studentClassDisplay');
+        // --- 核心：大字顯示切換 ---
+        function updateDisplay(type, mainText, subText) {
+            const area = document.getElementById('displayArea');
+            const main = document.getElementById('mainText');
+            const sub = document.getElementById('subText');
 
-            box.className = "scanner-status-box " + state;
-            
-            if (state === 'success') {
-                icon.textContent = "✅";
-                titleEl.textContent = title;
-                descEl.textContent = "已發送通知";
-                nameEl.textContent = name;
-                classEl.textContent = className;
-                classEl.style.display = "inline-block";
-            } else {
-                icon.textContent = "⚠️";
-                titleEl.textContent = title;
-                descEl.textContent = "請確認條碼是否正確";
-                nameEl.textContent = name;
-                classEl.style.display = "none";
-            }
+            area.className = "big-display-area " + type;
+            main.textContent = mainText;
+            sub.textContent = subText;
         }
 
-        function resetScannerUI() {
-            const box = document.getElementById('statusCard');
-            box.className = "scanner-status-box";
-            box.querySelector('.scan-icon').textContent = "🔫";
-            document.getElementById('statusTitle').textContent = "準備就緒";
-            document.getElementById('statusDesc').textContent = "請直接掃描學生條碼";
-            document.getElementById('studentNameDisplay').textContent = "---";
-            document.getElementById('studentClassDisplay').textContent = "等待中";
+        function resetDisplay() {
+            const area = document.getElementById('displayArea');
+            const main = document.getElementById('mainText');
+            const sub = document.getElementById('subText');
+
+            area.className = "big-display-area";
+            main.textContent = "請掃描條碼";
+            sub.textContent = "準備就緒";
         }
 
         function pushToFirebaseQueue(name, className, id) {
             const targetPath = (className && className !== "(未分班)") ? `queues/${className}` : `queues/unknown`;
             database.ref(targetPath).push().set({
-                id: id,
-                name: name,
-                studentName: name, 
-                className: className,
-                timestamp: new Date().toISOString(),
-                status: 'waiting'
+                id: id, name: name, studentName: name, 
+                className: className, timestamp: new Date().toISOString(), status: 'waiting'
             });
         }
 
         function logToGAS(name, className) {
             fetch(GOOGLE_SCRIPT_URL, {
-                method: "POST",
-                body: JSON.stringify({ type: 'scan', content: `${name} (${className})` }),
+                method: "POST", body: JSON.stringify({ type: 'scan', content: `${name} (${className})` }),
                 headers: { "Content-Type": "text/plain" }
             }).catch(e => console.error("Log error", e));
         }
@@ -498,7 +430,6 @@
             const audio = document.getElementById(id);
             if (audio) audio.play().catch(e => {});
         }
-
     </script>
 </body>
 </html>
