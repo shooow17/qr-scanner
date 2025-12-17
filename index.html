@@ -9,98 +9,23 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     
     <style>
-        body {
-            margin: 0; padding: 0;
-            font-family: 'Noto Sans TC', sans-serif;
-            background-color: #f0f2f5;
-            height: 100vh;
-            display: flex; flex-direction: column;
-            justify-content: center; align-items: center;
-        }
-
-        /* 隱藏的輸入框 (負責接收掃描槍訊號) 
-           設為 password 類型可強制關閉中文輸入法 
-        */
-        #scannerInput {
-            position: absolute;
-            opacity: 0; 
-            top: -1000px;
-        }
-
-        /* 主容器 */
-        .main-container {
-            background-color: white;
-            padding: 50px;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            text-align: center;
-            width: 90%;
-            max-width: 600px;
-            border: 2px solid #e0e0e0;
-            cursor: text; /* 提示可輸入 */
-        }
-
+        body { margin: 0; padding: 0; font-family: 'Noto Sans TC', sans-serif; background-color: #f0f2f5; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        #scannerInput { position: absolute; opacity: 0; top: -1000px; } /* 隱藏輸入框 */
+        .main-container { background-color: white; padding: 50px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; width: 90%; max-width: 600px; border: 2px solid #e0e0e0; cursor: text; }
         h1 { color: #2c3e50; font-size: 2.5rem; margin-bottom: 10px; }
         .sub-title { color: #7f8c8d; font-size: 1.2rem; margin-bottom: 40px; }
-
-        /* 狀態顯示卡片 */
-        .status-card {
-            padding: 40px;
-            border-radius: 15px;
-            background: #f8f9fa;
-            border: 3px dashed #bdc3c7;
-            transition: all 0.2s ease;
-        }
-
-        /* 狀態：成功 */
-        .status-card.success {
-            background-color: #d4edda;
-            border: 3px solid #28a745;
-            color: #155724;
-            transform: scale(1.02);
-            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.2);
-        }
-
-        /* 狀態：處理中 */
-        .status-card.processing {
-            background-color: #fff3cd;
-            border: 3px solid #ffc107;
-            color: #856404;
-        }
-
+        .status-card { padding: 40px; border-radius: 15px; background: #f8f9fa; border: 3px dashed #bdc3c7; transition: all 0.2s ease; }
+        .status-card.success { background-color: #d4edda; border: 3px solid #28a745; color: #155724; transform: scale(1.02); box-shadow: 0 5px 15px rgba(40, 167, 69, 0.2); }
+        .status-card.processing { background-color: #fff3cd; border: 3px solid #ffc107; color: #856404; }
         .icon { font-size: 6rem; margin-bottom: 20px; display: block; }
         .message { font-size: 1.8rem; font-weight: bold; margin-bottom: 10px; }
         .student-name { font-size: 2.5rem; font-weight: 900; color: #2c3e50; margin-top: 10px; }
         .class-badge { background: #333; color: white; padding: 5px 15px; border-radius: 8px; font-size: 1.2rem; margin-top: 10px; display: inline-block;}
-
-        .focus-hint {
-            margin-top: 30px;
-            font-size: 0.9rem;
-            color: #bdc3c7;
-        }
-        .focus-indicator {
-            display: inline-block;
-            width: 10px; height: 10px;
-            background-color: #e74c3c;
-            border-radius: 50%;
-            margin-right: 5px;
-        }
-        .focused .focus-indicator {
-            background-color: #2ecc71;
-        }
-
-        .back-btn {
-            margin-top: 40px;
-            display: inline-block;
-            text-decoration: none;
-            color: #95a5a6;
-            border: 1px solid #ddd;
-            padding: 10px 30px;
-            border-radius: 50px;
-            transition: 0.2s;
-        }
+        .focus-hint { margin-top: 30px; font-size: 0.9rem; color: #bdc3c7; }
+        .focus-indicator { display: inline-block; width: 10px; height: 10px; background-color: #e74c3c; border-radius: 50%; margin-right: 5px; }
+        .focused .focus-indicator { background-color: #2ecc71; }
+        .back-btn { margin-top: 40px; display: inline-block; text-decoration: none; color: #95a5a6; border: 1px solid #ddd; padding: 10px 30px; border-radius: 50px; transition: 0.2s; }
         .back-btn:hover { background: #2c3e50; color: white; }
-
     </style>
 </head>
 <body>
@@ -127,7 +52,6 @@
     <audio id="scanSound" src="https://www.soundjay.com/buttons/beep-01a.mp3"></audio>
 
     <script>
-        // --- 設定區 ---
         const firebaseConfig = {
             apiKey: "AIzaSyB_-fHCMhi-URwyBqzAIipmffWwvNgzJJc",
             authDomain: "qr-scanner-app-2c73d.firebaseapp.com",
@@ -141,116 +65,67 @@
         // ★★★ 請確認這是您最新部署的 GAS 網址 ★★★
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZHGM5xMgNFn9Df6BXMVfSesT3BIfHN91NdZjLK5TkHdEOai476VNIlJaw61n3Bxg9CA/exec";
 
-        // 初始化 Firebase
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
         let isLocked = false;
-        const LOCK_DURATION = 3000; // 鎖定時間，防止重複掃描
-
-        // --- 1. 確保輸入框隨時聚焦 ---
+        const LOCK_DURATION = 3000;
         const input = document.getElementById('scannerInput');
         const mainContainer = document.getElementById('mainContainer');
         const focusStatus = document.getElementById('focusStatus');
 
-        function keepFocus() {
-            // 強制聚焦到密碼框，這樣掃描槍的輸入才會進去，且不會觸發中文輸入法
-            input.focus();
-        }
-
+        function keepFocus() { input.focus(); }
         document.addEventListener('click', keepFocus);
-        
-        input.addEventListener('focus', () => {
-            mainContainer.classList.add('focused');
-            focusStatus.innerHTML = '<span class="focus-indicator"></span> 系統連線正常，可掃描';
-        });
-        input.addEventListener('blur', () => {
-            mainContainer.classList.remove('focused');
-            focusStatus.innerHTML = '<span class="focus-indicator"></span> ⚠️ 請點擊畫面以啟用掃描';
-            setTimeout(keepFocus, 100);
-        });
-
+        input.addEventListener('focus', () => { mainContainer.classList.add('focused'); focusStatus.innerHTML = '<span class="focus-indicator"></span> 系統連線正常，可掃描'; });
+        input.addEventListener('blur', () => { mainContainer.classList.remove('focused'); focusStatus.innerHTML = '<span class="focus-indicator"></span> ⚠️ 請點擊畫面以啟用掃描'; setTimeout(keepFocus, 100); });
         window.onload = keepFocus;
 
-        // --- 2. 監聽掃描槍輸入 (Enter鍵) ---
         input.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
                 const content = this.value.trim();
                 this.value = ''; 
-
-                if (content.length > 0) {
-                    processScan(content);
-                }
+                if (content.length > 0) processScan(content);
             }
         });
 
-        // --- 3. 處理掃描邏輯 ---
         function processScan(content) {
-            if (isLocked) return; 
-            
+            if (isLocked) return;
             isLocked = true;
             document.getElementById('scanSound').play().catch(e => {});
-
             updateUI("processing", "資料查詢中...", content);
-            
-            // 呼叫 GAS 查資料
             sendToSheetAndFirebase(content);
         }
 
         function sendToSheetAndFirebase(content) {
-            // 送去 GAS 紀錄日誌，並查詢班級
             fetch(GOOGLE_SCRIPT_URL, {
                 method: "POST",
-                body: JSON.stringify({
-                    type: 'scan',
-                    content: content
-                }),
+                body: JSON.stringify({ type: 'scan', content: content }),
                 headers: { "Content-Type": "text/plain" }
             })
             .then(res => res.json())
             .then(data => {
                 if(data.status === 'success') {
-                    const studentName = data.name;
-                    const className = data.className; 
-
-                    // ★ 推播到 Firebase，讓看板更新 ★
-                    pushToFirebase(studentName, className);
-
-                    updateUI("success", "✅ 掃描成功", studentName, className);
+                    // 這裡的 data.name 和 data.className 是從「學生名單」查出來的正確資料
+                    pushToFirebase(data.name, data.className);
+                    updateUI("success", "✅ 掃描成功", data.name, data.className);
                 } else {
                     updateUI("processing", "⚠️ 查詢失敗", data.message);
                 }
             })
-            .catch(err => {
-                console.error(err);
-                updateUI("processing", "⚠️ 連線錯誤", "請檢查網路");
-            })
-            .finally(() => {
-                setTimeout(() => {
-                    resetUI();
-                    isLocked = false;
-                    keepFocus(); 
-                }, LOCK_DURATION);
-            });
+            .catch(err => { console.error(err); updateUI("processing", "⚠️ 連線錯誤", "請檢查網路"); })
+            .finally(() => { setTimeout(() => { resetUI(); isLocked = false; keepFocus(); }, LOCK_DURATION); });
         }
 
         function pushToFirebase(name, className) {
-            // 推送到對應班級的頻道
             const targetPath = className && className !== "(未分班)" ? `queues/${className}` : `queues/unknown`;
-            
-            const newRef = db.ref(targetPath).push();
-            newRef.set({
+            db.ref(targetPath).push().set({
                 id: Date.now().toString(),
                 name: name,
                 studentName: name,
                 className: className,
                 timestamp: new Date().toISOString(),
                 status: 'waiting'
-            }).then(() => {
-                console.log(`Firebase 推播成功: ${targetPath}`);
-            });
+            }).then(() => console.log(`Firebase pushed to: ${targetPath}`));
         }
 
         function updateUI(state, msg, detail, className) {
@@ -258,21 +133,9 @@
             const iconEl = card.querySelector('.icon');
             const msgEl = card.querySelector('.message');
             const nameEl = document.getElementById('studentNameDisplay');
-
             card.classList.remove('success', 'processing');
-
-            if (state === "processing") {
-                card.classList.add('processing');
-                iconEl.textContent = "⏳";
-                msgEl.textContent = msg;
-                nameEl.innerHTML = detail;
-            } 
-            else if (state === "success") {
-                card.classList.add('success');
-                iconEl.textContent = "✅";
-                msgEl.textContent = msg;
-                nameEl.innerHTML = `${detail}<br><span class="class-badge">${className || '未分班'}</span>`;
-            }
+            if (state === "processing") { card.classList.add('processing'); iconEl.textContent = "⏳"; msgEl.textContent = msg; nameEl.innerHTML = detail; } 
+            else if (state === "success") { card.classList.add('success'); iconEl.textContent = "✅"; msgEl.textContent = msg; nameEl.innerHTML = `${detail}<br><span class="class-badge">${className || '未分班'}</span>`; }
         }
 
         function resetUI() {
@@ -280,13 +143,9 @@
             const iconEl = card.querySelector('.icon');
             const msgEl = card.querySelector('.message');
             const nameEl = document.getElementById('studentNameDisplay');
-
             card.classList.remove('success', 'processing');
-            iconEl.textContent = "🔫";
-            msgEl.textContent = "準備就緒";
-            nameEl.textContent = "請掃描...";
+            iconEl.textContent = "🔫"; msgEl.textContent = "準備就緒"; nameEl.textContent = "請掃描...";
         }
-
     </script>
 </body>
 </html>
