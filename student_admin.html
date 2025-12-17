@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>課後照顧班 -學生管理系統</title>
+    <title>課後照顧班 - 學生管理系統</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { background-color: #f8f9fa; font-family: "Noto Sans TC", sans-serif; }
@@ -26,7 +26,7 @@
     <div id="loading" class="loading-mask">資料讀取中...</div>
 
     <div class="container py-4">
-        <h2 class="mb-4 text-center" style="color:#d81b60;">🎓 課後照顧班學生管理系統</h2>
+        <h2 class="mb-4 text-center" style="color:#d81b60;">🎓 課後照顧班行政管理</h2>
 
         <ul class="nav nav-tabs mb-3" id="myTab" role="tablist">
             <li class="nav-item" role="presentation">
@@ -109,27 +109,45 @@
             </div>
 
             <div class="tab-pane fade" id="archive-pane">
-                <div class="card p-5 text-center">
-                    <h4 class="mb-4" style="color:#d81b60;">📁 年度編班名單寫入與存檔</h4>
-                    <p class="text-muted mb-4">
-                        此操作將讀取目前的「報名資料」與您設定的「編班結果」，<br>
-                        並在雲端試算表自動建立一個新的分頁（例如：114學年度_編班名單）。
-                    </p>
+                <div class="card p-4">
+                    <h4 class="mb-4 text-center" style="color:#d81b60;">📁 年度編班存檔與查詢</h4>
                     
-                    <div class="row justify-content-center">
-                        <div class="col-md-6 col-lg-4">
+                    <div class="row justify-content-center mb-4">
+                        <div class="col-md-8 col-lg-6">
                             <div class="input-group mb-3 shadow-sm">
                                 <span class="input-group-text bg-white">學年度</span>
                                 <input type="number" id="archiveYear" class="form-control" value="114" placeholder="例如: 114">
-                                <button class="btn btn-success" onclick="archiveClasses()">🚀 執行寫入</button>
+                                <button class="btn btn-success" onclick="archiveClasses()">💾 執行寫入(存檔)</button>
+                                <button class="btn btn-primary" onclick="queryArchivedClasses()">🔍 查詢存檔</button>
+                            </div>
+                            <div class="form-text text-center">
+                                「執行寫入」會將目前的編班結果存入雲端試算表；<br>
+                                「查詢存檔」可檢視已儲存的編班名單。
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="alert alert-warning mt-3 d-inline-block text-start" role="alert" style="max-width: 600px;">
-                        <strong>⚠️ 注意事項：</strong><br>
-                        1. 請確認所有學生的班級都已分配完成。<br>
-                        2. 如果該學年度的分頁已經存在，<strong style="color:red">舊的內容將會被覆蓋</strong>，請謹慎操作。
+
+                    <hr>
+
+                    <h5 class="mt-3">📄 存檔內容預覽：<span id="previewTitle" class="text-muted">請點選查詢</span></h5>
+                    <div class="table-responsive mt-2" style="max-height: 500px; overflow-y: auto;">
+                        <table class="table table-bordered table-striped align-middle">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>原班級</th>
+                                    <th>座號</th>
+                                    <th>學生姓名</th>
+                                    <th>身分</th>
+                                    <th>家長姓名</th>
+                                    <th>聯絡電話</th>
+                                    <th>回家方式</th>
+                                    <th>課後班級</th>
+                                </tr>
+                            </thead>
+                            <tbody id="archiveTableBody">
+                                <tr><td colspan="8" class="text-center text-muted">無顯示資料</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -193,7 +211,7 @@
                         <td><button class="btn btn-sm btn-danger" onclick="removeTeacher(${index})">刪</button></td>
                     </tr>`;
             });
-            renderClasses(); // 同步更新班級下拉選單
+            renderClasses(); 
         }
 
         function addTeacher() {
@@ -336,7 +354,7 @@
             .finally(() => showLoading(false));
         }
 
-        // --- D. [新增] 年度編班存檔 ---
+        // --- D. 年度編班存檔 ---
         function archiveClasses() {
             const year = document.getElementById('archiveYear').value;
             if (!year) return alert("請輸入學年度！");
@@ -357,12 +375,54 @@
             .then(data => {
                 if(data.status === 'success') {
                     alert("✅ " + data.message);
+                    // 存檔成功後，自動執行一次查詢
+                    queryArchivedClasses();
                 } else {
                     alert("❌ 失敗：" + data.message);
                 }
             })
             .catch(err => alert("連線錯誤"))
             .finally(() => showLoading(false));
+        }
+
+        // --- E. [新增] 查詢存檔功能 ---
+        function queryArchivedClasses() {
+            const year = document.getElementById('archiveYear').value;
+            if (!year) return alert("請輸入學年度！");
+            
+            showLoading(true);
+            document.getElementById('previewTitle').innerText = `${year}學年度`;
+
+            fetch(`${GOOGLE_SCRIPT_URL}?op=get_archived_classes&year=${year}`)
+                .then(res => res.json())
+                .then(result => {
+                    const tbody = document.getElementById('archiveTableBody');
+                    tbody.innerHTML = '';
+
+                    if (result.status === 'error') {
+                        tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger">❌ ${result.message}</td></tr>`;
+                    } else if (result.status === 'empty' || result.data.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">查無資料</td></tr>`;
+                    } else {
+                        // result.data 是一個二維陣列
+                        result.data.forEach(row => {
+                            tbody.innerHTML += `
+                                <tr>
+                                    <td>${row[0]}</td>
+                                    <td>${row[1]}</td>
+                                    <td>${row[2]}</td>
+                                    <td>${row[3]}</td>
+                                    <td>${row[4]}</td>
+                                    <td>${row[5]}</td>
+                                    <td>${row[6]}</td>
+                                    <td class="fw-bold text-success">${row[7]}</td>
+                                </tr>
+                            `;
+                        });
+                    }
+                })
+                .catch(err => alert("讀取失敗"))
+                .finally(() => showLoading(false));
         }
 
         function showLoading(show) {
