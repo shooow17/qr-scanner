@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>家長接送掃描站 (全能輸入版)</title>
+    <title>家長接送掃描站 (極速快取版)</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
@@ -11,32 +11,37 @@
     <style>
         body { margin: 0; padding: 0; font-family: 'Noto Sans TC', sans-serif; background-color: #f0f2f5; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
         
-        /* [修改] 讓輸入框稍微「存在」一點點，避免瀏覽器忽略 IME 切換，但依然不可見 */
-        #scannerInput { 
-            position: absolute; 
-            top: 0; left: 0; 
-            width: 1px; height: 1px; 
-            opacity: 0.01; 
-            border: none; 
-            padding: 0;
-            overflow: hidden;
-        } 
-
-        .main-container { background-color: white; padding: 50px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; width: 90%; max-width: 600px; border: 2px solid #e0e0e0; cursor: text; }
+        /* 隱藏輸入框，使用 password 防止中文輸入法干擾 */
+        #scannerInput { position: absolute; top: -1000px; opacity: 0; } 
+        
+        .main-container { background-color: white; padding: 50px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; width: 90%; max-width: 600px; border: 2px solid #e0e0e0; cursor: text; position: relative; }
+        
         h1 { color: #2c3e50; font-size: 2.5rem; margin-bottom: 10px; }
-        .sub-title { color: #7f8c8d; font-size: 1.2rem; margin-bottom: 40px; }
-        .status-card { padding: 40px; border-radius: 15px; background: #f8f9fa; border: 3px dashed #bdc3c7; transition: all 0.2s ease; }
+        .sub-title { color: #7f8c8d; font-size: 1.2rem; margin-bottom: 20px; }
+        
+        /* 資料載入狀態條 */
+        .loading-bar { font-size: 0.9rem; color: #e67e22; margin-bottom: 20px; font-weight: bold; background: #fff3cd; padding: 10px; border-radius: 50px; display: inline-block;}
+        .loading-bar.ready { color: #2ecc71; background: #d4edda; }
+
+        .status-card { padding: 40px; border-radius: 15px; background: #f8f9fa; border: 3px dashed #bdc3c7; transition: all 0.1s ease; }
         .status-card.success { background-color: #d4edda; border: 3px solid #28a745; color: #155724; transform: scale(1.02); box-shadow: 0 5px 15px rgba(40, 167, 69, 0.2); }
-        .status-card.processing { background-color: #fff3cd; border: 3px solid #ffc107; color: #856404; }
+        .status-card.error { background-color: #f8d7da; border: 3px solid #dc3545; color: #721c24; }
+        
         .icon { font-size: 6rem; margin-bottom: 20px; display: block; }
         .message { font-size: 1.8rem; font-weight: bold; margin-bottom: 10px; }
-        .student-name { font-size: 2.5rem; font-weight: 900; color: #2c3e50; margin-top: 10px; }
-        .class-badge { background: #333; color: white; padding: 5px 15px; border-radius: 8px; font-size: 1.2rem; margin-top: 10px; display: inline-block;}
-        .focus-hint { margin-top: 30px; font-size: 0.9rem; color: #bdc3c7; }
-        .focus-indicator { display: inline-block; width: 10px; height: 10px; background-color: #e74c3c; border-radius: 50%; margin-right: 5px; }
-        .focused .focus-indicator { background-color: #2ecc71; }
-        .back-btn { margin-top: 40px; display: inline-block; text-decoration: none; color: #95a5a6; border: 1px solid #ddd; padding: 10px 30px; border-radius: 50px; transition: 0.2s; }
+        .student-name { font-size: 3rem; font-weight: 900; color: #2c3e50; margin-top: 10px; }
+        .class-badge { background: #333; color: white; padding: 5px 15px; border-radius: 8px; font-size: 1.5rem; margin-top: 10px; display: inline-block;}
+        
+        .back-btn { margin-top: 40px; display: inline-block; text-decoration: none; color: #95a5a6; border: 1px solid #ddd; padding: 10px 30px; border-radius: 50px; }
         .back-btn:hover { background: #2c3e50; color: white; }
+
+        /* 強制重整按鈕 */
+        .reload-btn {
+            position: absolute; top: 15px; right: 15px;
+            font-size: 1.5rem; cursor: pointer; text-decoration: none;
+            opacity: 0.5;
+        }
+        .reload-btn:hover { opacity: 1; }
     </style>
 </head>
 <body>
@@ -44,8 +49,11 @@
     <input type="password" id="scannerInput" autocomplete="off" />
 
     <div class="main-container" id="mainContainer">
+        <div id="loadingStatus" class="loading-bar">⏳ 正在下載學生名單...</div>
+        <a href="javascript:location.reload()" class="reload-btn" title="重新下載名單">🔄</a>
+
         <h1>家長接送掃描站</h1>
-        <div class="sub-title">請使用掃描槍掃描學生條碼</div>
+        <div class="sub-title">請掃描學生條碼 (極速版)</div>
 
         <div id="statusCard" class="status-card">
             <span class="icon">🔫</span>
@@ -53,14 +61,11 @@
             <div class="student-name" id="studentNameDisplay">請掃描...</div>
         </div>
 
-        <div class="focus-hint" id="focusStatus">
-            <span class="focus-indicator"></span> 系統待命狀態
-        </div>
-
         <a href="dashboard.html" class="back-btn">回主控台</a>
     </div>
 
     <audio id="scanSound" src="https://www.soundjay.com/buttons/beep-01a.mp3"></audio>
+    <audio id="errorSound" src="https://www.soundjay.com/buttons/beep-05.mp3"></audio>
 
     <script>
         const firebaseConfig = {
@@ -73,97 +78,120 @@
             appId: "1:385628927398:web:00239f1b2acebd6e790b67"
         };
         
-        // ★★★ 確認這是您最新的 GAS 網址 ★★★
+        // ★★★ GAS 網址 ★★★
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZHGM5xMgNFn9Df6BXMVfSesT3BIfHN91NdZjLK5TkHdEOai476VNIlJaw61n3Bxg9CA/exec";
 
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
+        // ★★★ 本機資料庫 (這就是飛快的秘密) ★★★
+        let allStudents = [];
+        let isDataReady = false;
         let isLocked = false;
-        const LOCK_DURATION = 3000;
-        const input = document.getElementById('scannerInput');
-        const mainContainer = document.getElementById('mainContainer');
-        const focusStatus = document.getElementById('focusStatus');
+        
+        // --- 1. 網頁載入時，立刻下載名單 ---
+        window.onload = function() {
+            keepFocus();
+            fetchStudentList();
+        };
 
+        function fetchStudentList() {
+            const statusEl = document.getElementById('loadingStatus');
+            // 呼叫 GAS 的 doGet(op=students)
+            fetch(`${GOOGLE_SCRIPT_URL}?op=students`)
+                .then(res => res.json())
+                .then(data => {
+                    allStudents = data; // 把名單存到變數裡
+                    isDataReady = true;
+                    statusEl.textContent = `✅ 名單已載入 (共 ${data.length} 人)`;
+                    statusEl.classList.add('ready');
+                    console.log("學生名單下載完成", data);
+                })
+                .catch(err => {
+                    statusEl.textContent = "❌ 下載失敗，請檢查網路";
+                    console.error(err);
+                });
+        }
+
+        // --- 2. 確保輸入框隨時聚焦 ---
+        const input = document.getElementById('scannerInput');
         function keepFocus() { input.focus(); }
         document.addEventListener('click', keepFocus);
-        input.addEventListener('focus', () => { mainContainer.classList.add('focused'); focusStatus.innerHTML = '<span class="focus-indicator"></span> 系統連線正常，可掃描'; });
-        input.addEventListener('blur', () => { mainContainer.classList.remove('focused'); focusStatus.innerHTML = '<span class="focus-indicator"></span> ⚠️ 請點擊畫面以啟用掃描'; setTimeout(keepFocus, 100); });
-        window.onload = keepFocus;
+        input.addEventListener('blur', () => setTimeout(keepFocus, 100));
 
+        // --- 3. 監聽掃描 ---
         input.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
                 let content = this.value.trim();
                 this.value = ''; 
-
                 if (content.length > 0) {
-                    // ★ 關鍵：在送出前，先修正亂碼
+                    // 先修正中文亂碼，再處理
                     content = fixGarbledInput(content);
                     processScan(content);
                 }
             }
         });
 
-        // ★★★ 核心功能：注音亂碼翻譯機 ★★★
-        // 當輸入法是中文時，"1" 會變成 "ㄅ"，"-" 會變成 "ㄦ"
-        // 我們直接把這些符號對應回數字
+        // --- 4. 核心處理 (本機極速查詢) ---
+        function processScan(rawInput) {
+            if (isLocked) return;
+            if (!isDataReady) {
+                alert("名單正在下載中，請稍候...");
+                return;
+            }
+
+            // 解析 ID (取 - 前面的數字)
+            const searchId = rawInput.split('-')[0].trim();
+            
+            console.log(`查詢 ID: ${searchId}`);
+
+            // ★ 直接在本機陣列裡找 (速度 0.001秒) ★
+            // 注意：GAS 回傳的 id 可能是數字或文字，統一轉 String 比對
+            const student = allStudents.find(s => String(s.id) === searchId);
+
+            if (student) {
+                // A. 找到人：立刻顯示！
+                playSuccessSound();
+                updateUI("success", "✅ 掃描成功", student.name, student.className);
+                
+                // B. 背景作業 (不用等它完成)
+                // 1. 推播給 Firebase 看板
+                pushToFirebaseQueue(student.name, student.className, searchId);
+                // 2. 存回 GAS 日誌
+                logToGAS(student.name, student.className);
+
+                // 鎖定 3 秒避免連刷
+                isLocked = true;
+                setTimeout(() => { resetUI(); isLocked = false; keepFocus(); }, 3000);
+
+            } else {
+                // 找不到人
+                playErrorSound();
+                updateUI("error", "❌ 查無此人", `ID: ${searchId}`, "");
+                isLocked = true;
+                setTimeout(() => { resetUI(); isLocked = false; keepFocus(); }, 1500);
+            }
+        }
+
+        // --- 工具：注音亂碼翻譯機 (解決中文輸入法) ---
         function fixGarbledInput(str) {
             const map = {
                 'ㄅ': '1', 'ㄉ': '2', 'ˇ': '3', 'ˋ': '4', 'ㄓ': '5',
                 'ˊ': '6', '˙': '7', 'ㄚ': '8', 'ㄞ': '9', 'ㄢ': '0',
-                'ㄦ': '-'
+                'ㄦ': '-' 
             };
-            
-            // 逐字檢查並替換
             let fixedStr = '';
             for (let char of str) {
-                if (map[char]) {
-                    fixedStr += map[char];
-                } else {
-                    fixedStr += char;
-                }
-            }
-            
-            // 如果翻譯後的字串長度 > 0，且看起來有變動，console 紀錄一下方便除錯
-            if (fixedStr !== str) {
-                console.log(`[自動修正] 原始輸入: ${str} -> 修正為: ${fixedStr}`);
+                fixedStr += map[char] || char;
             }
             return fixedStr;
         }
 
-        function processScan(content) {
-            if (isLocked) return;
-            isLocked = true;
-            document.getElementById('scanSound').play().catch(e => {});
-            
-            // 這裡顯示的 content 已經是修正過後的 (例如 "1-蔡梵特")
-            updateUI("processing", "資料查詢中...", content);
-            sendToSheetAndFirebase(content);
-        }
-
-        function sendToSheetAndFirebase(content) {
-            fetch(GOOGLE_SCRIPT_URL, {
-                method: "POST",
-                body: JSON.stringify({ type: 'scan', content: content }),
-                headers: { "Content-Type": "text/plain" }
-            })
-            .then(res => res.json())
-            .then(data => {
-                if(data.status === 'success') {
-                    pushToFirebase(data.name, data.className);
-                    updateUI("success", "✅ 掃描成功", data.name, data.className);
-                } else {
-                    updateUI("processing", "⚠️ 查詢失敗", data.message);
-                }
-            })
-            .catch(err => { console.error(err); updateUI("processing", "⚠️ 連線錯誤", "請檢查網路"); })
-            .finally(() => { setTimeout(() => { resetUI(); isLocked = false; keepFocus(); }, LOCK_DURATION); });
-        }
-
-        function pushToFirebase(name, className) {
+        // --- 背景作業 ---
+        function pushToFirebaseQueue(name, className, id) {
             const targetPath = className && className !== "(未分班)" ? `queues/${className}` : `queues/unknown`;
             db.ref(targetPath).push().set({
-                id: Date.now().toString(),
+                id: id,
                 name: name,
                 studentName: name,
                 className: className,
@@ -172,24 +200,49 @@
             });
         }
 
+        function logToGAS(name, className) {
+            // 用 fetch 發送但不等待回應 (fire and forget)
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: "POST",
+                body: JSON.stringify({
+                    type: 'scan',
+                    content: `${name} (${className})`
+                }),
+                headers: { "Content-Type": "text/plain" }
+            }).catch(e => console.error("日誌背景存檔失敗", e));
+        }
+
+        // --- UI 更新 ---
         function updateUI(state, msg, detail, className) {
             const card = document.getElementById('statusCard');
             const iconEl = card.querySelector('.icon');
             const msgEl = card.querySelector('.message');
             const nameEl = document.getElementById('studentNameDisplay');
-            card.classList.remove('success', 'processing');
-            if (state === "processing") { card.classList.add('processing'); iconEl.textContent = "⏳"; msgEl.textContent = msg; nameEl.innerHTML = detail; } 
-            else if (state === "success") { card.classList.add('success'); iconEl.textContent = "✅"; msgEl.textContent = msg; nameEl.innerHTML = `${detail}<br><span class="class-badge">${className || '未分班'}</span>`; }
+
+            card.className = "status-card " + state;
+            
+            if (state === 'success') {
+                iconEl.textContent = "✅";
+                msgEl.textContent = msg;
+                nameEl.innerHTML = `${detail}<br><span class="class-badge">${className}</span>`;
+            } else {
+                iconEl.textContent = "⚠️";
+                msgEl.textContent = msg;
+                nameEl.innerHTML = detail;
+            }
         }
 
         function resetUI() {
             const card = document.getElementById('statusCard');
-            const iconEl = card.querySelector('.icon');
-            const msgEl = card.querySelector('.message');
-            const nameEl = document.getElementById('studentNameDisplay');
-            card.classList.remove('success', 'processing');
-            iconEl.textContent = "🔫"; msgEl.textContent = "準備就緒"; nameEl.textContent = "請掃描...";
+            card.className = "status-card";
+            card.querySelector('.icon').textContent = "🔫";
+            card.querySelector('.message').textContent = "準備就緒";
+            document.getElementById('studentNameDisplay').textContent = "請掃描...";
         }
+
+        function playSuccessSound() { document.getElementById('scanSound').play().catch(e=>{}); }
+        function playErrorSound() { document.getElementById('errorSound').play().catch(e=>{}); }
+
     </script>
 </body>
 </html>
