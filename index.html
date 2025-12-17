@@ -3,329 +3,179 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>警衛室-家長掃描介面</title>
-    <script src="https://unpkg.com/html5-qrcode"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <title>家長接送掃描站 - 永順國小</title>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     
     <style>
-        body { 
-            font-family: "Microsoft JhengHei", Arial, sans-serif; 
-            background-color: #E8F5E9; 
-            margin: 0; 
-            height: 100vh; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            overflow: hidden; /* 防止捲軸出現 */
-        }
-
-        /* 主容器：改為左右橫向排列 */
-        .main-container {
-            display: flex;
-            flex-direction: row;
-            width: 95%;
-            height: 90vh;
-            background-color: #ffffff;
-            border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-        }
-
-        /* 左邊：訊息顯示區 */
-        .info-panel {
-            flex: 1.5; /* 佔較大比例 */
-            padding: 40px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            border-right: 2px solid #f0f0f0;
-            transition: background-color 0.3s;
-        }
-        
-        /* 狀態：等待中 */
-        .info-panel.waiting {
-            background-color: #fff;
-        }
-        /* 狀態：成功 */
-        .info-panel.success {
-            background-color: #e8f5e9; /* 淺綠底 */
-        }
-        /* 狀態：錯誤 */
-        .info-panel.error {
-            background-color: #ffebee; /* 淺紅底 */
-        }
-
-        #status-icon {
-            font-size: 80px;
-            margin-bottom: 20px;
-        }
-        #main-text {
-            font-size: 3em;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 20px;
-            line-height: 1.2;
-        }
-        #sub-text {
-            font-size: 1.8em;
-            color: #666;
-        }
-        .highlight {
-            color: #2e7d32; /* 綠色強調 */
-            font-weight: 900;
-        }
-
-        /* 右邊：掃描區 */
-        .scanner-panel {
-            flex: 1;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background-color: #f9f9f9;
-        }
-
-        h2 { color: #1B5E20; margin-bottom: 20px; }
-
-        #qr-reader { 
-            width: 100%; 
-            max-width: 500px;
-            border: 4px solid #4CAF50; 
-            border-radius: 15px; 
-            overflow: hidden; 
-        }
-
-        #camera-controls { 
-            margin-top: 20px; 
-            width: 100%;
-            max-width: 400px;
-            display: flex;
-            gap: 10px;
-        }
-        
-        select {
-            flex: 2;
-            padding: 12px;
-            border-radius: 8px;
-            border: 1px solid #ccc;
-            font-size: 1em;
-        }
-        
-        button {
-            flex: 1;
-            padding: 12px;
-            background-color: #4CAF50;
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #2c3e50;
             color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 1em;
-            cursor: pointer;
-            font-weight: bold;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            min-height: 100vh; margin: 0; padding: 20px;
         }
-        button:hover { background-color: #388E3C; }
 
-        /* 載入遮罩 */
-        #loading-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255,255,255,0.9); z-index: 999;
-            display: flex; justify-content: center; align-items: center;
-            font-size: 2em; color: #555; flex-direction: column;
+        h1 { margin-bottom: 20px; text-align: center; color: #f1c40f; }
+
+        .scanner-container {
+            width: 100%; max-width: 500px;
+            background: #fff; padding: 10px; border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
+
+        #reader { width: 100%; }
+
+        /* 結果顯示區 */
+        .result-box {
+            margin-top: 20px; padding: 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px; text-align: center;
+            width: 100%; max-width: 500px;
+            min-height: 100px;
+            border: 2px dashed #7f8c8d;
+        }
+
+        .success-msg {
+            color: #2ecc71; font-size: 1.5em; font-weight: bold;
+            animation: popIn 0.5s ease;
+        }
+
+        .error-msg { color: #e74c3c; font-weight: bold; }
+
+        .loading { color: #f39c12; font-weight: bold; }
+
+        .history-list {
+            margin-top: 20px; width: 100%; max-width: 500px;
+            text-align: left; font-size: 0.9em; color: #bdc3c7;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .back-link {
+            margin-top: 30px; color: #95a5a6; text-decoration: none;
+            border: 1px solid #95a5a6; padding: 8px 20px; border-radius: 50px;
+        }
+        .back-link:hover { background: #fff; color: #2c3e50; }
+
     </style>
 </head>
 <body>
 
-    <div id="loading-overlay">
-        <div>正在讀取學生資料庫...</div>
-        <div style="font-size: 0.5em; margin-top: 10px; color:#999;">請稍候</div>
+    <h1>📱 家長接送掃描站</h1>
+    
+    <div class="scanner-container">
+        <div id="reader"></div>
     </div>
 
-    <div class="main-container">
-        <div class="info-panel waiting" id="info-panel">
-            <div id="status-icon">📱</div>
-            <div id="main-text">請將 QR Code<br>對準右側鏡頭</div>
-            <div id="sub-text">保持距離約 15-30 公分</div>
-        </div>
-
-        <div class="scanner-panel">
-            <h2>📱 掃描鏡頭 ➠ </h2>
-            <div id="qr-reader"></div>
-            <div id="camera-controls">
-                <select id="camera-select"></select>
-                <button id="start-scan-btn">啟動鏡頭</button>
-            </div>
-        </div>
+    <div class="result-box" id="resultBox">
+        請將 QR Code 對準鏡頭...
     </div>
+
+    <div class="history-list">
+        <div>最近掃描紀錄：</div>
+        <ul id="scanHistory" style="padding-left: 20px;"></ul>
+    </div>
+
+    <a href="dashboard.html" class="back-link">回主控台</a>
+
+    <audio id="scanSound" src="https://www.soundjay.com/buttons/beep-01a.mp3"></audio>
 
     <script>
-        // --- 1. 你的 Google Apps Script (GAS) 網址 ---
+        // ★★★ 請替換您的 GAS 網址 (與 student_admin.html 同一個) ★★★
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZHGM5xMgNFn9Df6BXMVfSesT3BIfHN91NdZjLK5TkHdEOai476VNIlJaw61n3Bxg9CA/exec";
-        // ------------------------------------
-
-        // --- 2. 你的 Firebase 設定 (保持不變) ---
-        const firebaseConfig = {
-          apiKey: "AIzaSyB_-fHCMhi-URwyBqzAIipmffWwvNgzJJc",
-          authDomain: "qr-scanner-app-2c73d.firebaseapp.com",
-          databaseURL: "https://qr-scanner-app-2c73d-default-rtdb.asia-southeast1.firebasedatabase.app",
-          projectId: "qr-scanner-app-2c73d",
-          storageBucket: "qr-scanner-app-2c73d.firebasestorage.app",
-          messagingSenderId: "385628927398",
-          appId: "1:385628927398:web:00239f1b2acebd6e790b67"
-        };
-        // ------------------------------------
-
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-        let studentDatabase = new Map();
-        let html5Qrcode;
         
-        // [關鍵] 防止重複掃描的旗標
-        let isProcessing = false;
-        let resetTimer = null;
+        let isScanning = true;
+        let lastScanTime = 0;
+        const scanCooldown = 3000; // 防止重複掃描冷卻時間 (毫秒)
 
-        // UI 更新函式
-        function updateUI(state, mainMsg, subMsg) {
-            const panel = document.getElementById('info-panel');
-            const icon = document.getElementById('status-icon');
-            const main = document.getElementById('main-text');
-            const sub = document.getElementById('sub-text');
+        function onScanSuccess(decodedText, decodedResult) {
+            // 防止短時間內重複掃描
+            const now = Date.now();
+            if (now - lastScanTime < scanCooldown) return;
+            lastScanTime = now;
 
-            panel.className = 'info-panel ' + state; // waiting, success, error
+            // 播放音效
+            document.getElementById('scanSound').play().catch(e => {});
 
-            if (state === 'waiting') {
-                icon.textContent = '📱';
-                main.innerHTML = '請將 QR Code<br>對準右側鏡頭';
-                sub.textContent = '保持距離約 15-30 公分';
-            } else if (state === 'success') {
-                icon.textContent = '✅';
-                main.innerHTML = mainMsg; // 這裡可以放 HTML (例如大字名字)
-                sub.textContent = subMsg;
-            } else if (state === 'error') {
-                icon.textContent = '❌';
-                main.innerHTML = mainMsg;
-                sub.textContent = subMsg;
-            }
+            // 顯示處理中
+            const resultBox = document.getElementById('resultBox');
+            resultBox.innerHTML = `<div class="loading">🔄 資料傳送中...<br>${decodedText}</div>`;
+
+            // 傳送給 GAS
+            sendToSheet(decodedText);
         }
 
-        // 掃描成功處理
-        async function onScanSuccess(decodedText) {
-            // 如果正在處理上一位 (3秒冷卻中)，直接忽略這次掃描
-            if (isProcessing) return;
+        function onScanFailure(error) {
+            // 掃描失敗通常不用處理，避免一直報錯
+        }
 
-            console.log(`掃描到: ${decodedText}`);
-            
-            // 鎖定，防止連續觸發
-            isProcessing = true;
-
-            // 解析 "ID-姓名" (取 - 前面的 ID)
-            const studentID = decodedText.split('-')[0].trim();
-
-            if (studentDatabase.has(studentID)) {
-                const info = studentDatabase.get(studentID);
-                
-                // 顯示成功畫面 (左側)
-                updateUI('success', 
-                    `已收到<br><span class="highlight">${info.class} ${info.name}</span>`, 
-                    '訊息已送出給老師，請於另一台螢幕等候回應'
-                );
-
-                // 準備資料
-                const studentData = {
-                    id: studentID,
-                    name: info.name,
-                    class: info.class,
-                    timestamp: new Date().toISOString()
-                };
-
-                // 傳送到 Firebase
-                try {
-                    await database.ref(`queues/${info.class}`).push(studentData);
-                    console.log("Firebase 上傳成功");
-                    // 不需要在這裡 alert，因為左側已經顯示大字了
-                } catch (err) {
-                    console.error("上傳失敗:", err);
-                    updateUI('error', '連線錯誤', '無法通知老師，請重試');
+        function sendToSheet(content) {
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: "POST",
+                body: JSON.stringify({
+                    type: 'scan',
+                    content: content
+                }),
+                headers: { "Content-Type": "text/plain" }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === 'success') {
+                    showSuccess(data.name, data.time);
+                    addToHistory(data.name, data.time);
+                } else {
+                    showError("傳送失敗：" + data.message);
                 }
+            })
+            .catch(err => {
+                showError("連線錯誤，請檢查網路");
+                console.error(err);
+            });
+        }
 
-            } else {
-                // 找不到學生
-                updateUI('error', '找不到學生資料', `ID: ${studentID} 不在名單中`);
-                // 播放錯誤音效 (可選)
-            }
-
-            // 設定 3 秒後重置畫面 (解鎖)
-            if (resetTimer) clearTimeout(resetTimer);
-            resetTimer = setTimeout(() => {
-                updateUI('waiting');
-                isProcessing = false; // 解鎖，允許下一位掃描
+        function showSuccess(name, time) {
+            const resultBox = document.getElementById('resultBox');
+            resultBox.innerHTML = `
+                <div class="success-msg">✅ 掃描成功！</div>
+                <div style="margin-top:10px; font-size:1.2em; color: white;">${name}</div>
+                <div style="font-size:0.8em; color:#bdc3c7;">${time}</div>
+            `;
+            
+            // 3秒後恢復待機文字
+            setTimeout(() => {
+                resultBox.innerHTML = "請將 QR Code 對準鏡頭...";
             }, 3000);
         }
 
-        // 載入與初始化
-        document.addEventListener("DOMContentLoaded", () => {
-            // 檢查設定
-            if (GOOGLE_SCRIPT_URL.includes("在這裡") || firebaseConfig.apiKey.includes("YOUR")) {
-                document.getElementById('loading-overlay').innerHTML = "<h2>設定錯誤</h2><p>請檢查程式碼中的網址與金鑰</p>";
-                return;
+        function showError(msg) {
+            document.getElementById('resultBox').innerHTML = `<div class="error-msg">❌ ${msg}</div>`;
+        }
+
+        function addToHistory(name, time) {
+            const list = document.getElementById('scanHistory');
+            const li = document.createElement('li');
+            li.textContent = `[${time}] ${name}`;
+            // 插入到最上方
+            list.insertBefore(li, list.firstChild);
+            
+            // 只保留最近 5 筆
+            if (list.children.length > 5) {
+                list.removeChild(list.lastChild);
             }
+        }
 
-            html5Qrcode = new Html5Qrcode("qr-reader");
+        // 初始化掃描器
+        const html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader", 
+            { fps: 10, qrbox: {width: 250, height: 250} },
+            /* verbose= */ false
+        );
+        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
 
-            // 1. 讀取 Google 試算表
-            fetch(GOOGLE_SCRIPT_URL)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error) throw new Error(data.error);
-                    
-                    studentDatabase = new Map(Object.entries(data));
-                    console.log(`載入 ${studentDatabase.size} 筆學生資料`);
-
-                    // 隱藏遮罩，顯示主畫面
-                    document.getElementById('loading-overlay').style.display = 'none';
-                    
-                    // 取得鏡頭列表
-                    Html5Qrcode.getCameras().then(cameras => {
-                        const select = document.getElementById('camera-select');
-                        if (cameras && cameras.length) {
-                            cameras.forEach(camera => {
-                                const option = document.createElement('option');
-                                option.value = camera.id;
-                                option.text = camera.label;
-                                select.appendChild(option);
-                            });
-                            // 預設選最後一個 (通常是後鏡頭)
-                            select.selectedIndex = cameras.length - 1;
-                        } else {
-                            alert("找不到攝影機");
-                        }
-                    });
-                })
-                .catch(err => {
-                    document.getElementById('loading-overlay').innerHTML = `<h2>載入失敗</h2><p>${err.message}</p><p>請檢查網路或 Google Script 網址</p>`;
-                });
-
-            // 2. 綁定按鈕
-            document.getElementById('start-scan-btn').addEventListener('click', () => {
-                const cameraId = document.getElementById('camera-select').value;
-                if (cameraId) {
-                    document.getElementById('qr-reader').style.display = 'block';
-                    html5Qrcode.start(
-                        cameraId, 
-                        { fps: 10, qrbox: { width: 250, height: 250 } }, 
-                        onScanSuccess, 
-                        (errorMessage) => { /* 忽略掃描過程中的錯誤 */ }
-                    ).catch(err => {
-                        alert(`啟動失敗: ${err}`);
-                    });
-                } else {
-                    alert("請先選擇鏡頭");
-                }
-            });
-        });
     </script>
 </body>
 </html>
