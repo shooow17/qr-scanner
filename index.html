@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>家長接送掃描系統</title>
+    <title>家長接送掃描站</title>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     
@@ -19,11 +19,11 @@
 
         body {
             font-family: 'Noto Sans TC', sans-serif;
-            margin: 0; padding: 20px;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            margin: 0; padding: 0;
             min-height: 100vh;
+            display: flex; justify-content: center; align-items: center;
             
-            /* 背景風格 */
+            /* 沙灘背景 */
             background-color: var(--mc-bg);
             background-image: 
                 radial-gradient(#C6B68D 15%, transparent 16%),
@@ -32,115 +32,153 @@
             background-position: 0 0, 8px 8px;
         }
 
+        /* 主容器：左右分割 */
+        .main-container {
+            display: flex;
+            flex-direction: row; /* 預設左右排列 */
+            width: 95%;
+            max-width: 1200px;
+            height: 90vh;
+            gap: 30px;
+            align-items: center;
+        }
+
+        /* --- 左側面板 (資訊區) --- */
+        .info-panel {
+            flex: 1; /* 佔比 1 */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
+            padding: 10px;
+        }
+
         h1 {
             font-family: 'Press Start 2P', 'Noto Sans TC', sans-serif;
             color: #333;
             text-shadow: 2px 2px 0 #fff;
-            text-align: center;
             line-height: 1.5;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
+            font-size: 1.8em;
         }
 
-        /* 掃描器外框 (模擬螢幕) */
+        /* 狀態結果框 (告示牌風格) */
+        .result-box {
+            background-color: var(--mc-brown);
+            border: 4px solid var(--mc-border);
+            padding: 25px;
+            text-align: center;
+            color: #fff;
+            box-shadow: var(--inset-light), var(--inset-dark);
+            border-radius: 4px;
+            margin-bottom: 20px;
+            min-height: 150px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+
+        .status-text { font-size: 1.2em; margin-bottom: 15px; opacity: 0.9; }
+        .student-name { font-size: 2em; font-weight: bold; color: #FFD700; text-shadow: 3px 3px 0 #000; }
+
+        /* 歷史紀錄 */
+        .history-container {
+            background: rgba(255,255,255,0.6);
+            border: 4px solid var(--mc-border);
+            padding: 15px;
+            flex-grow: 1; /* 填滿剩餘空間 */
+            overflow-y: auto; /* 內容多時可捲動 */
+            max-height: 300px;
+        }
+        .history-title { font-weight: bold; border-bottom: 2px dashed #555; padding-bottom: 8px; margin-bottom: 8px; }
+        .history-list { list-style: none; padding: 0; margin: 0; font-size: 0.9em; }
+        .history-list li { padding: 8px 0; border-bottom: 1px dotted #888; display: flex; justify-content: space-between; }
+
+        .back-btn {
+            margin-top: 20px;
+            text-align: center;
+            text-decoration: none;
+            background-color: var(--mc-green);
+            color: white;
+            padding: 15px;
+            border: 4px solid var(--mc-border);
+            font-family: 'Press Start 2P', sans-serif;
+            font-size: 0.9em;
+            box-shadow: 6px 6px 0 rgba(0,0,0,0.3);
+            display: block;
+        }
+        .back-btn:active { transform: translate(4px, 4px); box-shadow: none; }
+
+
+        /* --- 右側面板 (鏡頭區) --- */
+        .camera-panel {
+            flex: 1.2; /* 佔比 1.2 (稍微大一點) */
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
         .scanner-frame {
-            width: 100%; max-width: 500px;
+            width: 100%;
             background: #000;
             padding: 15px;
-            border: 6px solid var(--mc-border);
-            border-radius: 4px;
-            box-shadow: 8px 8px 0 rgba(0,0,0,0.3);
+            border: 8px solid var(--mc-border);
+            border-radius: 8px;
+            box-shadow: 12px 12px 0 rgba(0,0,0,0.3);
         }
 
         #reader { 
             width: 100%; 
             background: #000;
             border: 2px solid #555;
+            min-height: 300px; /* 避免還沒載入時高度塌陷 */
         }
 
-        /* 結果顯示區 (告示牌風格) */
-        .result-box {
-            margin-top: 30px;
-            width: 100%; max-width: 500px;
-            background-color: var(--mc-brown);
-            border: 4px solid var(--mc-border);
-            padding: 20px;
-            text-align: center;
-            color: #fff;
-            box-shadow: var(--inset-light), var(--inset-dark);
-            min-height: 120px;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-        }
-
-        .status-text {
-            font-size: 1.1em; margin-bottom: 10px;
-        }
-
-        .student-name {
-            font-size: 1.8em; font-weight: bold; color: #FFD700;
-            text-shadow: 2px 2px 0 #000;
-        }
-
-        /* 歷史紀錄區 */
-        .history-container {
-            margin-top: 20px;
-            width: 100%; max-width: 500px;
-            background: rgba(255,255,255,0.5);
-            border: 4px solid var(--mc-border);
-            padding: 15px;
-        }
-        
-        .history-title {
-            font-weight: bold; margin-bottom: 10px; border-bottom: 2px dashed #666; padding-bottom: 5px;
-        }
-
-        .history-list {
-            list-style: none; padding: 0; margin: 0; font-size: 0.9em;
-        }
-        .history-list li {
-            padding: 5px 0; border-bottom: 1px dotted #999;
-        }
-
-        /* 按鈕風格 */
-        .back-btn {
-            margin-top: 40px;
-            display: inline-block;
-            text-decoration: none;
-            background-color: var(--mc-green);
-            color: white;
-            padding: 15px 30px;
-            border: 4px solid var(--mc-border);
-            font-family: 'Press Start 2P', sans-serif;
-            font-size: 0.9em;
-            box-shadow: 6px 6px 0 rgba(0,0,0,0.3);
-            transition: transform 0.1s;
-        }
-        .back-btn:active { transform: translate(4px, 4px); box-shadow: 2px 2px 0 rgba(0,0,0,0.3); }
-
-        /* 隱藏 html5-qrcode 預設的一些醜醜的按鈕或文字 */
+        /* 隱藏套件內建的醜醜文字 */
         #reader__dashboard_section_csr span { display: none; }
+
+        /* --- RWD 手機版調整 --- */
+        @media (max-width: 900px) {
+            .main-container {
+                flex-direction: column-reverse; /* 手機上：鏡頭在上，資訊在下 */
+                height: auto;
+                padding-bottom: 40px;
+            }
+            .info-panel { width: 100%; padding: 0; }
+            .camera-panel { width: 100%; }
+            .result-box { min-height: 100px; }
+        }
+
     </style>
 </head>
 <body>
 
-    <h1>📱 家長接送<br>掃描站</h1>
-    
-    <div class="scanner-frame">
-        <div id="reader"></div>
-    </div>
+    <div class="main-container">
+        
+        <div class="info-panel">
+            <h1>📱 家長接送<br>掃描站</h1>
+            
+            <div class="result-box" id="resultBox">
+                <div class="status-text">請查看右側鏡頭</div>
+                <div class="student-name">等待掃描...</div>
+            </div>
 
-    <div class="result-box" id="resultBox">
-        <div class="status-text">請將 QR Code 對準鏡頭</div>
-        <div class="student-name">等待掃描...</div>
-    </div>
+            <div class="history-container">
+                <div class="history-title">🕒 最近 5 筆紀錄</div>
+                <ul id="scanHistory" class="history-list">
+                    <li style="color:#666; justify-content:center;">尚無紀錄</li>
+                </ul>
+            </div>
 
-    <div class="history-container">
-        <div class="history-title">🕒 最近掃描紀錄</div>
-        <ul id="scanHistory" class="history-list">
-            <li style="color:#666;">尚無紀錄</li>
-        </ul>
-    </div>
+            <a href="dashboard.html" class="back-btn">⬅ 回主控台</a>
+        </div>
 
-    <a href="dashboard.html" class="back-btn">⬅ 回主控台</a>
+        <div class="camera-panel">
+            <div class="scanner-frame">
+                <div id="reader"></div>
+            </div>
+        </div>
+
+    </div>
 
     <audio id="scanSound" src="https://www.soundjay.com/buttons/beep-01a.mp3"></audio>
 
@@ -211,7 +249,7 @@
             if (status === "success") {
                 setTimeout(() => {
                     resultBox.innerHTML = `
-                        <div class="status-text">請將 QR Code 對準鏡頭</div>
+                        <div class="status-text">請查看右側鏡頭</div>
                         <div class="student-name">等待掃描...</div>
                     `;
                 }, 3000);
@@ -226,7 +264,7 @@
             }
 
             const li = document.createElement('li');
-            li.innerHTML = `<strong>${time}</strong> - ${name}`;
+            li.innerHTML = `<span>${name}</span> <span style="color:#666">${time}</span>`;
             li.style.animation = "flash 1s"; // 簡單的閃爍效果
             
             list.insertBefore(li, list.firstChild);
@@ -244,6 +282,16 @@
             /* verbose= */ false
         );
         html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+
+        // 簡單的閃爍動畫
+        const style = document.createElement('style');
+        style.innerHTML = `
+            @keyframes flash {
+                0% { background-color: rgba(255, 215, 0, 0.5); }
+                100% { background-color: transparent; }
+            }
+        `;
+        document.head.appendChild(style);
 
     </script>
 </body>
