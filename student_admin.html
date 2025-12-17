@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>課後照顧班 - 行政管理系統</title>
+    <title>課後照顧班 -學生管理系統</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { background-color: #f8f9fa; font-family: "Noto Sans TC", sans-serif; }
@@ -26,7 +26,7 @@
     <div id="loading" class="loading-mask">資料讀取中...</div>
 
     <div class="container py-4">
-        <h2 class="mb-4 text-center" style="color:#d81b60;">🎓 課後照顧班行政管理</h2>
+        <h2 class="mb-4 text-center" style="color:#d81b60;">🎓 課後照顧班學生管理系統</h2>
 
         <ul class="nav nav-tabs mb-3" id="myTab" role="tablist">
             <li class="nav-item" role="presentation">
@@ -34,6 +34,9 @@
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings-pane" type="button">2. 班級與老師設定</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="archive-tab" data-bs-toggle="tab" data-bs-target="#archive-pane" type="button">3. 年度編班存檔</button>
             </li>
         </ul>
 
@@ -56,8 +59,7 @@
                                     <th style="min-width: 150px;">編入班級 (最後一步)</th>
                                 </tr>
                             </thead>
-                            <tbody id="studentTableBody">
-                                </tbody>
+                            <tbody id="studentTableBody"></tbody>
                         </table>
                     </div>
                 </div>
@@ -106,6 +108,32 @@
                 </div>
             </div>
 
+            <div class="tab-pane fade" id="archive-pane">
+                <div class="card p-5 text-center">
+                    <h4 class="mb-4" style="color:#d81b60;">📁 年度編班名單寫入與存檔</h4>
+                    <p class="text-muted mb-4">
+                        此操作將讀取目前的「報名資料」與您設定的「編班結果」，<br>
+                        並在雲端試算表自動建立一個新的分頁（例如：114學年度_編班名單）。
+                    </p>
+                    
+                    <div class="row justify-content-center">
+                        <div class="col-md-6 col-lg-4">
+                            <div class="input-group mb-3 shadow-sm">
+                                <span class="input-group-text bg-white">學年度</span>
+                                <input type="number" id="archiveYear" class="form-control" value="114" placeholder="例如: 114">
+                                <button class="btn btn-success" onclick="archiveClasses()">🚀 執行寫入</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-warning mt-3 d-inline-block text-start" role="alert" style="max-width: 600px;">
+                        <strong>⚠️ 注意事項：</strong><br>
+                        1. 請確認所有學生的班級都已分配完成。<br>
+                        2. 如果該學年度的分頁已經存在，<strong style="color:red">舊的內容將會被覆蓋</strong>，請謹慎操作。
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -116,11 +144,10 @@
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZHGM5xMgNFn9Df6BXMVfSesT3BIfHN91NdZjLK5TkHdEOai476VNIlJaw61n3Bxg9CA/exec";
         
         // 本地暫存資料
-        let teachers = []; // [name, phone, cert]
-        let classes = [];  // [className, assignedTeacher]
+        let teachers = []; 
+        let classes = [];  
         let students = []; 
 
-        // 初始化
         window.onload = function() {
             fetchData();
         };
@@ -129,7 +156,7 @@
         async function fetchData() {
             showLoading(true);
             try {
-                // 1. 讀取設定 (老師、班級)
+                // 1. 讀取設定
                 const resSettings = await fetch(`${GOOGLE_SCRIPT_URL}?op=get_settings`);
                 const dataSettings = await resSettings.json();
                 teachers = dataSettings.teachers || [];
@@ -141,7 +168,7 @@
 
                 renderAll();
             } catch (e) {
-                alert("讀取失敗：" + e.message);
+                alert("讀取失敗，請確認 GAS 部署是否更新：" + e.message);
             } finally {
                 showLoading(false);
             }
@@ -153,7 +180,7 @@
             renderStudents();
         }
 
-        // --- A. 老師管理邏輯 ---
+        // --- A. 老師管理 ---
         function renderTeachers() {
             const tbody = document.getElementById('teacherTableBody');
             tbody.innerHTML = '';
@@ -166,8 +193,7 @@
                         <td><button class="btn btn-sm btn-danger" onclick="removeTeacher(${index})">刪</button></td>
                     </tr>`;
             });
-            // 同步更新班級表格中的下拉選單
-            renderClasses();
+            renderClasses(); // 同步更新班級下拉選單
         }
 
         function addTeacher() {
@@ -187,23 +213,18 @@
             renderTeachers();
         }
 
-        // --- B. 班級管理邏輯 ---
+        // --- B. 班級管理 ---
         function renderClasses() {
             const tbody = document.getElementById('classTableBody');
             tbody.innerHTML = '';
             
-            // 產生老師下拉選單的 HTML 選項
             let teacherOptions = '<option value="">(未指定)</option>';
             teachers.forEach(t => {
                 teacherOptions += `<option value="${t[0]}">${t[0]}</option>`;
             });
 
             classes.forEach((c, index) => {
-                // c[0] 是班級名, c[1] 是已選老師
-                // 在這裡生成下拉選單，並將已選的老師設為 selected
                 const currentTeacher = c[1] || "";
-                
-                // 動態產生選單 HTML，加入 selected 判斷
                 const selectHTML = `
                     <select class="form-select form-select-sm" onchange="updateClassTeacher(${index}, this.value)">
                         ${teacherOptions.replace(`value="${currentTeacher}"`, `value="${currentTeacher}" selected`)}
@@ -222,7 +243,7 @@
         function addClass() {
             const n = document.getElementById('cName').value.trim();
             if (!n) return alert("請輸入班級名稱");
-            classes.push([n, ""]); // 新增班級，預設無老師
+            classes.push([n, ""]); 
             document.getElementById('cName').value = '';
             renderClasses();
         }
@@ -234,15 +255,13 @@
 
         function updateClassTeacher(index, teacherName) {
             classes[index][1] = teacherName;
-            // 注意：這裡只更新本地變數，使用者需按「儲存」才會寫入
         }
 
-        // --- C. 學生編班邏輯 ---
+        // --- C. 學生編班 ---
         function renderStudents() {
             const tbody = document.getElementById('studentTableBody');
             tbody.innerHTML = '';
 
-            // 產生班級選單選項
             let classOptions = '<option value="">(尚未分班)</option>';
             classes.forEach(c => {
                 classOptions += `<option value="${c[0]}">${c[0]}</option>`;
@@ -254,7 +273,6 @@
             }
 
             students.forEach((s) => {
-                // 產生下拉選單，並鎖定目前選擇
                 const currentClass = s.assignedClass || "";
                 const selectHTML = `
                     <select class="form-select" onchange="updateStudentClass(${s.rowIndex}, this.value)">
@@ -273,7 +291,6 @@
             });
         }
 
-        // 更新單一學生的班級 (即時儲存)
         function updateStudentClass(rowIndex, className) {
             showLoading(true);
             const payload = {
@@ -295,7 +312,6 @@
             .finally(() => showLoading(false));
         }
 
-        // --- D. 儲存設定 (批次) ---
         function saveSettings(target) {
             showLoading(true);
             let payload = {
@@ -317,6 +333,35 @@
                 alert('✅ 設定已儲存！');
             })
             .catch(err => alert('儲存失敗'))
+            .finally(() => showLoading(false));
+        }
+
+        // --- D. [新增] 年度編班存檔 ---
+        function archiveClasses() {
+            const year = document.getElementById('archiveYear').value;
+            if (!year) return alert("請輸入學年度！");
+            
+            if (!confirm(`確定要將目前的編班資料寫入至「${year}學年度_編班名單」嗎？\n(若分頁已存在將會被覆蓋)`)) return;
+
+            showLoading(true);
+            
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: "POST",
+                body: JSON.stringify({
+                    type: 'archive_year_classes',
+                    year: year
+                }),
+                headers: { "Content-Type": "text/plain" }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === 'success') {
+                    alert("✅ " + data.message);
+                } else {
+                    alert("❌ 失敗：" + data.message);
+                }
+            })
+            .catch(err => alert("連線錯誤"))
             .finally(() => showLoading(false));
         }
 
