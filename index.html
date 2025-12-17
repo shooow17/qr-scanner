@@ -3,14 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>家長接送掃描站 (外接掃描器版)</title>
+    <title>家長接送掃描站 (全能輸入版)</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     
     <style>
         body { margin: 0; padding: 0; font-family: 'Noto Sans TC', sans-serif; background-color: #f0f2f5; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        #scannerInput { position: absolute; opacity: 0; top: -1000px; } /* 隱藏輸入框 */
+        
+        /* [修改] 讓輸入框稍微「存在」一點點，避免瀏覽器忽略 IME 切換，但依然不可見 */
+        #scannerInput { 
+            position: absolute; 
+            top: 0; left: 0; 
+            width: 1px; height: 1px; 
+            opacity: 0.01; 
+            border: none; 
+            padding: 0;
+            overflow: hidden;
+        } 
+
         .main-container { background-color: white; padding: 50px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; width: 90%; max-width: 600px; border: 2px solid #e0e0e0; cursor: text; }
         h1 { color: #2c3e50; font-size: 2.5rem; margin-bottom: 10px; }
         .sub-title { color: #7f8c8d; font-size: 1.2rem; margin-bottom: 40px; }
@@ -62,7 +73,7 @@
             appId: "1:385628927398:web:00239f1b2acebd6e790b67"
         };
         
-        // ★★★ 請確認這是您最新部署的 GAS 網址 ★★★
+        // ★★★ 確認這是您最新的 GAS 網址 ★★★
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZHGM5xMgNFn9Df6BXMVfSesT3BIfHN91NdZjLK5TkHdEOai476VNIlJaw61n3Bxg9CA/exec";
 
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
@@ -82,16 +93,50 @@
 
         input.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
-                const content = this.value.trim();
+                let content = this.value.trim();
                 this.value = ''; 
-                if (content.length > 0) processScan(content);
+
+                if (content.length > 0) {
+                    // ★ 關鍵：在送出前，先修正亂碼
+                    content = fixGarbledInput(content);
+                    processScan(content);
+                }
             }
         });
+
+        // ★★★ 核心功能：注音亂碼翻譯機 ★★★
+        // 當輸入法是中文時，"1" 會變成 "ㄅ"，"-" 會變成 "ㄦ"
+        // 我們直接把這些符號對應回數字
+        function fixGarbledInput(str) {
+            const map = {
+                'ㄅ': '1', 'ㄉ': '2', 'ˇ': '3', 'ˋ': '4', 'ㄓ': '5',
+                'ˊ': '6', '˙': '7', 'ㄚ': '8', 'ㄞ': '9', 'ㄢ': '0',
+                'ㄦ': '-'
+            };
+            
+            // 逐字檢查並替換
+            let fixedStr = '';
+            for (let char of str) {
+                if (map[char]) {
+                    fixedStr += map[char];
+                } else {
+                    fixedStr += char;
+                }
+            }
+            
+            // 如果翻譯後的字串長度 > 0，且看起來有變動，console 紀錄一下方便除錯
+            if (fixedStr !== str) {
+                console.log(`[自動修正] 原始輸入: ${str} -> 修正為: ${fixedStr}`);
+            }
+            return fixedStr;
+        }
 
         function processScan(content) {
             if (isLocked) return;
             isLocked = true;
             document.getElementById('scanSound').play().catch(e => {});
+            
+            // 這裡顯示的 content 已經是修正過後的 (例如 "1-蔡梵特")
             updateUI("processing", "資料查詢中...", content);
             sendToSheetAndFirebase(content);
         }
@@ -105,7 +150,6 @@
             .then(res => res.json())
             .then(data => {
                 if(data.status === 'success') {
-                    // 這裡的 data.name 和 data.className 是從「學生名單」查出來的正確資料
                     pushToFirebase(data.name, data.className);
                     updateUI("success", "✅ 掃描成功", data.name, data.className);
                 } else {
@@ -125,7 +169,7 @@
                 className: className,
                 timestamp: new Date().toISOString(),
                 status: 'waiting'
-            }).then(() => console.log(`Firebase pushed to: ${targetPath}`));
+            });
         }
 
         function updateUI(state, msg, detail, className) {
