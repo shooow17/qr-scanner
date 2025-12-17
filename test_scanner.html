@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<body style="background:#eee; text-align:center; padding:50px;">
+    <h2>掃描槍測試模式</h2>
+    <p>請在此頁面直接掃描條碼</p>
+    <input type="text" id="testInput" placeholder="點擊這裡並掃描" style="padding:10px; width:300px;">
+    <div id="log" style="margin-top:20px; color:blue;"></div>
+
+    <script>
+        const input = document.getElementById('testInput');
+        const log = document.getElementById('log');
+        
+        // 自動聚焦
+        input.focus();
+        document.addEventListener('click', () => input.focus());
+
+        // 監聽鍵盤事件
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                log.innerHTML = `
+                    <h3>✅ 接收成功！</h3>
+                    <p>掃描內容：${input.value}</p>
+                    <p>Enter 鍵訊號：有收到</p>
+                `;
+                input.value = ""; // 清空
+            }
+        });
+    </script>
+</body>
+</html>
