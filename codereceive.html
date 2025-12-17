@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>警衛室即時看板 (緊湊版)</title>
+    <title>警衛室綜合看板</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
@@ -14,7 +14,7 @@
             background-color: #E8F5E9; 
             display: flex; 
             justify-content: center; 
-            align-items: center; /* 垂直置中 */
+            align-items: center; 
             flex-direction: column; 
             min-height: 100vh; 
             margin: 0; 
@@ -36,7 +36,6 @@
             display: flex;
             flex-direction: column;
             gap: 15px;
-            /* [修改] 移除 height: 95vh，改為自動適應內容 */
             height: auto; 
         }
 
@@ -55,7 +54,6 @@
             grid-template-columns: repeat(5, 1fr); 
             gap: 12px;
             width: 100%;
-            /* [修改] 移除 flex-grow，不需強制撐開空間 */
         }
 
         .alert-item {
@@ -94,7 +92,7 @@
         .controls {
             display: flex; justify-content: flex-end; align-items: center; gap: 10px;
             padding-top: 15px; border-top: 2px solid #eee;
-            margin-top: 5px; /* 與網格保持一點距離 */
+            margin-top: 5px; 
         }
         .controls button {
             color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 1em;
@@ -122,28 +120,40 @@
 
         .overlay-card {
             background: white;
-            padding: 40px 60px;
+            padding: 40px 50px;
             border-radius: 20px;
             text-align: center;
             box-shadow: 0 20px 50px rgba(0,0,0,0.5);
             transform: scale(0.8);
             transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            min-width: 320px;
+            min-width: 350px;
         }
 
         #scanOverlay.show .overlay-card { transform: scale(1); }
 
         .overlay-card.success { border: 8px solid #28a745; background-color: #f0fff4; }
-        .overlay-card.success .main-text { color: #155724; }
+        /* 姓名+班級的樣式 */
+        .overlay-card.success .main-text { color: #155724; font-size: 3em; } 
         .overlay-card.success .icon { color: #28a745; }
 
         .overlay-card.error { border: 8px solid #dc3545; background-color: #fff5f5; }
-        .overlay-card.error .main-text { color: #721c24; }
+        .overlay-card.error .main-text { color: #721c24; font-size: 3em; }
         .overlay-card.error .icon { color: #dc3545; }
 
-        .overlay-card .icon { font-size: 5em; margin-bottom: 15px; display: block; }
-        .overlay-card .main-text { font-size: 3.5em; font-weight: 900; margin: 10px 0; line-height: 1.1; }
-        .overlay-card .sub-text { font-size: 1.8em; background: #333; color: white; padding: 5px 25px; border-radius: 50px; display: inline-block; margin-top: 10px;}
+        .overlay-card .icon { font-size: 5em; margin-bottom: 10px; display: block; }
+        .overlay-card .main-text { font-weight: 900; margin: 10px 0; line-height: 1.2; word-break: break-all; }
+        
+        /* 副標題 (已發送訊息到班上) 樣式 */
+        .overlay-card .sub-text { 
+            font-size: 1.6em; 
+            background: #333; 
+            color: white; 
+            padding: 8px 30px; 
+            border-radius: 50px; 
+            display: inline-block; 
+            margin-top: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
 
         /* RWD */
         @media (max-width: 1024px) { #alert-grid { grid-template-columns: repeat(3, 1fr); } }
@@ -151,7 +161,8 @@
             .container { padding: 15px; width: 95%; } 
             #alert-grid { grid-template-columns: 1fr; }
             .overlay-card { width: 85%; padding: 25px; }
-            .overlay-card .main-text { font-size: 2.5em; }
+            .overlay-card .main-text { font-size: 2.2em; }
+            .overlay-card .sub-text { font-size: 1.2em; }
         }
     </style>
 </head>
@@ -164,8 +175,8 @@
     <div id="scanOverlay">
         <div id="overlayCard" class="overlay-card">
             <span class="icon" id="overlayIcon">✅</span>
-            <div class="main-text" id="overlayName">王小明</div>
-            <div class="sub-text" id="overlayClass">五年三班</div>
+            <div class="main-text" id="overlayMainText">王小明 503</div>
+            <div class="sub-text" id="overlaySubText">已發送訊息到班上</div>
         </div>
     </div>
 
@@ -361,25 +372,25 @@
             }
         }
 
-        function showOverlay(type, mainText, subText) {
+        function showOverlay(type, nameText, classText) {
             const overlay = document.getElementById('scanOverlay');
             const card = document.getElementById('overlayCard');
             const icon = document.getElementById('overlayIcon');
-            const nameEl = document.getElementById('overlayName');
-            const classEl = document.getElementById('overlayClass');
+            const mainEl = document.getElementById('overlayMainText');
+            const subEl = document.getElementById('overlaySubText');
 
             if (type === 'success') {
                 card.className = "overlay-card success";
                 icon.textContent = "✅";
-                nameEl.textContent = mainText;
-                classEl.textContent = subText;
-                classEl.style.display = "inline-block";
+                // 核心修改：姓名 + 班級 在第一行
+                mainEl.textContent = `${nameText} ${classText}`;
+                // 核心修改：固定訊息 在第二行
+                subEl.textContent = "已發送訊息到班上";
             } else {
                 card.className = "overlay-card error";
                 icon.textContent = "⚠️";
-                nameEl.textContent = mainText;
-                classEl.textContent = "請確認條碼";
-                classEl.style.display = "inline-block";
+                mainEl.textContent = nameText; // "查無此人"
+                subEl.textContent = "請確認條碼";
             }
 
             overlay.classList.add('show');
