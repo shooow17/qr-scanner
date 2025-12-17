@@ -18,7 +18,9 @@
             justify-content: center; align-items: center;
         }
 
-        /* 隱藏的輸入框 (負責接收掃描槍訊號) */
+        /* 隱藏的輸入框 (負責接收掃描槍訊號) 
+           設為 password 類型可強制關閉中文輸入法 
+        */
         #scannerInput {
             position: absolute;
             opacity: 0; 
@@ -35,7 +37,7 @@
             width: 90%;
             max-width: 600px;
             border: 2px solid #e0e0e0;
-            cursor: text; 
+            cursor: text; /* 提示可輸入 */
         }
 
         h1 { color: #2c3e50; font-size: 2.5rem; margin-bottom: 10px; }
@@ -50,6 +52,7 @@
             transition: all 0.2s ease;
         }
 
+        /* 狀態：成功 */
         .status-card.success {
             background-color: #d4edda;
             border: 3px solid #28a745;
@@ -58,6 +61,7 @@
             box-shadow: 0 5px 15px rgba(40, 167, 69, 0.2);
         }
 
+        /* 狀態：處理中 */
         .status-card.processing {
             background-color: #fff3cd;
             border: 3px solid #ffc107;
@@ -134,7 +138,7 @@
             appId: "1:385628927398:web:00239f1b2acebd6e790b67"
         };
         
-        // ★★★ 請務必確認這是您最新部署的 GAS 網址 ★★★
+        // ★★★ 請確認這是您最新部署的 GAS 網址 ★★★
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZHGM5xMgNFn9Df6BXMVfSesT3BIfHN91NdZjLK5TkHdEOai476VNIlJaw61n3Bxg9CA/exec";
 
         // 初始化 Firebase
@@ -152,6 +156,7 @@
         const focusStatus = document.getElementById('focusStatus');
 
         function keepFocus() {
+            // 強制聚焦到密碼框，這樣掃描槍的輸入才會進去，且不會觸發中文輸入法
             input.focus();
         }
 
