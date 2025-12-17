@@ -5,207 +5,178 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>家長接送掃描站</title>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     
     <style>
-        :root {
-            --mc-green: #70B237;
-            --mc-brown: #593D29;
-            --mc-bg: #DCCFA3;
-            --mc-border: #1D1D1D;
-            --inset-light: inset 4px 4px 0 rgba(255,255,255,0.25);
-            --inset-dark: inset -4px -4px 0 rgba(0,0,0,0.25);
-        }
-
         body {
-            font-family: 'Noto Sans TC', sans-serif;
             margin: 0; padding: 0;
-            min-height: 100vh;
-            display: flex; justify-content: center; align-items: center;
-            
-            /* 沙灘背景 */
-            background-color: var(--mc-bg);
-            background-image: 
-                radial-gradient(#C6B68D 15%, transparent 16%),
-                radial-gradient(#C6B68D 15%, transparent 16%);
-            background-size: 16px 16px;
-            background-position: 0 0, 8px 8px;
-        }
-
-        /* 主容器：左右分割 */
-        .main-container {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f0f2f5;
+            height: 100vh;
+            overflow: hidden; /* 防止出現捲軸 */
             display: flex;
-            flex-direction: row; /* 預設左右排列 */
-            width: 95%;
-            max-width: 1200px;
-            height: 90vh;
-            gap: 30px;
-            align-items: center;
         }
 
-        /* --- 左側面板 (資訊區) --- */
+        /* --- 左側資訊區 (40%) --- */
         .info-panel {
-            flex: 1; /* 佔比 1 */
+            flex: 4;
+            background-color: white;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            height: 100%;
-            padding: 10px;
-        }
-
-        h1 {
-            font-family: 'Press Start 2P', 'Noto Sans TC', sans-serif;
-            color: #333;
-            text-shadow: 2px 2px 0 #fff;
-            line-height: 1.5;
-            margin-bottom: 20px;
-            font-size: 1.8em;
-        }
-
-        /* 狀態結果框 (告示牌風格) */
-        .result-box {
-            background-color: var(--mc-brown);
-            border: 4px solid var(--mc-border);
-            padding: 25px;
-            text-align: center;
-            color: #fff;
-            box-shadow: var(--inset-light), var(--inset-dark);
-            border-radius: 4px;
-            margin-bottom: 20px;
-            min-height: 150px;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-        }
-
-        .status-text { font-size: 1.2em; margin-bottom: 15px; opacity: 0.9; }
-        .student-name { font-size: 2em; font-weight: bold; color: #FFD700; text-shadow: 3px 3px 0 #000; }
-
-        /* 歷史紀錄 */
-        .history-container {
-            background: rgba(255,255,255,0.6);
-            border: 4px solid var(--mc-border);
-            padding: 15px;
-            flex-grow: 1; /* 填滿剩餘空間 */
-            overflow-y: auto; /* 內容多時可捲動 */
-            max-height: 300px;
-        }
-        .history-title { font-weight: bold; border-bottom: 2px dashed #555; padding-bottom: 8px; margin-bottom: 8px; }
-        .history-list { list-style: none; padding: 0; margin: 0; font-size: 0.9em; }
-        .history-list li { padding: 8px 0; border-bottom: 1px dotted #888; display: flex; justify-content: space-between; }
-
-        .back-btn {
-            margin-top: 20px;
-            text-align: center;
-            text-decoration: none;
-            background-color: var(--mc-green);
-            color: white;
-            padding: 15px;
-            border: 4px solid var(--mc-border);
-            font-family: 'Press Start 2P', sans-serif;
-            font-size: 0.9em;
-            box-shadow: 6px 6px 0 rgba(0,0,0,0.3);
-            display: block;
-        }
-        .back-btn:active { transform: translate(4px, 4px); box-shadow: none; }
-
-
-        /* --- 右側面板 (鏡頭區) --- */
-        .camera-panel {
-            flex: 1.2; /* 佔比 1.2 (稍微大一點) */
-            height: 100%;
-            display: flex;
             align-items: center;
+            padding: 40px;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+
+        /* --- 右側鏡頭區 (60%) --- */
+        .camera-panel {
+            flex: 6;
+            background-color: #000;
+            display: flex;
             justify-content: center;
+            align-items: center;
+            position: relative;
         }
 
-        .scanner-frame {
+        /* 標題樣式 */
+        h1 {
+            color: #2c3e50;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .sub-title {
+            color: #7f8c8d;
+            font-size: 1.2rem;
+            margin-bottom: 50px;
+        }
+
+        /* 狀態顯示卡片 */
+        .status-card {
             width: 100%;
-            background: #000;
-            padding: 15px;
-            border: 8px solid var(--mc-border);
-            border-radius: 8px;
-            box-shadow: 12px 12px 0 rgba(0,0,0,0.3);
+            max-width: 400px;
+            padding: 40px 20px;
+            border-radius: 20px;
+            text-align: center;
+            background: #f8f9fa;
+            border: 2px dashed #bdc3c7;
+            transition: all 0.3s ease;
         }
 
-        #reader { 
-            width: 100%; 
-            background: #000;
-            border: 2px solid #555;
-            min-height: 300px; /* 避免還沒載入時高度塌陷 */
+        /* 狀態：成功 */
+        .status-card.success {
+            background-color: #d4edda;
+            border: 2px solid #28a745;
+            color: #155724;
+            transform: scale(1.05);
         }
 
-        /* 隱藏套件內建的醜醜文字 */
+        /* 狀態：處理中 */
+        .status-card.processing {
+            background-color: #fff3cd;
+            border: 2px solid #ffc107;
+            color: #856404;
+        }
+
+        .icon { font-size: 5rem; margin-bottom: 20px; display: block; }
+        .message { font-size: 1.5rem; font-weight: bold; margin-bottom: 10px; }
+        .student-name { font-size: 2.2rem; font-weight: 900; color: #2c3e50; margin-top: 10px; }
+        .time-stamp { font-size: 1rem; color: #666; margin-top: 10px; }
+
+        /* 掃描器外框 */
+        #reader {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        /* 隱藏套件多餘的文字 */
         #reader__dashboard_section_csr span { display: none; }
-
-        /* --- RWD 手機版調整 --- */
-        @media (max-width: 900px) {
-            .main-container {
-                flex-direction: column-reverse; /* 手機上：鏡頭在上，資訊在下 */
-                height: auto;
-                padding-bottom: 40px;
-            }
-            .info-panel { width: 100%; padding: 0; }
-            .camera-panel { width: 100%; }
-            .result-box { min-height: 100px; }
+        /* 讓鏡頭畫面填滿 */
+        #reader video { 
+            object-fit: cover; 
+            width: 100% !important; 
+            height: 100% !important;
+            border-radius: 0;
         }
 
+        /* 返回按鈕 */
+        .back-btn {
+            margin-top: auto; /* 推到底部 */
+            text-decoration: none;
+            color: #95a5a6;
+            border: 1px solid #ddd;
+            padding: 10px 20px;
+            border-radius: 50px;
+            transition: 0.2s;
+        }
+        .back-btn:hover { background: #2c3e50; color: white; }
+
+        /* 手機版適配 (直向時上下排列) */
+        @media (max-width: 768px) {
+            body { flex-direction: column-reverse; }
+            .info-panel { flex: 1; padding: 20px; }
+            .camera-panel { flex: 1; }
+            h1 { font-size: 1.8rem; }
+            .icon { font-size: 3rem; }
+        }
     </style>
 </head>
 <body>
 
-    <div class="main-container">
-        
-        <div class="info-panel">
-            <h1>📱 家長接送<br>掃描站</h1>
-            
-            <div class="result-box" id="resultBox">
-                <div class="status-text">請查看右側鏡頭</div>
-                <div class="student-name">等待掃描...</div>
-            </div>
-
-            <div class="history-container">
-                <div class="history-title">🕒 最近 5 筆紀錄</div>
-                <ul id="scanHistory" class="history-list">
-                    <li style="color:#666; justify-content:center;">尚無紀錄</li>
-                </ul>
-            </div>
-
-            <a href="dashboard.html" class="back-btn">⬅ 回主控台</a>
+    <div class="info-panel">
+        <div>
+            <h1>家長接送掃描站</h1>
+            <div class="sub-title">請將 QR Code 對準右側鏡頭</div>
         </div>
 
-        <div class="camera-panel">
-            <div class="scanner-frame">
-                <div id="reader"></div>
-            </div>
+        <div id="statusCard" class="status-card">
+            <span class="icon">📷</span>
+            <div class="message">等待掃描...</div>
+            <div class="student-name" id="studentNameDisplay"></div>
         </div>
 
+        <a href="dashboard.html" class="back-btn">回主控台</a>
+    </div>
+
+    <div class="camera-panel">
+        <div id="reader"></div>
     </div>
 
     <audio id="scanSound" src="https://www.soundjay.com/buttons/beep-01a.mp3"></audio>
 
     <script>
-        // ★★★ 請確認這是您最新的 GAS 網址 ★★★
+        // ★★★ GAS 網址 ★★★
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZHGM5xMgNFn9Df6BXMVfSesT3BIfHN91NdZjLK5TkHdEOai476VNIlJaw61n3Bxg9CA/exec";
         
-        let lastScanTime = 0;
-        const scanCooldown = 3000; // 3秒冷卻
+        let isLocked = false; // 鎖定狀態
+        const LOCK_DURATION = 3000; // 鎖定 3 秒
 
         function onScanSuccess(decodedText, decodedResult) {
-            const now = Date.now();
-            if (now - lastScanTime < scanCooldown) return;
-            lastScanTime = now;
+            // 如果正在鎖定中，直接忽略所有訊號
+            if (isLocked) return;
 
-            // 播放音效
+            // 1. 立即鎖定並播放音效
+            isLocked = true;
             document.getElementById('scanSound').play().catch(e => {});
 
-            // 介面回饋
-            updateUI("loading", "資料傳送中...", decodedText);
+            // 2. 介面顯示「處理中」(樂觀更新)
+            updateUI("processing", "資料傳送中...", decodedText);
 
-            // 傳送給 GAS
+            // 3. 傳送至雲端 (非同步)
             sendToSheet(decodedText);
+
+            // 4. 設定定時器，3秒後解鎖 (不管傳送成功與否，3秒後都準備掃下一個)
+            setTimeout(() => {
+                resetUI();
+                isLocked = false;
+            }, LOCK_DURATION);
         }
 
         function onScanFailure(error) {
-            // 忽略掃描失敗的雜訊
+            // 忽略雜訊
         }
 
         function sendToSheet(content) {
@@ -220,78 +191,64 @@
             .then(res => res.json())
             .then(data => {
                 if(data.status === 'success') {
-                    updateUI("success", "✅ 掃描成功！", data.name);
-                    addToHistory(data.name, data.time);
+                    // 如果傳送比 3 秒快，這裡會更新成成功狀態，直到 3 秒倒數結束才重置
+                    updateUI("success", "✅ 掃描成功", data.name);
                 } else {
-                    updateUI("error", "❌ 錯誤", data.message);
+                    updateUI("processing", "⚠️ 紀錄異常", "請重試");
                 }
             })
             .catch(err => {
-                updateUI("error", "連線失敗", "請檢查網路");
                 console.error(err);
+                // 即使網路錯誤，也會在 3 秒後重置，不卡死畫面
             });
         }
 
-        function updateUI(status, msg, detail) {
-            const resultBox = document.getElementById('resultBox');
-            let color = "#fff"; // 預設白字
+        function updateUI(state, msg, detail) {
+            const card = document.getElementById('statusCard');
+            const iconEl = card.querySelector('.icon');
+            const msgEl = card.querySelector('.message');
+            const nameEl = document.getElementById('studentNameDisplay');
 
-            if (status === "loading") color = "#f1c40f"; // 黃色
-            if (status === "success") color = "#2ecc71"; // 綠色
-            if (status === "error") color = "#e74c3c";   // 紅色
+            // 清除舊樣式
+            card.classList.remove('success', 'processing');
 
-            resultBox.innerHTML = `
-                <div class="status-text" style="color:${color}">${msg}</div>
-                <div class="student-name">${detail}</div>
-            `;
-
-            // 如果是成功，3秒後復原
-            if (status === "success") {
-                setTimeout(() => {
-                    resultBox.innerHTML = `
-                        <div class="status-text">請查看右側鏡頭</div>
-                        <div class="student-name">等待掃描...</div>
-                    `;
-                }, 3000);
+            if (state === "processing") {
+                card.classList.add('processing');
+                iconEl.textContent = "⏳";
+                msgEl.textContent = msg;
+                nameEl.textContent = detail; // 先顯示掃到的原始碼
+            } 
+            else if (state === "success") {
+                card.classList.add('success');
+                iconEl.textContent = "✅";
+                msgEl.textContent = msg;
+                nameEl.textContent = detail; // 顯示後端回傳的正確姓名
             }
         }
 
-        function addToHistory(name, time) {
-            const list = document.getElementById('scanHistory');
-            // 如果是第一筆，清空"尚無紀錄"
-            if (list.children.length === 1 && list.children[0].textContent === "尚無紀錄") {
-                list.innerHTML = "";
-            }
+        function resetUI() {
+            const card = document.getElementById('statusCard');
+            const iconEl = card.querySelector('.icon');
+            const msgEl = card.querySelector('.message');
+            const nameEl = document.getElementById('studentNameDisplay');
 
-            const li = document.createElement('li');
-            li.innerHTML = `<span>${name}</span> <span style="color:#666">${time}</span>`;
-            li.style.animation = "flash 1s"; // 簡單的閃爍效果
-            
-            list.insertBefore(li, list.firstChild);
-            
-            // 只保留 5 筆
-            if (list.children.length > 5) {
-                list.removeChild(list.lastChild);
-            }
+            card.classList.remove('success', 'processing');
+            iconEl.textContent = "📷";
+            msgEl.textContent = "等待掃描...";
+            nameEl.textContent = "";
         }
 
-        // 初始化掃描器
+        // 初始化掃描器 (全版面模式)
         const html5QrcodeScanner = new Html5QrcodeScanner(
             "reader", 
-            { fps: 10, qrbox: {width: 250, height: 250} },
-            /* verbose= */ false
+            { 
+                fps: 10, 
+                qrbox: {width: 400, height: 400}, // 加大掃描框
+                aspectRatio: 1.0 
+            },
+            false
         );
         html5QrcodeScanner.render(onScanSuccess, onScanFailure);
-
-        // 簡單的閃爍動畫
-        const style = document.createElement('style');
-        style.innerHTML = `
-            @keyframes flash {
-                0% { background-color: rgba(255, 215, 0, 0.5); }
-                100% { background-color: transparent; }
-            }
-        `;
-        document.head.appendChild(style);
 
     </script>
 </body>
