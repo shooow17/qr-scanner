@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>家長接送掃描站</title>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     
     <style>
@@ -13,114 +15,69 @@
             font-family: 'Noto Sans TC', sans-serif;
             background-color: #f0f2f5;
             height: 100vh;
-            overflow: hidden; /* 防止出現捲軸 */
+            overflow: hidden; 
             display: flex;
         }
 
-        /* --- 左側資訊區 (40%) --- */
+        /* 左側資訊區 */
         .info-panel {
             flex: 4;
             background-color: white;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
             padding: 40px;
             box-shadow: 2px 0 10px rgba(0,0,0,0.1);
             z-index: 10;
         }
 
-        /* --- 右側鏡頭區 (60%) --- */
+        /* 右側鏡頭區 */
         .camera-panel {
             flex: 6;
             background-color: #000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            display: flex; justify-content: center; align-items: center;
             position: relative;
         }
 
-        /* 標題樣式 */
-        h1 {
-            color: #2c3e50;
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            text-align: center;
-        }
-        .sub-title {
-            color: #7f8c8d;
-            font-size: 1.2rem;
-            margin-bottom: 50px;
-        }
+        h1 { color: #2c3e50; font-size: 2.5rem; margin-bottom: 10px; text-align: center; }
+        .sub-title { color: #7f8c8d; font-size: 1.2rem; margin-bottom: 50px; }
 
-        /* 狀態顯示卡片 */
         .status-card {
-            width: 100%;
-            max-width: 400px;
-            padding: 40px 20px;
-            border-radius: 20px;
-            text-align: center;
-            background: #f8f9fa;
+            width: 100%; max-width: 400px;
+            padding: 40px 20px; border-radius: 20px;
+            text-align: center; background: #f8f9fa;
             border: 2px dashed #bdc3c7;
             transition: all 0.3s ease;
         }
 
-        /* 狀態：成功 */
         .status-card.success {
-            background-color: #d4edda;
-            border: 2px solid #28a745;
-            color: #155724;
-            transform: scale(1.05);
+            background-color: #d4edda; border: 2px solid #28a745;
+            color: #155724; transform: scale(1.05);
         }
-
-        /* 狀態：處理中 */
         .status-card.processing {
-            background-color: #fff3cd;
-            border: 2px solid #ffc107;
+            background-color: #fff3cd; border: 2px solid #ffc107;
             color: #856404;
         }
 
         .icon { font-size: 5rem; margin-bottom: 20px; display: block; }
         .message { font-size: 1.5rem; font-weight: bold; margin-bottom: 10px; }
         .student-name { font-size: 2.2rem; font-weight: 900; color: #2c3e50; margin-top: 10px; }
-        .time-stamp { font-size: 1rem; color: #666; margin-top: 10px; }
-
-        /* 掃描器外框 */
-        #reader {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
         
-        /* 隱藏套件多餘的文字 */
+        #reader { width: 100%; height: 100%; object-fit: cover; }
         #reader__dashboard_section_csr span { display: none; }
-        /* 讓鏡頭畫面填滿 */
-        #reader video { 
-            object-fit: cover; 
-            width: 100% !important; 
-            height: 100% !important;
-            border-radius: 0;
-        }
+        #reader video { object-fit: cover; width: 100% !important; height: 100% !important; border-radius: 0; }
 
-        /* 返回按鈕 */
         .back-btn {
-            margin-top: auto; /* 推到底部 */
-            text-decoration: none;
-            color: #95a5a6;
-            border: 1px solid #ddd;
-            padding: 10px 20px;
-            border-radius: 50px;
+            margin-top: auto; text-decoration: none; color: #95a5a6;
+            border: 1px solid #ddd; padding: 10px 20px; border-radius: 50px;
             transition: 0.2s;
         }
         .back-btn:hover { background: #2c3e50; color: white; }
 
-        /* 手機版適配 (直向時上下排列) */
         @media (max-width: 768px) {
             body { flex-direction: column-reverse; }
             .info-panel { flex: 1; padding: 20px; }
             .camera-panel { flex: 1; }
             h1 { font-size: 1.8rem; }
-            .icon { font-size: 3rem; }
         }
     </style>
 </head>
@@ -148,38 +105,48 @@
     <audio id="scanSound" src="https://www.soundjay.com/buttons/beep-01a.mp3"></audio>
 
     <script>
-        // ★★★ GAS 網址 ★★★
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZHGM5xMgNFn9Df6BXMVfSesT3BIfHN91NdZjLK5TkHdEOai476VNIlJaw61n3Bxg9CA/exec";
+        // --- 設定 (Firebase & GAS) ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyB_-fHCMhi-URwyBqzAIipmffWwvNgzJJc",
+            authDomain: "qr-scanner-app-2c73d.firebaseapp.com",
+            databaseURL: "https://qr-scanner-app-2c73d-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "qr-scanner-app-2c73d",
+            storageBucket: "qr-scanner-app-2c73d.firebasestorage.app",
+            messagingSenderId: "385628927398",
+            appId: "1:385628927398:web:00239f1b2acebd6e790b67"
+        };
         
-        let isLocked = false; // 鎖定狀態
-        const LOCK_DURATION = 3000; // 鎖定 3 秒
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZHGM5xMgNFn9Df6BXMVfSesT3BIfHN91NdZjLK5TkHdEOai476VNIlJaw61n3Bxg9CA/exec";
+
+        // 初始化 Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.database();
+
+        let isLocked = false;
+        const LOCK_DURATION = 3000; 
 
         function onScanSuccess(decodedText, decodedResult) {
-            // 如果正在鎖定中，直接忽略所有訊號
             if (isLocked) return;
-
-            // 1. 立即鎖定並播放音效
             isLocked = true;
             document.getElementById('scanSound').play().catch(e => {});
 
-            // 2. 介面顯示「處理中」(樂觀更新)
-            updateUI("processing", "資料傳送中...", decodedText);
+            updateUI("processing", "資料查詢中...", decodedText);
+            
+            // 呼叫 GAS 查資料並存檔
+            sendToSheetAndFirebase(decodedText);
 
-            // 3. 傳送至雲端 (非同步)
-            sendToSheet(decodedText);
-
-            // 4. 設定定時器，3秒後解鎖 (不管傳送成功與否，3秒後都準備掃下一個)
             setTimeout(() => {
                 resetUI();
                 isLocked = false;
             }, LOCK_DURATION);
         }
 
-        function onScanFailure(error) {
-            // 忽略雜訊
-        }
+        function onScanFailure(error) {}
 
-        function sendToSheet(content) {
+        function sendToSheetAndFirebase(content) {
+            // 1. 先送去 GAS 紀錄日誌，並查詢班級
             fetch(GOOGLE_SCRIPT_URL, {
                 method: "POST",
                 body: JSON.stringify({
@@ -191,15 +158,36 @@
             .then(res => res.json())
             .then(data => {
                 if(data.status === 'success') {
-                    // 如果傳送比 3 秒快，這裡會更新成成功狀態，直到 3 秒倒數結束才重置
-                    updateUI("success", "✅ 掃描成功", data.name);
+                    // GAS 回傳成功，拿到學生姓名與班級
+                    const studentName = data.name;
+                    const className = data.className; // 來自 GAS 的回傳 (例如: "1A")
+
+                    // 2. ★ 關鍵步驟：推播到 Firebase ★
+                    pushToFirebase(studentName, className);
+
+                    updateUI("success", "✅ 掃描成功", studentName);
                 } else {
-                    updateUI("processing", "⚠️ 紀錄異常", "請重試");
+                    updateUI("processing", "⚠️ 查詢失敗", data.message);
                 }
             })
             .catch(err => {
                 console.error(err);
-                // 即使網路錯誤，也會在 3 秒後重置，不卡死畫面
+                updateUI("processing", "⚠️ 連線錯誤", "請檢查網路");
+            });
+        }
+
+        function pushToFirebase(name, className) {
+            // 推送到 Firebase 的 queues 節點，包含班級資訊
+            const newRef = db.ref('queues').push();
+            newRef.set({
+                studentName: name,
+                className: className, // 這裡讓 directory.html 可以過濾
+                timestamp: firebase.database.ServerValue.TIMESTAMP,
+                status: 'waiting'
+            }).then(() => {
+                console.log(`Firebase 推播成功: ${name} (${className})`);
+            }).catch(e => {
+                console.error("Firebase 推播失敗", e);
             });
         }
 
@@ -209,20 +197,19 @@
             const msgEl = card.querySelector('.message');
             const nameEl = document.getElementById('studentNameDisplay');
 
-            // 清除舊樣式
             card.classList.remove('success', 'processing');
 
             if (state === "processing") {
                 card.classList.add('processing');
                 iconEl.textContent = "⏳";
                 msgEl.textContent = msg;
-                nameEl.textContent = detail; // 先顯示掃到的原始碼
+                nameEl.textContent = detail;
             } 
             else if (state === "success") {
                 card.classList.add('success');
                 iconEl.textContent = "✅";
                 msgEl.textContent = msg;
-                nameEl.textContent = detail; // 顯示後端回傳的正確姓名
+                nameEl.textContent = detail;
             }
         }
 
@@ -238,14 +225,9 @@
             nameEl.textContent = "";
         }
 
-        // 初始化掃描器 (全版面模式)
         const html5QrcodeScanner = new Html5QrcodeScanner(
             "reader", 
-            { 
-                fps: 10, 
-                qrbox: {width: 400, height: 400}, // 加大掃描框
-                aspectRatio: 1.0 
-            },
+            { fps: 10, qrbox: {width: 400, height: 400}, aspectRatio: 1.0 },
             false
         );
         html5QrcodeScanner.render(onScanSuccess, onScanFailure);
