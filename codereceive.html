@@ -132,7 +132,6 @@
         #scanOverlay.show .overlay-card { transform: scale(1); }
 
         .overlay-card.success { border: 8px solid #28a745; background-color: #f0fff4; }
-        /* 姓名+班級的樣式 */
         .overlay-card.success .main-text { color: #155724; font-size: 3em; } 
         .overlay-card.success .icon { color: #28a745; }
 
@@ -143,7 +142,6 @@
         .overlay-card .icon { font-size: 5em; margin-bottom: 10px; display: block; }
         .overlay-card .main-text { font-weight: 900; margin: 10px 0; line-height: 1.2; word-break: break-all; }
         
-        /* 副標題 (已發送訊息到班上) 樣式 */
         .overlay-card .sub-text { 
             font-size: 1.6em; 
             background: #333; 
@@ -270,10 +268,12 @@
                 if (item) {
                     cell.className = (i === 0) ? 'alert-item newest' : 'alert-item normal';
                     const localTime = new Date(item.timestamp).toLocaleString('zh-TW', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+                    
+                    // 這裡的 item.class 在修正後應該能正常抓到值了
                     cell.innerHTML = `
                         <div class="delete-btn" onclick="deleteAlert('${item.key}')">×</div>
                         <div class="alert-message">
-                            <span class="student-name">${maskName(item.name)} (${item.class})</span>
+                            <span class="student-name">${maskName(item.name)} (${item.class || '未分班'})</span>
                             <span class="status">${item.status}</span>
                         </div>
                         <span class="alert-time">${localTime}</span>
@@ -304,7 +304,7 @@
             let csvContent = "data:text/csv;charset=utf-8,\uFEFF時間,班級,姓名,狀態\r\n";
             [...alertHistory].reverse().forEach(item => {
                 const time = new Date(item.timestamp).toLocaleString('zh-TW');
-                csvContent += `"${time}","${item.class}","${item.name}","${item.status}"\r\n`;
+                csvContent += `"${time}","${item.class || ''}","${item.name}","${item.status}"\r\n`;
             });
             const link = document.createElement("a");
             link.href = encodeURI(csvContent);
@@ -382,9 +382,7 @@
             if (type === 'success') {
                 card.className = "overlay-card success";
                 icon.textContent = "✅";
-                // 核心修改：姓名 + 班級 在第一行
                 mainEl.textContent = `${nameText} ${classText}`;
-                // 核心修改：固定訊息 在第二行
                 subEl.textContent = "已發送訊息到班上";
             } else {
                 card.className = "overlay-card error";
@@ -401,8 +399,14 @@
         function pushToFirebaseQueue(name, className, id) {
             const targetPath = (className && className !== "(未分班)") ? `queues/${className}` : `queues/unknown`;
             database.ref(targetPath).push().set({
-                id: id, name: name, studentName: name, 
-                className: className, timestamp: new Date().toISOString(), status: 'waiting'
+                id: id,
+                name: name,
+                studentName: name,
+                // ★★★ 修正處：確保 class 與 className 都有值 ★★★
+                class: className,
+                className: className,
+                timestamp: new Date().toISOString(),
+                status: 'waiting'
             });
         }
 
