@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>警衛室綜合看板</title>
+    <title>警衛室即時看板V2</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
@@ -269,7 +269,6 @@
                     cell.className = (i === 0) ? 'alert-item newest' : 'alert-item normal';
                     const localTime = new Date(item.timestamp).toLocaleString('zh-TW', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
                     
-                    // 這裡的 item.class 在修正後應該能正常抓到值了
                     cell.innerHTML = `
                         <div class="delete-btn" onclick="deleteAlert('${item.key}')">×</div>
                         <div class="alert-message">
@@ -323,6 +322,11 @@
                     isDataReady = true;
                     statusEl.textContent = `✅ 已更新 (${data.length}人)`;
                     statusEl.classList.add('ready');
+                    // ★★★ 除錯工具：會在瀏覽器 Console 印出資料結構，方便確認欄位名稱 ★★★
+                    if(data.length > 0) {
+                        console.log("【名單格式檢查】第一筆資料內容：", data[0]);
+                        console.log("資料欄位列表：", Object.keys(data[0]));
+                    }
                 })
                 .catch(err => { statusEl.textContent = "❌ 下載失敗"; });
         }
@@ -353,13 +357,23 @@
             if (!isDataReady) return alert("名單下載中...");
 
             const searchId = rawInput.split('-')[0].trim();
-            const student = allStudents.find(s => String(s.id) === searchId);
+            // 在您的 CSV 中，學生學號欄位可能是 'id' 或 '學號'，這裡嘗試兩個
+            const student = allStudents.find(s => String(s.id || s['學號'] || '') === searchId);
 
             if (student) {
                 playAudio('scanSound');
-                showOverlay("success", student.name, student.className);
-                pushToFirebaseQueue(student.name, student.className, searchId);
-                logToGAS(student.name, student.className);
+                
+                // ★★★ 超級相容模式：抓取各種可能的班級欄位名稱 ★★★
+                // 順序：CSV欄位 '班級' -> 英文 'class' -> 英文 'className' -> 英文 'grade'
+                const studentClass = student['班級'] || student['class'] || student['className'] || student['grade'] || "(未分班)";
+                
+                // 姓名欄位也做一樣的保險
+                const studentName = student['姓名'] || student['name'] || "未知姓名";
+
+                showOverlay("success", studentName, studentClass);
+                pushToFirebaseQueue(studentName, studentClass, searchId);
+                logToGAS(studentName, studentClass);
+                
                 isLocked = true;
                 if(lockTimer) clearTimeout(lockTimer);
                 lockTimer = setTimeout(() => { isLocked = false; }, 1000);
@@ -387,7 +401,7 @@
             } else {
                 card.className = "overlay-card error";
                 icon.textContent = "⚠️";
-                mainEl.textContent = nameText; // "查無此人"
+                mainEl.textContent = nameText; 
                 subEl.textContent = "請確認條碼";
             }
 
@@ -402,9 +416,8 @@
                 id: id,
                 name: name,
                 studentName: name,
-                // ★★★ 修正處：確保 class 與 className 都有值 ★★★
-                class: className,
-                className: className,
+                class: className,     // 顯示端用
+                className: className, // 備份用
                 timestamp: new Date().toISOString(),
                 status: 'waiting'
             });
