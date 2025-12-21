@@ -3,97 +3,272 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>班級老師即時看板V3</title>
+    <title>班級老師即時看板</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    
     <style>
-        body { font-family: 'Microsoft JhengHei', sans-serif; background-color: #f0f8ff; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 10px; box-sizing: border-box; }
-        #connection-status { position: fixed; top: 10px; right: 10px; padding: 8px 15px; border-radius: 50px; font-size: 0.9rem; font-weight: bold; color: white; background-color: #ccc; z-index: 200; }
+        body { 
+            font-family: 'Microsoft JhengHei', Arial, sans-serif; 
+            background-color: #f0f8ff; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            color: #333; 
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        
+        #connection-status {
+            position: fixed; top: 10px; right: 10px;
+            padding: 8px 15px; border-radius: 50px;
+            font-size: 0.9rem; font-weight: bold;
+            color: white; background-color: #ccc; 
+            z-index: 200; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
         .header { text-align: center; margin-bottom: 20px; margin-top: 30px; }
         .header h1 { margin: 0; font-size: 2em; color: #2c3e50; }
         .header p { color: #7f8c8d; font-size: 1em; margin-top: 5px; }
-        #queue-container { width: 100%; max-width: 900px; display: flex; flex-direction: column; gap: 15px; }
-        .student-card { background: white; padding: 15px 20px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); display: flex; flex-direction: column; border-left: 8px solid #3498db; animation: slideIn 0.5s ease; }
+
+        #queue-container {
+            width: 100%; max-width: 900px;
+            display: flex; 
+            flex-direction: column; 
+            gap: 15px;
+        }
+
+        .student-card {
+            background: white; padding: 15px 20px; border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            display: flex; flex-direction: column; 
+            border-left: 8px solid #3498db; 
+            animation: slideIn 0.5s ease;
+            position: relative;
+        }
         @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .info { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+
+        .info { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: baseline;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
         .info h2 { margin: 0; font-size: 1.8em; color: #2c3e50; }
         .info .time { color: #95a5a6; font-size: 0.9em; }
-        .actions { display: flex; gap: 8px; width: 100%; }
-        .btn { border: none; padding: 10px 2px; border-radius: 6px; font-size: 0.9em; cursor: pointer; color: white; font-weight: bold; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.2; }
-        .btn:active { transform: scale(0.95); } .btn:hover { opacity: 0.9; }
-        .btn-1 { background: #2ecc71; } .btn-2 { background: #f39c12; } .btn-3 { background: #3498db; } .btn-4 { background: #e74c3c; }
-        .empty-state { text-align: center; margin-top: 80px; color: #bdc3c7; } .empty-state i { font-size: 5em; display: block; margin-bottom: 20px; font-style: normal; }
-        @media (max-width: 400px) { .btn { font-size: 0.8em; } .info h2 { font-size: 1.5em; } }
+
+        /* 按鈕區：橫向排列 */
+        .actions { 
+            display: flex;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .btn {
+            border: none; 
+            padding: 10px 2px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            cursor: pointer; color: white;
+            font-weight: bold; 
+            transition: transform 0.1s, opacity 0.1s;
+            flex: 1;
+            display: flex; 
+            flex-direction: column;
+            align-items: center; 
+            justify-content: center;
+            line-height: 1.2;
+        }
+        .btn:active { transform: scale(0.95); }
+        .btn:hover { opacity: 0.9; }
+
+        /* 四種按鈕顏色 */
+        .btn-1 { background: #2ecc71; } /* 綠色 */
+        .btn-2 { background: #f39c12; } /* 橘色 */
+        .btn-3 { background: #3498db; } /* 藍色 */
+        .btn-4 { background: #e74c3c; } /* 紅色 */
+
+        .empty-state { text-align: center; margin-top: 80px; color: #bdc3c7; }
+        .empty-state i { font-size: 5em; display: block; margin-bottom: 20px; font-style: normal; }
+        
+        @media (max-width: 400px) {
+            .btn { font-size: 0.8em; padding: 8px 0; }
+            .info h2 { font-size: 1.5em; }
+        }
     </style>
 </head>
 <body>
+
     <div id="connection-status">連線中...</div>
-    <div class="header"><h1>班級即時看板</h1><p>等待家長接送通知...</p></div>
+
+    <div class="header">
+        <h1>班級即時看板</h1>
+        <p>等待家長接送通知...</p>
+    </div>
+
     <div id="queue-container"></div>
-    <div id="empty-state" class="empty-state" style="display:none"><i>📭</i><h2>目前沒有通知</h2></div>
+
+    <div id="empty-state" class="empty-state" style="display:none">
+        <i>⌛️</i>
+        <h2>目前沒有通知</h2>
+    </div>
+
     <audio id="notification-sound" src="https://www.soundjay.com/buttons/beep-01a.mp3"></audio>
 
     <script>
-        const firebaseConfig = { apiKey: "AIzaSyB_-fHCMhi-URwyBqzAIipmffWwvNgzJJc", authDomain: "qr-scanner-app-2c73d.firebaseapp.com", databaseURL: "https://qr-scanner-app-2c73d-default-rtdb.asia-southeast1.firebasedatabase.app", projectId: "qr-scanner-app-2c73d", storageBucket: "qr-scanner-app-2c73d.firebasestorage.app", messagingSenderId: "385628927398", appId: "1:385628927398:web:00239f1b2acebd6e790b67" };
+        // --- 1. Firebase 設定 ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyB_-fHCMhi-URwyBqzAIipmffWwvNgzJJc",
+            authDomain: "qr-scanner-app-2c73d.firebaseapp.com",
+            databaseURL: "https://qr-scanner-app-2c73d-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "qr-scanner-app-2c73d",
+            storageBucket: "qr-scanner-app-2c73d.firebasestorage.app",
+            messagingSenderId: "385628927398",
+            appId: "1:385628927398:web:00239f1b2acebd6e790b67"
+        };
+        
+        // ★★★ 請確認這是您最新部署的 GAS 網址 ★★★
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZHGM5xMgNFn9Df6BXMVfSesT3BIfHN91NdZjLK5TkHdEOai476VNIlJaw61n3Bxg9CA/exec";
 
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
+
+        // 建立對 alerts 的引用，這是警衛室在聽的頻道
         const alertsRef = database.ref("alerts");
-        let studentQueue = [], classQueueRef = null;
+
+        let studentQueue = [];
+        let classQueueRef = null;
+
+        // 網址參數 ?class=1A
         const urlParams = new URLSearchParams(window.location.search);
         const className = urlParams.get('class');
 
-        database.ref(".info/connected").on("value", s => { document.getElementById('connection-status').innerText = s.val() ? "🟢 連線正常" : "🔴 断線重連中"; document.getElementById('connection-status').style.backgroundColor = s.val() ? "#27ae60" : "#e74c3c"; });
+        // 連線狀態
+        database.ref(".info/connected").on("value", (snap) => {
+            const statusEl = document.getElementById('connection-status');
+            if (snap.val() === true) {
+                statusEl.innerText = "🟢 連線正常";
+                statusEl.style.backgroundColor = "#27ae60";
+            } else {
+                statusEl.innerText = "🔴 断線重連中";
+                statusEl.style.backgroundColor = "#e74c3c";
+            }
+        });
 
         initClassListener();
 
         function updateDisplay() {
             const container = document.getElementById('queue-container');
+            const emptyState = document.getElementById('empty-state');
             container.innerHTML = '';
-            if (!studentQueue.length) { document.getElementById('empty-state').style.display = 'block'; return; }
-            document.getElementById('empty-state').style.display = 'none';
-            studentQueue.sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
-            studentQueue.forEach(s => {
-                const card = document.createElement('div'); card.className = 'student-card';
-                const sClass = s.class || className || "未分班";
-                card.innerHTML = `<div class="info"><h2>${s.name}</h2><div class="time">掃描: ${new Date(s.timestamp).toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'})}</div></div>
-                <div class="actions">
-                    <button class="btn btn-1" onclick="handleResponse('${s.key}','${s.name}','${sClass}','收拾書包前往警衛室')">🎒<br>收拾書包</button>
-                    <button class="btn btn-2" onclick="handleResponse('${s.key}','${s.name}','${sClass}','上廁所請稍候')">🚽<br>上廁所</button>
-                    <button class="btn btn-3" onclick="handleResponse('${s.key}','${s.name}','${sClass}','班級在室外活動')">🌳<br>室外活動</button>
-                    <button class="btn btn-4" onclick="handleResponse('${s.key}','${s.name}','${sClass}','老師另外連絡家長')">☎️<br>另約家長</button>
-                </div>`;
+
+            if (studentQueue.length === 0) {
+                emptyState.style.display = 'block';
+                return;
+            }
+            emptyState.style.display = 'none';
+
+            studentQueue.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+            studentQueue.forEach(student => {
+                const card = document.createElement('div');
+                card.className = 'student-card';
+                
+                const time = new Date(student.timestamp).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+
+                // ★★★ 重點：傳遞 class 參數給 handleResponse ★★★
+                // 我們需要知道學生的班級，才能正確通知警衛室
+                // student.class 是從 codereceive 傳過來的
+                const sClass = student.class || className || "未分班";
+
+                card.innerHTML = `
+                    <div class="info">
+                        <h2>${student.name}</h2>
+                        <div class="time">掃描: ${time}</div>
+                    </div>
+                    <div class="actions">
+                        <button class="btn btn-1" onclick="handleResponse('${student.key}', '${student.name}', '${sClass}', '收拾書包前往警衛室')">📗<br>收拾書包</button>
+                        <button class="btn btn-2" onclick="handleResponse('${student.key}', '${student.name}', '${sClass}', '上廁所請稍候')">🚽<br>上廁所</button>
+                        <button class="btn btn-3" onclick="handleResponse('${student.key}', '${student.name}', '${sClass}', '班級在室外活動')">⚽️<br>室外活動</button>
+                        <button class="btn btn-4" onclick="handleResponse('${student.key}', '${student.name}', '${sClass}', '老師另外連絡家長')">📲<br>另約家長</button>
+                    </div>
+                `;
                 container.appendChild(card);
             });
         }
 
+        // --- ★★★ 核心修正：三管齊下通知 ★★★ ---
         function handleResponse(key, name, sClass, responseText) {
-            // 1. 通知 GAS (日誌)
-            fetch(GOOGLE_SCRIPT_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ type: 'reply', studentName: name, response: responseText }) }).catch(e=>console.error(e));
-            // 2. 通知 Firebase Alerts (警衛室)
-            alertsRef.push({ name: name, class: sClass, status: responseText, timestamp: new Date().toISOString() });
-            // 3. 移除自己 (看板)
-            if (classQueueRef) classQueueRef.child(key).remove();
+            console.log(`回應: ${name}, 內容: ${responseText}`);
+
+            // 1. 【通知日誌】發送給 GAS
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: "POST",
+                headers: { "Content-Type": "text/plain" },
+                body: JSON.stringify({
+                    type: 'reply', 
+                    studentName: name,   
+                    response: responseText
+                })
+            }).catch(e => console.error("日誌發送失敗", e));
+
+            // 2. 【通知警衛】推播到 Firebase alerts
+            // 這就是 codereceive.html 正在監聽的頻道！
+            const now = new Date().toISOString();
+            alertsRef.push({
+                name: name,
+                class: sClass,
+                status: responseText,
+                timestamp: now
+            }).then(() => console.log("✅ 已通知警衛室"));
+
+            // 3. 【更新看板】從 queues 移除 (自己畫面消失)
+            if (classQueueRef) {
+                classQueueRef.child(key).remove();
+            }
+        }
+
+        function playNotificationSound() {
+            document.getElementById('notification-sound').play().catch(()=>{});
+        }
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                const u = new SpeechSynthesisUtterance(text);
+                u.lang = 'zh-TW'; u.rate = 1; 
+                window.speechSynthesis.speak(u);
+            }
         }
 
         function initClassListener() {
-            if (!className) { document.querySelector('.header p').innerText = "請在網址後加上 ?class=1A"; return; }
+            if (!className) { 
+                document.querySelector('.header p').innerText = "請在網址後加上 ?class=1A"; 
+                return; 
+            }
             document.querySelector('.header h1').innerText = `${className} 班即時看板`;
+            
             classQueueRef = database.ref(`queues/${className}`);
+            const startTime = new Date().toISOString();
             
-            // ★★★ 關鍵修正：將起始時間設為 12 小時前，容許電腦時間誤差 ★★★
-            const startTime = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
-            
-            classQueueRef.orderByChild('timestamp').startAt(startTime).on('child_added', snapshot => {
-                const data = snapshot.val(); data.key = snapshot.key;
+            classQueueRef.orderByChild('timestamp').startAt(startTime).on('child_added', (snapshot) => {
+                const data = snapshot.val();
+                data.key = snapshot.key;
+
                 if (!studentQueue.find(s => s.key === data.key)) {
-                    studentQueue.push(data); updateDisplay();
-                    document.getElementById('notification-sound').play().catch(()=>{});
-                    if('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(`${data.name}同學，家長來接囉`); u.lang='zh-TW'; window.speechSynthesis.speak(u); }
+                    studentQueue.push(data);
+                    updateDisplay();
+                    playNotificationSound();
+                    setTimeout(() => speak(`${data.name}同學，家長來接囉`), 1000);
                 }
             });
-            classQueueRef.on('child_removed', snapshot => { studentQueue = studentQueue.filter(s => s.key !== snapshot.key); updateDisplay(); });
+
+            classQueueRef.on('child_removed', (snapshot) => {
+                studentQueue = studentQueue.filter(s => s.key !== snapshot.key);
+                updateDisplay();
+            });
         }
     </script>
 </body>
