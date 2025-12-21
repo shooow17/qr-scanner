@@ -17,74 +17,93 @@
             min-height: 100vh; 
             margin: 0; 
             color: #333; 
-            padding: 20px;
+            padding: 10px; /* 縮小邊距 */
             box-sizing: border-box;
         }
         
         /* 連線狀態燈 */
         #connection-status {
-            position: fixed; top: 15px; right: 15px;
-            padding: 10px 20px; border-radius: 50px;
-            font-size: 1rem; font-weight: bold;
+            position: fixed; top: 10px; right: 10px;
+            padding: 8px 15px; border-radius: 50px;
+            font-size: 0.9rem; font-weight: bold;
             color: white; background-color: #ccc; 
-            z-index: 200; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            z-index: 200; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
 
-        .header { text-align: center; margin-bottom: 30px; margin-top: 40px; }
-        .header h1 { margin: 0; font-size: 2.5em; color: #2c3e50; }
-        .header p { color: #7f8c8d; font-size: 1.1em; }
+        .header { text-align: center; margin-bottom: 20px; margin-top: 30px; }
+        .header h1 { margin: 0; font-size: 2em; color: #2c3e50; }
+        .header p { color: #7f8c8d; font-size: 1em; margin-top: 5px; }
 
         /* 卡片容器 */
         #queue-container {
             width: 100%; max-width: 900px;
-            display: grid;
-            grid-template-columns: 1fr; /* 手機版一欄 */
-            gap: 20px;
-        }
-        @media (min-width: 768px) {
-            #queue-container { grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); }
+            display: flex; 
+            flex-direction: column; /* 垂直堆疊卡片 */
+            gap: 15px; /* 卡片之間的間距 */
         }
 
-        /* 學生卡片 */
+        /* 學生卡片 (更緊湊的設計) */
         .student-card {
-            background: white; padding: 25px; border-radius: 15px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            background: white; padding: 15px 20px; border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
             display: flex; flex-direction: column; 
-            border-left: 10px solid #3498db; 
+            border-left: 8px solid #3498db; 
             animation: slideIn 0.5s ease;
             position: relative;
         }
         @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
-        .info h2 { margin: 10px 0; font-size: 2em; color: #2c3e50; text-align: center; }
-        .info .time { color: #95a5a6; font-size: 0.9em; text-align: center; margin-bottom: 20px;}
+        /* 學生資訊區 */
+        .info { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: baseline;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .info h2 { margin: 0; font-size: 1.8em; color: #2c3e50; }
+        .info .time { color: #95a5a6; font-size: 0.9em; }
 
-        /* 按鈕區 - 2x2 排列 */
+        /* ★★★ 按鈕區：橫向排列 ★★★ */
         .actions { 
-            display: grid; 
-            grid-template-columns: 1fr 1fr; 
-            gap: 10px; 
-            margin-top: auto; 
+            display: flex;       /* 使用 Flexbox 橫向排列 */
+            gap: 8px;            /* 按鈕之間的間距 */
+            width: 100%;
         }
 
         .btn {
-            border: none; padding: 15px 5px; border-radius: 8px;
-            font-size: 1em; cursor: pointer; color: white;
-            font-weight: bold; transition: transform 0.1s;
-            display: flex; align-items: center; justify-content: center;
+            border: none; 
+            padding: 10px 2px;   /* 減少內距以塞下更多字 */
+            border-radius: 6px;
+            font-size: 0.9em;    /* 字體稍微縮小 */
+            cursor: pointer; color: white;
+            font-weight: bold; 
+            transition: transform 0.1s, opacity 0.1s;
+            flex: 1;             /* 讓4個按鈕平均分配寬度 */
+            display: flex; 
+            flex-direction: column; /* 圖示與文字垂直排 */
+            align-items: center; 
+            justify-content: center;
+            line-height: 1.2;
         }
         .btn:active { transform: scale(0.95); }
-
-        /* 四種按鈕顏色定義 */
-        .btn-1 { background: #2ecc71; } /* 綠色：收拾書包 */
-        .btn-2 { background: #f39c12; } /* 橘色：上廁所 */
-        .btn-3 { background: #3498db; } /* 藍色：室外活動 */
-        .btn-4 { background: #e74c3c; } /* 紅色：連絡家長 */
-
         .btn:hover { opacity: 0.9; }
+
+        /* 四種按鈕顏色 */
+        .btn-1 { background: #2ecc71; } /* 綠色 */
+        .btn-2 { background: #f39c12; } /* 橘色 */
+        .btn-3 { background: #3498db; } /* 藍色 */
+        .btn-4 { background: #e74c3c; } /* 紅色 */
 
         .empty-state { text-align: center; margin-top: 80px; color: #bdc3c7; }
         .empty-state i { font-size: 5em; display: block; margin-bottom: 20px; font-style: normal; }
+        
+        /* 手機版適配：如果螢幕太小，按鈕文字再小一點 */
+        @media (max-width: 400px) {
+            .btn { font-size: 0.8em; padding: 8px 0; }
+            .info h2 { font-size: 1.5em; }
+        }
     </style>
 </head>
 <body>
@@ -99,7 +118,7 @@
     <div id="queue-container"></div>
 
     <div id="empty-state" class="empty-state" style="display:none">
-        <i>📭</i>
+        <i>⌛️</i>
         <h2>目前沒有通知</h2>
     </div>
 
@@ -117,17 +136,17 @@
             appId: "1:385628927398:web:00239f1b2acebd6e790b67"
         };
         
-        // ★★★ 關鍵：請確認這裡還是您「最新部署」的 GAS 網址 ★★★
+        // ★★★ 記得確認這裡仍是您最新部署的 GAS 網址 ★★★
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZHGM5xMgNFn9Df6BXMVfSesT3BIfHN91NdZjLK5TkHdEOai476VNIlJaw61n3Bxg9CA/exec";
 
-        // 初始化 Firebase
+        // 初始化
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
         let studentQueue = [];
         let classQueueRef = null;
 
-        // 取得網址參數
+        // 網址參數 ?class=1A
         const urlParams = new URLSearchParams(window.location.search);
         const className = urlParams.get('class');
 
@@ -146,7 +165,6 @@
         // 啟動程式
         initClassListener();
 
-        // 畫面更新
         function updateDisplay() {
             const container = document.getElementById('queue-container');
             const emptyState = document.getElementById('empty-state');
@@ -158,7 +176,7 @@
             }
             emptyState.style.display = 'none';
 
-            // 排序：舊的在上面
+            // 排序：舊的在上面 (先來的先處理)
             studentQueue.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
             studentQueue.forEach(student => {
@@ -167,41 +185,38 @@
                 
                 const time = new Date(student.timestamp).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
 
-                // ★★★ 這裡就是您要的 4 個按鈕 ★★★
+                // ★★★ 橫向排列的 4 個按鈕 ★★★
                 card.innerHTML = `
                     <div class="info">
-                        <div class="time">掃描時間: ${time}</div>
                         <h2>${student.name}</h2>
+                        <div class="time">掃描: ${time}</div>
                     </div>
                     <div class="actions">
-                        <button class="btn btn-1" onclick="handleResponse('${student.key}', '${student.name}', '收拾書包前往警衛室')">🎒 收拾書包<br>前往警衛室</button>
-                        <button class="btn btn-2" onclick="handleResponse('${student.key}', '${student.name}', '上廁所請稍候')">🚽 上廁所<br>請稍候</button>
-                        <button class="btn btn-3" onclick="handleResponse('${student.key}', '${student.name}', '班級在室外活動')">🌳 班級在<br>室外活動</button>
-                        <button class="btn btn-4" onclick="handleResponse('${student.key}', '${student.name}', '老師另外連絡家長')">☎️ 老師另外<br>連絡家長</button>
+                        <button class="btn btn-1" onclick="handleResponse('${student.key}', '${student.name}', '收拾書包前往警衛室')">📕<br>收拾書包</button>
+                        <button class="btn btn-2" onclick="handleResponse('${student.key}', '${student.name}', '上廁所請稍候')">🚽<br>上廁所</button>
+                        <button class="btn btn-3" onclick="handleResponse('${student.key}', '${student.name}', '班級在室外活動')">⚽️<br>室外活動</button>
+                        <button class="btn btn-4" onclick="handleResponse('${student.key}', '${student.name}', '老師另外連絡家長')">📞<br>另約家長</button>
                     </div>
                 `;
                 container.appendChild(card);
             });
         }
 
-        // --- 核心回應功能 (維持之前成功的寫入邏輯) ---
         function handleResponse(key, name, responseText) {
-            console.log(`準備回應: ${name}, 內容: ${responseText}`);
+            console.log(`回應: ${name}, 內容: ${responseText}`);
 
-            // 1. 發送給 Google 試算表 (使用 text/plain 確保成功)
+            // 1. 發送給 GAS (寫入日誌)
             fetch(GOOGLE_SCRIPT_URL, {
                 method: "POST",
                 headers: { "Content-Type": "text/plain" },
                 body: JSON.stringify({
-                    type: 'reply',       // 這是關鍵，後端只認這個 type
+                    type: 'reply', 
                     studentName: name,   
-                    response: responseText // 這裡就是您按鈕上的文字
+                    response: responseText
                 })
-            })
-            .then(() => console.log("✅ 日誌請求已發送"))
-            .catch(e => console.error("❌ 日誌發送失敗", e));
+            }).catch(e => console.error("日誌發送失敗", e));
 
-            // 2. 移除 Firebase 資料 (讓卡片消失)
+            // 2. 移除 Firebase 資料 (更新看板)
             if (classQueueRef) {
                 classQueueRef.child(key).remove();
             }
@@ -219,7 +234,7 @@
             }
         }
 
-        // 初始化監聽
+        // 監聽 Firebase
         function initClassListener() {
             if (!className) { 
                 document.querySelector('.header p').innerText = "請在網址後加上 ?class=1A"; 
