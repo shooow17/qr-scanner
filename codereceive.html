@@ -23,7 +23,6 @@
             box-sizing: border-box;
         }
 
-        /* 隱藏輸入框但保持聚焦 */
         #scannerInput { position: absolute; top: -1000px; opacity: 0; } 
 
         .container { 
@@ -167,7 +166,7 @@
 </head>
 <body>
 
-    <input type="text" id="scannerInput" autocomplete="off" />
+    <input type="password" id="scannerInput" autocomplete="off" />
     <audio id="scanSound" src="https://www.soundjay.com/buttons/beep-01a.mp3"></audio>
     <audio id="errorSound" src="https://www.soundjay.com/buttons/beep-05.mp3"></audio>
 
@@ -197,7 +196,6 @@
     </div>
 
     <script>
-        // --- 設定區 ---
         const firebaseConfig = {
           apiKey: "AIzaSyB_-fHCMhi-URwyBqzAIipmffWwvNgzJJc",
           authDomain: "qr-scanner-app-2c73d.firebaseapp.com",
@@ -207,7 +205,6 @@
           messagingSenderId: "385628927398",
           appId: "1:385628927398:web:00239f1b2acebd6e790b67"
         };
-        // 請確認這個網址是您最新部署的 GAS 網址
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZHGM5xMgNFn9Df6BXMVfSesT3BIfHN91NdZjLK5TkHdEOai476VNIlJaw61n3Bxg9CA/exec";
 
         firebase.initializeApp(firebaseConfig);
@@ -253,4 +250,190 @@
         function maskName(n) {
             if (!n) return "";
             if (n.length <= 1) return n;
-            if (n.length === 2) return n.substring(0, 1
+            if (n.length === 2) return n.substring(0, 1) + "O";
+            let masked = n.substring(0, 1);
+            masked += "O".repeat(n.length - 2);
+            masked += n.substring(n.length - 1);
+            return masked;
+        }
+
+        function renderGrid() {
+            const gridElement = document.getElementById('alert-grid');
+            gridElement.innerHTML = ''; 
+            const itemsToDisplay = alertHistory.slice(-MAX_ALERTS).reverse();
+
+            for (let i = 0; i < MAX_ALERTS; i++) {
+                const item = itemsToDisplay[i];
+                const cell = document.createElement('div');
+                if (item) {
+                    cell.className = (i === 0) ? 'alert-item newest' : 'alert-item normal';
+                    const localTime = new Date(item.timestamp).toLocaleString('zh-TW', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+                    
+                    cell.innerHTML = `
+                        <div class="delete-btn" onclick="deleteAlert('${item.key}')">×</div>
+                        <div class="alert-message">
+                            <span class="student-name">${maskName(item.name)} (${item.class || '未分班'})</span>
+                            <span class="status">${item.status}</span>
+                        </div>
+                        <span class="alert-time">${localTime}</span>
+                    `;
+                } else {
+                    cell.className = 'alert-item placeholder';
+                    cell.textContent = '---'; 
+                }
+                gridElement.appendChild(cell);
+            }
+        }
+
+        function deleteAlert(key) {
+            if (!confirm("刪除此訊息？")) return;
+            if (key) alertsRef.child(key).remove();
+            keepFocus(); 
+        }
+
+        function clearLocalScreen() {
+            if (!confirm("清除畫面資料？")) return;
+            alertHistory = [];
+            renderGrid();
+            keepFocus();
+        }
+
+        function exportReport() {
+            if (alertHistory.length === 0) return alert("無資料");
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF時間,班級,姓名,狀態\r\n";
+            [...alertHistory].reverse().forEach(item => {
+                const time = new Date(item.timestamp).toLocaleString('zh-TW');
+                csvContent += `"${time}","${item.class || ''}","${item.name}","${item.status}"\r\n`;
+            });
+            const link = document.createElement("a");
+            link.href = encodeURI(csvContent);
+            link.download = `報表_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+            keepFocus();
+        }
+
+        // --- 掃描功能 ---
+        function fetchStudentList() {
+            const statusEl = document.getElementById('loadingStatus');
+            fetch(`${GOOGLE_SCRIPT_URL}?op=students`)
+                .then(res => res.json())
+                .then(data => {
+                    allStudents = data;
+                    isDataReady = true;
+                    statusEl.textContent = `✅ 已更新 (${data.length}人)`;
+                    statusEl.classList.add('ready');
+                    // ★★★ 除錯工具：會在瀏覽器 Console 印出資料結構，方便確認欄位名稱 ★★★
+                    if(data.length > 0) {
+                        console.log("【名單格式檢查】第一筆資料內容：", data[0]);
+                        console.log("資料欄位列表：", Object.keys(data[0]));
+                    }
+                })
+                .catch(err => { statusEl.textContent = "❌ 下載失敗"; });
+        }
+
+        function setupScannerInput() {
+            const input = document.getElementById('scannerInput');
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    let content = this.value.trim();
+                    this.value = ''; 
+                    if (content.length > 0) processScan(fixGarbledInput(content));
+                }
+            });
+            input.addEventListener('blur', () => setTimeout(keepFocus, 100));
+        }
+
+        function keepFocus() { document.getElementById('scannerInput').focus(); }
+
+        function fixGarbledInput(str) {
+            const map = {'ㄅ':'1', 'ㄉ':'2', 'ˇ':'3', 'ˋ':'4', 'ㄓ':'5', 'ˊ':'6', '˙':'7', 'ㄚ':'8', 'ㄞ':'9', 'ㄢ':'0', 'ㄦ':'-'};
+            let fixedStr = '';
+            for (let char of str) fixedStr += map[char] || char;
+            return fixedStr;
+        }
+
+        function processScan(rawInput) {
+            if (isLocked) return;
+            if (!isDataReady) return alert("名單下載中...");
+
+            const searchId = rawInput.split('-')[0].trim();
+            // 在您的 CSV 中，學生學號欄位可能是 'id' 或 '學號'，這裡嘗試兩個
+            const student = allStudents.find(s => String(s.id || s['學號'] || '') === searchId);
+
+            if (student) {
+                playAudio('scanSound');
+                
+                // ★★★ 超級相容模式：抓取各種可能的班級欄位名稱 ★★★
+                // 順序：CSV欄位 '班級' -> 英文 'class' -> 英文 'className' -> 英文 'grade'
+                const studentClass = student['班級'] || student['class'] || student['className'] || student['grade'] || "(未分班)";
+                
+                // 姓名欄位也做一樣的保險
+                const studentName = student['姓名'] || student['name'] || "未知姓名";
+
+                showOverlay("success", studentName, studentClass);
+                pushToFirebaseQueue(studentName, studentClass, searchId);
+                logToGAS(studentName, studentClass);
+                
+                isLocked = true;
+                if(lockTimer) clearTimeout(lockTimer);
+                lockTimer = setTimeout(() => { isLocked = false; }, 1000);
+            } else {
+                playAudio('errorSound');
+                showOverlay("error", "查無此人", searchId);
+                isLocked = true;
+                if(lockTimer) clearTimeout(lockTimer);
+                lockTimer = setTimeout(() => { isLocked = false; }, 1000);
+            }
+        }
+
+        function showOverlay(type, nameText, classText) {
+            const overlay = document.getElementById('scanOverlay');
+            const card = document.getElementById('overlayCard');
+            const icon = document.getElementById('overlayIcon');
+            const mainEl = document.getElementById('overlayMainText');
+            const subEl = document.getElementById('overlaySubText');
+
+            if (type === 'success') {
+                card.className = "overlay-card success";
+                icon.textContent = "✅";
+                mainEl.textContent = `${nameText} ${classText}`;
+                subEl.textContent = "已發送訊息到班上";
+            } else {
+                card.className = "overlay-card error";
+                icon.textContent = "⚠️";
+                mainEl.textContent = nameText; 
+                subEl.textContent = "請確認條碼";
+            }
+
+            overlay.classList.add('show');
+            if (overlayTimer) clearTimeout(overlayTimer);
+            overlayTimer = setTimeout(() => { overlay.classList.remove('show'); }, 3000);
+        }
+
+        function pushToFirebaseQueue(name, className, id) {
+            const targetPath = (className && className !== "(未分班)") ? `queues/${className}` : `queues/unknown`;
+            database.ref(targetPath).push().set({
+                id: id,
+                name: name,
+                studentName: name,
+                class: className,     // 顯示端用
+                className: className, // 備份用
+                timestamp: new Date().toISOString(),
+                status: 'waiting'
+            });
+        }
+
+        function logToGAS(name, className) {
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: "POST", body: JSON.stringify({ type: 'scan', content: `${name} (${className})` }),
+                headers: { "Content-Type": "text/plain" }
+            }).catch(e => console.error("Log error", e));
+        }
+
+        function playAudio(id) {
+            const audio = document.getElementById(id);
+            if (audio) audio.play().catch(e => {});
+        }
+    </script>
+</body>
+</html>
