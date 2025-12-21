@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>班級老師即時看板</title>
+    <title>班級等候即時看板</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
@@ -111,7 +111,7 @@
     <div id="connection-status">連線中...</div>
 
     <div class="header">
-        <h1>班級即時看板</h1>
+        <h1>班級等候即時看板</h1>
         <p>等待家長接送通知...</p>
     </div>
 
@@ -195,7 +195,7 @@
                         <button class="btn btn-1" onclick="handleResponse('${student.key}', '${student.name}', '收拾書包前往警衛室')">📕<br>收拾書包</button>
                         <button class="btn btn-2" onclick="handleResponse('${student.key}', '${student.name}', '上廁所請稍候')">🚽<br>上廁所</button>
                         <button class="btn btn-3" onclick="handleResponse('${student.key}', '${student.name}', '班級在室外活動')">⚽️<br>室外活動</button>
-                        <button class="btn btn-4" onclick="handleResponse('${student.key}', '${student.name}', '老師另外連絡家長')">📞<br>另約家長</button>
+                        <button class="btn btn-4" onclick="handleResponse('${student.key}', '${student.name}', '老師另外連絡家長')">📲<br>另約家長</button>
                     </div>
                 `;
                 container.appendChild(card);
