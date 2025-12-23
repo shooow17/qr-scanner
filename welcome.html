@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>班級老師即時看板 (穩定版)</title>
+    <title>班級老師即時看板 (純淨音效版)</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
@@ -16,18 +16,24 @@
             box-sizing: border-box;
         }
         
-        /* 連線狀態燈 */
         #connection-status {
             position: fixed; top: 10px; right: 10px;
             padding: 8px 15px; border-radius: 50px;
             font-size: 0.9rem; font-weight: bold;
-            color: #333; background-color: #ccc; /* 預設灰色 */
+            color: #333; background-color: #ccc; 
             z-index: 200; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
 
         .header { text-align: center; margin-bottom: 20px; margin-top: 30px; }
         .header h1 { margin: 0; font-size: 2em; color: #2c3e50; }
-        .header p { color: #7f8c8d; font-size: 1em; margin-top: 5px; }
+
+        /* 設定區塊 */
+        .settings-bar {
+            background: white; padding: 10px 20px; border-radius: 50px;
+            margin-bottom: 20px; display: flex; gap: 15px; align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05); font-size: 0.9em;
+        }
+        .settings-bar label { cursor: pointer; display: flex; align-items: center; gap: 5px; }
 
         #queue-container { width: 100%; max-width: 900px; display: flex; flex-direction: column; gap: 15px; }
 
@@ -60,7 +66,6 @@
             border-radius: 5px; display: none; border: 1px solid #ef5350;
         }
         
-        /* 啟動音效遮罩 */
         #audio-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.85); z-index: 999;
@@ -77,71 +82,57 @@
 <body>
 
     <div id="audio-overlay" onclick="startSystem()">
-        <div>👆 點擊畫面開始 (Click to Start)</div>
+        <div>👆 點擊畫面開始 (Start)</div>
     </div>
 
     <div id="connection-status">連線初始化...</div>
 
     <div class="header">
         <h1>班級即時看板</h1>
-        <p>等待家長接送通知...</p>
+        <div class="settings-bar">
+            <label>
+                <input type="checkbox" id="tts-toggle"> 🗣️ 語音朗讀 (唸名字)
+            </label>
+            <button onclick="playDingDong()" style="margin-left:10px; padding:5px 10px;">🔔 測試音效</button>
+        </div>
     </div>
 
     <div id="debug-log"></div>
-
     <div id="queue-container"></div>
-
     <div id="empty-state" class="empty-state" style="display:none">
         <i>⌛️</i>
         <h2>目前沒有通知</h2>
     </div>
 
     <script>
-        // --- 1. 全域錯誤攔截 (確保您看得到錯誤) ---
         function showError(msg) {
             const logBox = document.getElementById('debug-log');
             logBox.style.display = 'block';
-            logBox.innerHTML = `⚠️ 系統錯誤: ${msg}<br>請截圖並聯絡管理員`;
+            logBox.innerHTML = `⚠️ 錯誤: ${msg}`;
             console.error(msg);
         }
-        window.onerror = function(msg, url, line) {
-            showError(`${msg} (Line:${line})`);
-        };
+        window.onerror = function(msg, url, line) { showError(`${msg} (Line:${line})`); };
 
-        // --- 2. 系統啟動函式 ---
         let audioCtx = null;
         
         function startSystem() {
-            // A. 不管怎樣，先移除遮罩，讓使用者能操作
             document.getElementById('audio-overlay').style.display = 'none';
-
-            // B. 初始化音效 (使用合成器，不讀取檔案)
             try {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
                 if (AudioContext) {
                     audioCtx = new AudioContext();
                     audioCtx.resume().then(() => {
                         console.log("音效引擎啟動");
-                        playDingDong(); // 測試播放一次
+                        // 啟動時播放一次，確認聲音正常
+                        playDingDong();
                     });
                 }
             } catch (e) {
-                console.warn("音效啟動失敗，但系統將繼續執行", e);
+                console.warn("音效啟動失敗", e);
             }
-
-            // C. 檢查 Firebase 連線是否卡住
-            setTimeout(() => {
-                const statusText = document.getElementById('connection-status').innerText;
-                if (statusText.includes("初始化")) {
-                    showError("Firebase 連線逾時，請檢查網路或防火牆設定");
-                    document.getElementById('connection-status').innerText = "🔴 連線失敗";
-                    document.getElementById('connection-status').style.backgroundColor = "#e74c3c";
-                    document.getElementById('connection-status').style.color = "white";
-                }
-            }, 5000); // 5秒後檢查
         }
 
-        // --- 3. 合成音效函式 (產生叮咚聲) ---
+        // --- 柔和版合成音效 (消除爆音) ---
         function playDingDong() {
             if (!audioCtx) return;
             const now = audioCtx.currentTime;
@@ -149,10 +140,14 @@
             // 第一聲 (高音 Mi)
             const osc1 = audioCtx.createOscillator();
             const gain1 = audioCtx.createGain();
-            osc1.type = 'sine';
-            osc1.frequency.setValueAtTime(659.25, now); // E5
-            gain1.gain.setValueAtTime(0.5, now);
-            gain1.gain.exponentialRampToValueAtTime(0.01, now + 1);
+            osc1.type = 'sine'; // 正弦波最圓潤
+            osc1.frequency.setValueAtTime(659.25, now);
+            
+            // ★關鍵：使用漸強 (Ramp) 來避免瞬間嗶聲
+            gain1.gain.setValueAtTime(0, now); 
+            gain1.gain.linearRampToValueAtTime(0.5, now + 0.05); // 0.05秒淡入
+            gain1.gain.exponentialRampToValueAtTime(0.01, now + 1); // 淡出
+            
             osc1.connect(gain1);
             gain1.connect(audioCtx.destination);
             osc1.start(now);
@@ -162,16 +157,20 @@
             const osc2 = audioCtx.createOscillator();
             const gain2 = audioCtx.createGain();
             osc2.type = 'sine';
-            osc2.frequency.setValueAtTime(523.25, now + 0.6); // C5
-            gain2.gain.setValueAtTime(0.5, now + 0.6);
+            osc2.frequency.setValueAtTime(523.25, now + 0.6);
+            
+            // 同樣使用漸強
+            gain2.gain.setValueAtTime(0, now + 0.6);
+            gain2.gain.linearRampToValueAtTime(0.5, now + 0.65);
             gain2.gain.exponentialRampToValueAtTime(0.01, now + 2);
+            
             osc2.connect(gain2);
             gain2.connect(audioCtx.destination);
             osc2.start(now + 0.6);
             osc2.stop(now + 2);
         }
 
-        // --- 4. 主程式邏輯 ---
+        // --- 主程式 ---
         try {
             const firebaseConfig = {
                 apiKey: "AIzaSyB_-fHCMhi-URwyBqzAIipmffWwvNgzJJc",
@@ -193,7 +192,6 @@
             const urlParams = new URLSearchParams(window.location.search);
             const className = urlParams.get('class');
 
-            // 監聽連線
             database.ref(".info/connected").on("value", (snap) => {
                 const statusEl = document.getElementById('connection-status');
                 if (snap.val() === true) {
@@ -212,6 +210,7 @@
             } else {
                 document.querySelector('.header h1').innerText = `${className} 班即時看板`;
                 classQueueRef = database.ref(`queues/${className}`);
+                // 讀取過去 12 小時的資料
                 const startTime = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
 
                 classQueueRef.orderByChild('timestamp').startAt(startTime).on('child_added', (snapshot) => {
@@ -222,10 +221,12 @@
                         studentQueue.push(data);
                         updateDisplay();
                         
-                        // 播放合成音效
+                        // 1. 播放柔和版叮咚
                         playDingDong();
                         
-                        if ('speechSynthesis' in window) {
+                        // 2. 只有在開關打開時，才唸名字
+                        const ttsToggle = document.getElementById('tts-toggle');
+                        if (ttsToggle && ttsToggle.checked && 'speechSynthesis' in window) {
                             setTimeout(() => {
                                 const u = new SpeechSynthesisUtterance(`${data.name}同學，家長來接囉`);
                                 u.lang = 'zh-TW';
