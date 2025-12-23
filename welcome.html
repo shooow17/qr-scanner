@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>班級老師即時看板1223</title>
+    <title>班級老師即時看板</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
@@ -61,7 +61,6 @@
         .info h2 { margin: 0; font-size: 1.8em; color: #2c3e50; }
         .info .time { color: #95a5a6; font-size: 0.9em; }
 
-        /* 按鈕區：橫向排列 */
         .actions { 
             display: flex;
             gap: 8px;
@@ -86,15 +85,29 @@
         .btn:active { transform: scale(0.95); }
         .btn:hover { opacity: 0.9; }
 
-        /* 四種按鈕顏色 */
-        .btn-1 { background: #2ecc71; } /* 綠色 */
-        .btn-2 { background: #f39c12; } /* 橘色 */
-        .btn-3 { background: #3498db; } /* 藍色 */
-        .btn-4 { background: #e74c3c; } /* 紅色 */
+        .btn-1 { background: #2ecc71; } 
+        .btn-2 { background: #f39c12; } 
+        .btn-3 { background: #3498db; } 
+        .btn-4 { background: #e74c3c; } 
 
         .empty-state { text-align: center; margin-top: 80px; color: #bdc3c7; }
         .empty-state i { font-size: 5em; display: block; margin-bottom: 20px; font-style: normal; }
         
+        /* 加入一個啟動遮罩，確保音效能正常播放 */
+        #start-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); z-index: 999;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer;
+        }
+        #start-overlay div {
+            background: white; padding: 30px; border-radius: 15px;
+            text-align: center; font-size: 1.5em; font-weight: bold;
+            box-shadow: 0 0 20px rgba(255,255,255,0.5);
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+
         @media (max-width: 400px) {
             .btn { font-size: 0.8em; padding: 8px 0; }
             .info h2 { font-size: 1.5em; }
@@ -102,6 +115,10 @@
     </style>
 </head>
 <body>
+
+    <div id="start-overlay" onclick="enableAudio()">
+        <div>👆 點擊畫面啟用音效通知</div>
+    </div>
 
     <div id="connection-status">連線中...</div>
 
@@ -118,7 +135,6 @@
     </div>
 
     <script>
-        // --- 1. Firebase 設定 ---
         const firebaseConfig = {
             apiKey: "AIzaSyB_-fHCMhi-URwyBqzAIipmffWwvNgzJJc",
             authDomain: "qr-scanner-app-2c73d.firebaseapp.com",
@@ -128,178 +144,128 @@
             messagingSenderId: "385628927398",
             appId: "1:385628927398:web:00239f1b2acebd6e790b67"
         };
-        
-        // ★★★ 請確認這是您最新部署的 GAS 網址 ★★★
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZHGM5xMgNFn9Df6BXMVfSesT3BIfHN91NdZjLK5TkHdEOai476VNIlJaw61n3Bxg9CA/exec";
 
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
-
-        // 建立對 alerts 的引用，這是警衛室在聽的頻道
         const alertsRef = database.ref("alerts");
-
         let studentQueue = [];
         let classQueueRef = null;
-
-        // 網址參數 ?class=1A
         const urlParams = new URLSearchParams(window.location.search);
         const className = urlParams.get('class');
 
-        // 連線狀態
-        database.ref(".info/connected").on("value", (snap) => {
-            const statusEl = document.getElementById('connection-status');
-            if (snap.val() === true) {
-                statusEl.innerText = "🟢 連線正常";
-                statusEl.style.backgroundColor = "#27ae60";
-            } else {
-                statusEl.innerText = "🔴 断線重連中";
-                statusEl.style.backgroundColor = "#e74c3c";
+        // ★★★ 替換為 Base64 音效 (乾淨的叮咚聲，無外部連結，讀取更快) ★★★
+        const dingDongBase64 = "data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGl2b21lZGlhLmNvbQBURU5DAAAADQAAA3N3aXRjaCBQbHVzAP/7kGQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABYaW5nAAAAEDAAAAAUAADBAAswMDExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTEx//uQZAAABiV/UwwkQAAAAA0gAAABF1W00sZIAAAAAaQAAAAgACgAOAA8AFAAXABoAHwAjACgALAAwADQAOAA8AEAARABIAEwAUABVAFYAVwBYAFkAWgBbAFwAXQBeAF8AYABhAGIAYwBkAGUAZgBnAGgAaQBqAGsAbABtAG4AbwBwAHEAcgBzAHQAdQB2AHcAeAB5AHoAewB8AH0AfwCAAIEAggCDAIQAhQCGAIcAiACJAIoAiwCMAI0AjgCPAJAAkQCSAJMAlACVAJYAlwCYAJkAmgCbAJwAnQCeAJ8AoAChAKIAowCkAKUApgCnAKgAqQCqAKsArACtAK4ArwCwALEAsgCzALQAtQC2ALcAuAC5ALoAuwC8AL0AvgC/AMAAwQDCAMMAxADFAMYAxwDIAMkAyjwA//uQZAEABllW0ssZIAAAAAaQAAAAZZVtLLGSAAAAAGkAAAAAAA8AAQACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAA//uQZA2AA45W1FMJFAAAAAaQAAAAOPVtSDCRQAAAAGkAAAAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAA//uQZA+AA6VW1NMJFAAAAAaQAAAAOhVtSzCRQAAAAGkAAAAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAA//uQZBOAA7VW09MJFAAAAAaQAAAAOxVtTTCRQAAAAGkAAAAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAA//uQZBWAA7dW08MJFAAAAAaQAAAAOzVtTDCRQAAAAGkAAAAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAA//uQZBgAA6lW08sJFAAAAAaQAAAAO3VtPDCRQAAAAGkAAAAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAA//uQZB2AA9NW0ssJFAAAAAaQAAAAO4VtPDCRQAAAAGkAAAAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAA//uQZCoAA8BW09MJFAAAAAaQAAAAO5VtPDCRQAAAAGkAAAAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAA//uQZEAAA9lW01MJFAAAAAaQAAAAAAAB4AAAAgAAAABAAAAAAACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAA//uQZEAAA9hW1FMsJFAAAAAaQAAAAAAAB4AAAAgAAAABAAAAAAACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAA//uQZEAAA9hW1FMsJFAAAAAaQAAAAAAAB4AAAAgAAAABAAAAAAACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAA//uQZEAAA9hW1FMsJFAAAAAaQAAAAAAAB4AAAAgAAAABAAAAAAACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAA//uQZEAAA9hW1FMsJFAAAAAaQAAAAAAAB4AAAAgAAAABAAAAAAACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAA//uQZEAAA9hW1FMsJFAAAAAaQAAAAAAAB4AAAAgAAAABAAAAAAACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAA";
+
+        // 預先載入音效
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        let audioBuffer = null;
+
+        function enableAudio() {
+            // 點擊後啟用音效環境
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
             }
+            // 移除遮罩
+            document.getElementById('start-overlay').style.display = 'none';
+            // 播放一次靜音以解鎖 iOS/Android 限制
+            playTone(0, 0);
+        }
+
+        // 解碼 Base64
+        function base64ToArrayBuffer(base64) {
+            const binaryString = window.atob(base64.split(',')[1]);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        // 載入音訊
+        audioContext.decodeAudioData(base64ToArrayBuffer(dingDongBase64), (buffer) => {
+            audioBuffer = buffer;
+        });
+
+        function playTone(freq, duration) {
+            // 這裡不發出聲音，只為了觸發 AudioContext
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            gain.gain.value = 0;
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+            osc.start();
+            osc.stop(audioContext.currentTime + 0.01);
+        }
+
+        function playDingDong() {
+            if (audioBuffer) {
+                const source = audioContext.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(audioContext.destination);
+                source.start(0);
+            }
+        }
+
+        database.ref(".info/connected").on("value", s => { 
+            document.getElementById('connection-status').innerText = s.val() ? "🟢 連線正常" : "🔴 断線重連中"; 
+            document.getElementById('connection-status').style.backgroundColor = s.val() ? "#27ae60" : "#e74c3c"; 
         });
 
         initClassListener();
 
         function updateDisplay() {
             const container = document.getElementById('queue-container');
-            const emptyState = document.getElementById('empty-state');
             container.innerHTML = '';
-
-            if (studentQueue.length === 0) {
-                emptyState.style.display = 'block';
-                return;
-            }
-            emptyState.style.display = 'none';
-
-            studentQueue.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-
-            studentQueue.forEach(student => {
-                const card = document.createElement('div');
-                card.className = 'student-card';
-                
-                const time = new Date(student.timestamp).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
-
-                // ★★★ 重點：傳遞 class 參數給 handleResponse ★★★
-                const sClass = student.class || className || "未分班";
-
-                card.innerHTML = `
-                    <div class="info">
-                        <h2>${student.name}</h2>
-                        <div class="time">掃描: ${time}</div>
-                    </div>
-                    <div class="actions">
-                        <button class="btn btn-1" onclick="handleResponse('${student.key}', '${student.name}', '${sClass}', '收拾書包前往警衛室')">📗<br>收拾書包</button>
-                        <button class="btn btn-2" onclick="handleResponse('${student.key}', '${student.name}', '${sClass}', '上廁所請稍候')">🚽<br>上廁所</button>
-                        <button class="btn btn-3" onclick="handleResponse('${student.key}', '${student.name}', '${sClass}', '班級在室外活動')">⚽️<br>室外活動</button>
-                        <button class="btn btn-4" onclick="handleResponse('${student.key}', '${student.name}', '${sClass}', '老師另外連絡家長')">📲<br>另約家長</button>
-                    </div>
-                `;
+            if (!studentQueue.length) { document.getElementById('empty-state').style.display = 'block'; return; }
+            document.getElementById('empty-state').style.display = 'none';
+            studentQueue.sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
+            studentQueue.forEach(s => {
+                const card = document.createElement('div'); card.className = 'student-card';
+                const sClass = s.class || className || "未分班";
+                card.innerHTML = `<div class="info"><h2>${s.name}</h2><div class="time">掃描: ${new Date(s.timestamp).toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'})}</div></div>
+                <div class="actions">
+                    <button class="btn btn-1" onclick="handleResponse('${s.key}','${s.name}','${sClass}','收拾書包前往警衛室')">📗<br>收拾書包</button>
+                    <button class="btn btn-2" onclick="handleResponse('${s.key}','${s.name}','${sClass}','上廁所請稍候')">🚽<br>上廁所</button>
+                    <button class="btn btn-3" onclick="handleResponse('${s.key}','${s.name}','${sClass}','班級在室外活動')">⚽️<br>室外活動</button>
+                    <button class="btn btn-4" onclick="handleResponse('${s.key}','${s.name}','${sClass}','老師另外連絡家長')">📲<br>另約家長</button>
+                </div>`;
                 container.appendChild(card);
             });
         }
 
-        // --- ★★★ 核心修正：三管齊下通知 ★★★ ---
         function handleResponse(key, name, sClass, responseText) {
-            console.log(`回應: ${name}, 內容: ${responseText}`);
-
-            // 1. 【通知日誌】發送給 GAS
-            fetch(GOOGLE_SCRIPT_URL, {
-                method: "POST",
-                headers: { "Content-Type": "text/plain" },
-                body: JSON.stringify({
-                    type: 'reply', 
-                    studentName: name,   
-                    response: responseText
-                })
-            }).catch(e => console.error("日誌發送失敗", e));
-
-            // 2. 【通知警衛】推播到 Firebase alerts
-            const now = new Date().toISOString();
-            alertsRef.push({
-                name: name,
-                class: sClass,
-                status: responseText,
-                timestamp: now
-            }).then(() => console.log("✅ 已通知警衛室"));
-
-            // 3. 【更新看板】從 queues 移除 (自己畫面消失)
-            if (classQueueRef) {
-                classQueueRef.child(key).remove();
-            }
-        }
-
-        // ★★★ 新增：純程式產生「叮咚─叮咚」門鈴聲 ★★★
-        let audioContext = null;
-
-        function playDingDong() {
-            if (!audioContext) {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            }
-
-            function playNote(freq, delay = 0) {
-                const osc = audioContext.createOscillator();
-                const gain = audioContext.createGain();
-                
-                osc.type = 'sine';
-                osc.frequency.value = freq;
-                
-                gain.gain.setValueAtTime(0, audioContext.currentTime + delay);
-                gain.gain.linearRampToValueAtTime(0.4, audioContext.currentTime + delay + 0.01);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + delay + 0.6);
-                
-                osc.connect(gain);
-                gain.connect(audioContext.destination);
-                
-                osc.start(audioContext.currentTime + delay);
-                osc.stop(audioContext.currentTime + delay + 0.6);
-            }
-
-            // 第一組：叮─咚
-            playNote(523, 0);      // 叮 (C5)
-            playNote(392, 0.25);   // 咚 (G4)
-
-            // 第二組：叮─咚（延遲 0.8 秒後重複）
-            playNote(523, 0.8);
-            playNote(392, 1.05);
-        }
-
-        // ★★★ 改進語音播報：先清空佇列，減少系統嗶聲 ★★★
-        function speak(text) {
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel(); // 清空佇列，減少嗶聲機會
-
-                const u = new SpeechSynthesisUtterance(text);
-                u.lang = 'zh-TW';
-                u.rate = 1;
-                window.speechSynthesis.speak(u);
-            }
+            fetch(GOOGLE_SCRIPT_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ type: 'reply', studentName: name, response: responseText }) }).catch(e=>console.error(e));
+            alertsRef.push({ name: name, class: sClass, status: responseText, timestamp: new Date().toISOString() });
+            if (classQueueRef) classQueueRef.child(key).remove();
         }
 
         function initClassListener() {
-            if (!className) { 
-                document.querySelector('.header p').innerText = "請在網址後加上 ?class=1A"; 
-                return; 
-            }
+            if (!className) { document.querySelector('.header p').innerText = "請在網址後加上 ?class=1A"; return; }
             document.querySelector('.header h1').innerText = `${className} 班即時看板`;
-            
             classQueueRef = database.ref(`queues/${className}`);
-            const startTime = new Date().toISOString();
+            const startTime = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
             
-            classQueueRef.orderByChild('timestamp').startAt(startTime).on('child_added', (snapshot) => {
-                const data = snapshot.val();
-                data.key = snapshot.key;
-
+            classQueueRef.orderByChild('timestamp').startAt(startTime).on('child_added', snapshot => {
+                const data = snapshot.val(); data.key = snapshot.key;
                 if (!studentQueue.find(s => s.key === data.key)) {
-                    studentQueue.push(data);
-                    updateDisplay();
-                    playDingDong();  // 純程式叮咚兩次
-                    setTimeout(() => speak(`${data.name}同學，家長來接囉`), 1500); // 延遲讓叮咚先播完
+                    studentQueue.push(data); updateDisplay();
+                    
+                    // ★★★ 改用優化後的播放函式 ★★★
+                    playDingDong();
+                    
+                    // 稍微延遲語音，避免聲音重疊或產生雜訊
+                    if('speechSynthesis' in window) { 
+                        setTimeout(() => {
+                            const u = new SpeechSynthesisUtterance(`${data.name}同學，家長來接囉`); 
+                            u.lang='zh-TW'; 
+                            window.speechSynthesis.speak(u); 
+                        }, 1500);
+                    }
                 }
             });
-
-            classQueueRef.on('child_removed', (snapshot) => {
-                studentQueue = studentQueue.filter(s => s.key !== snapshot.key);
-                updateDisplay();
-            });
+            classQueueRef.on('child_removed', snapshot => { studentQueue = studentQueue.filter(s => s.key !== snapshot.key); updateDisplay(); });
         }
     </script>
 </body>
