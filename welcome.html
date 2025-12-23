@@ -96,7 +96,7 @@
                     audioCtx = new AudioContext();
                     audioCtx.resume().then(() => {
                         console.log("音效引擎啟動");
-                        playDingDong(); // 測試播一次
+
                     });
                 }
             } catch (e) {
@@ -147,7 +147,7 @@
                 // 2. 英文
                 // "Hi! Student, your parent is here"
                 // 這裡我們直接把名字拼音放進去，雖然讀音可能不完美，但外籍老師聽得懂
-                const u2 = new SpeechSynthesisUtterance(`Student ${name}, your parent is here.`);
+                const u2 = new SpeechSynthesisUtterance(`Hi! Student , your parent is here.`);
                 u2.lang = 'en-US';
                 u2.rate = 0.9;
 
