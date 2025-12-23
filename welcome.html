@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>班級老師即時看板</title>
+    <title>班級老師即時看板1223</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
@@ -117,8 +117,6 @@
         <h2>目前沒有通知</h2>
     </div>
 
-    <audio id="notification-sound" src="https://www.orangefreesounds.com/wp-content/uploads/2021/08/Traditional-ding-dong-doorbell-sound.mp3"></audio>
-
     <script>
         // --- 1. Firebase 設定 ---
         const firebaseConfig = {
@@ -181,8 +179,6 @@
                 const time = new Date(student.timestamp).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
 
                 // ★★★ 重點：傳遞 class 參數給 handleResponse ★★★
-                // 我們需要知道學生的班級，才能正確通知警衛室
-                // student.class 是從 codereceive 傳過來的
                 const sClass = student.class || className || "未分班";
 
                 card.innerHTML = `
@@ -217,7 +213,6 @@
             }).catch(e => console.error("日誌發送失敗", e));
 
             // 2. 【通知警衛】推播到 Firebase alerts
-            // 這就是 codereceive.html 正在監聽的頻道！
             const now = new Date().toISOString();
             alertsRef.push({
                 name: name,
@@ -232,13 +227,49 @@
             }
         }
 
-        function playNotificationSound() {
-            document.getElementById('notification-sound').play().catch(()=>{});
+        // ★★★ 新增：純程式產生「叮咚─叮咚」門鈴聲 ★★★
+        let audioContext = null;
+
+        function playDingDong() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+
+            function playNote(freq, delay = 0) {
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+                
+                gain.gain.setValueAtTime(0, audioContext.currentTime + delay);
+                gain.gain.linearRampToValueAtTime(0.4, audioContext.currentTime + delay + 0.01);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + delay + 0.6);
+                
+                osc.connect(gain);
+                gain.connect(audioContext.destination);
+                
+                osc.start(audioContext.currentTime + delay);
+                osc.stop(audioContext.currentTime + delay + 0.6);
+            }
+
+            // 第一組：叮─咚
+            playNote(523, 0);      // 叮 (C5)
+            playNote(392, 0.25);   // 咚 (G4)
+
+            // 第二組：叮─咚（延遲 0.8 秒後重複）
+            playNote(523, 0.8);
+            playNote(392, 1.05);
         }
+
+        // ★★★ 改進語音播報：先清空佇列，減少系統嗶聲 ★★★
         function speak(text) {
             if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel(); // 清空佇列，減少嗶聲機會
+
                 const u = new SpeechSynthesisUtterance(text);
-                u.lang = 'zh-TW'; u.rate = 1; 
+                u.lang = 'zh-TW';
+                u.rate = 1;
                 window.speechSynthesis.speak(u);
             }
         }
@@ -260,8 +291,8 @@
                 if (!studentQueue.find(s => s.key === data.key)) {
                     studentQueue.push(data);
                     updateDisplay();
-                    playNotificationSound();
-                    setTimeout(() => speak(`${data.name}同學，家長來接囉`), 1000);
+                    playDingDong();  // 純程式叮咚兩次
+                    setTimeout(() => speak(`${data.name}同學，家長來接囉`), 1500); // 延遲讓叮咚先播完
                 }
             });
 
