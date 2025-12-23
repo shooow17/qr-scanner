@@ -235,13 +235,13 @@
         // function playNotificationSound() {
             document.getElementById('notification-sound').play().catch(()=>{});
         }
-        function speak(text) {
-            if ('speechSynthesis' in window) {
-                const u = new SpeechSynthesisUtterance(text);
-                u.lang = 'zh-TW'; u.rate = 1; 
-                window.speechSynthesis.speak(u);
-            }
-        }
+function speak(text) {
+    if ('speechSynthesis' in window) {
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'zh-TW'; u.rate = 1; 
+        window.speechSynthesis.speak(u);
+    }
+}
 
         function initClassListener() {
             if (!className) { 
