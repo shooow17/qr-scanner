@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>班級老師即時看板 (穩定版)</title>
+    <title>班級老師即時看板 (中英雙語版)</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
@@ -16,12 +16,11 @@
             box-sizing: border-box;
         }
         
-        /* 連線狀態燈 */
         #connection-status {
             position: fixed; top: 10px; right: 10px;
             padding: 8px 15px; border-radius: 50px;
             font-size: 0.9rem; font-weight: bold;
-            color: #333; background-color: #ccc; /* 預設灰色 */
+            color: #333; background-color: #ccc; 
             z-index: 200; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
 
@@ -51,14 +50,6 @@
 
         .empty-state { text-align: center; margin-top: 80px; color: #bdc3c7; }
         .empty-state i { font-size: 5em; display: block; margin-bottom: 20px; font-style: normal; }
-
-        /* 除錯區塊 */
-        #debug-log {
-            width: 100%; max-width: 900px; margin-top: 10px;
-            background: #ffebee; color: #c62828; padding: 10px;
-            font-family: monospace; font-size: 0.9em;
-            border-radius: 5px; display: none; border: 1px solid #ef5350;
-        }
         
         /* 啟動音效遮罩 */
         #audio-overlay {
@@ -77,7 +68,7 @@
 <body>
 
     <div id="audio-overlay" onclick="startSystem()">
-        <div>👆 點擊畫面開始 (Click to Start)</div>
+        <div>👆 點擊畫面開始 (Start System)</div>
     </div>
 
     <div id="connection-status">連線初始化...</div>
@@ -85,213 +76,216 @@
     <div class="header">
         <h1>班級即時看板</h1>
         <p>等待家長接送通知...</p>
+        <button onclick="playDingDong()" style="margin-top:10px; padding:5px 15px; border-radius:20px; border:1px solid #ccc; background:white; cursor:pointer;">🔔 測試音效</button>
     </div>
 
-    <div id="debug-log"></div>
-
     <div id="queue-container"></div>
-
     <div id="empty-state" class="empty-state" style="display:none">
         <i>⌛️</i>
         <h2>目前沒有通知</h2>
     </div>
 
     <script>
-        // --- 1. 全域錯誤攔截 (確保您看得到錯誤) ---
-        function showError(msg) {
-            const logBox = document.getElementById('debug-log');
-            logBox.style.display = 'block';
-            logBox.innerHTML = `⚠️ 系統錯誤: ${msg}<br>請截圖並聯絡管理員`;
-            console.error(msg);
-        }
-        window.onerror = function(msg, url, line) {
-            showError(`${msg} (Line:${line})`);
-        };
-
-        // --- 2. 系統啟動函式 ---
         let audioCtx = null;
         
         function startSystem() {
-            // A. 不管怎樣，先移除遮罩，讓使用者能操作
             document.getElementById('audio-overlay').style.display = 'none';
-
-            // B. 初始化音效 (使用合成器，不讀取檔案)
             try {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
                 if (AudioContext) {
                     audioCtx = new AudioContext();
                     audioCtx.resume().then(() => {
                         console.log("音效引擎啟動");
-                        playDingDong(); // 測試播放一次
+                        playDingDong(); // 測試播一次
                     });
                 }
             } catch (e) {
-                console.warn("音效啟動失敗，但系統將繼續執行", e);
+                console.warn("音效啟動失敗", e);
             }
-
-            // C. 檢查 Firebase 連線是否卡住
-            setTimeout(() => {
-                const statusText = document.getElementById('connection-status').innerText;
-                if (statusText.includes("初始化")) {
-                    showError("Firebase 連線逾時，請檢查網路或防火牆設定");
-                    document.getElementById('connection-status').innerText = "🔴 連線失敗";
-                    document.getElementById('connection-status').style.backgroundColor = "#e74c3c";
-                    document.getElementById('connection-status').style.color = "white";
-                }
-            }, 5000); // 5秒後檢查
         }
 
-        // --- 3. 合成音效函式 (產生叮咚聲) ---
+        // --- 柔和版叮咚聲 (合成音效，無雜訊) ---
         function playDingDong() {
             if (!audioCtx) return;
             const now = audioCtx.currentTime;
             
-            // 第一聲 (高音 Mi)
+            // 第一聲 (Mi - 329Hz)
             const osc1 = audioCtx.createOscillator();
             const gain1 = audioCtx.createGain();
-            osc1.type = 'sine';
-            osc1.frequency.setValueAtTime(659.25, now); // E5
-            gain1.gain.setValueAtTime(0.5, now);
-            gain1.gain.exponentialRampToValueAtTime(0.01, now + 1);
-            osc1.connect(gain1);
-            gain1.connect(audioCtx.destination);
-            osc1.start(now);
-            osc1.stop(now + 1);
+            osc1.type = 'sine'; 
+            osc1.frequency.setValueAtTime(329.63, now); 
+            gain1.gain.setValueAtTime(0, now); 
+            gain1.gain.linearRampToValueAtTime(0.5, now + 0.1); 
+            gain1.gain.exponentialRampToValueAtTime(0.001, now + 1.2); 
+            osc1.connect(gain1); gain1.connect(audioCtx.destination);
+            osc1.start(now); osc1.stop(now + 1.2);
 
-            // 第二聲 (低音 Do) - 延遲 0.6 秒
+            // 第二聲 (Do - 261Hz)
             const osc2 = audioCtx.createOscillator();
             const gain2 = audioCtx.createGain();
             osc2.type = 'sine';
-            osc2.frequency.setValueAtTime(523.25, now + 0.6); // C5
-            gain2.gain.setValueAtTime(0.5, now + 0.6);
-            gain2.gain.exponentialRampToValueAtTime(0.01, now + 2);
-            osc2.connect(gain2);
-            gain2.connect(audioCtx.destination);
-            osc2.start(now + 0.6);
-            osc2.stop(now + 2);
+            osc2.frequency.setValueAtTime(261.63, now + 0.8); 
+            gain2.gain.setValueAtTime(0, now + 0.8);
+            gain2.gain.linearRampToValueAtTime(0.5, now + 0.9);
+            gain2.gain.exponentialRampToValueAtTime(0.001, now + 2.5);
+            osc2.connect(gain2); gain2.connect(audioCtx.destination);
+            osc2.start(now + 0.8); osc2.stop(now + 2.5);
         }
 
-        // --- 4. 主程式邏輯 ---
-        try {
-            const firebaseConfig = {
-                apiKey: "AIzaSyB_-fHCMhi-URwyBqzAIipmffWwvNgzJJc",
-                authDomain: "qr-scanner-app-2c73d.firebaseapp.com",
-                databaseURL: "https://qr-scanner-app-2c73d-default-rtdb.asia-southeast1.firebasedatabase.app",
-                projectId: "qr-scanner-app-2c73d",
-                storageBucket: "qr-scanner-app-2c73d.firebasestorage.app",
-                messagingSenderId: "385628927398",
-                appId: "1:385628927398:web:00239f1b2acebd6e790b67"
-            };
-            const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZHGM5xMgNFn9Df6BXMVfSesT3BIfHN91NdZjLK5TkHdEOai476VNIlJaw61n3Bxg9CA/exec";
+        // --- ★★★ 核心修正：中英雙語廣播 ★★★ ---
+        function speak(name) {
+            if ('speechSynthesis' in window) {
+                const synth = window.speechSynthesis;
+                synth.cancel(); // 停止之前的語音
 
-            if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-            const database = firebase.database();
-            const alertsRef = database.ref("alerts");
-            let studentQueue = [];
-            let classQueueRef = null;
-            
-            const urlParams = new URLSearchParams(window.location.search);
-            const className = urlParams.get('class');
+                // 1. 中文 (含名字)
+                // "王小明同學，家長來接囉"
+                const u1 = new SpeechSynthesisUtterance(`${name}同學，家長來接囉`);
+                u1.lang = 'zh-TW';
+                u1.rate = 1;
 
-            // 監聽連線
-            database.ref(".info/connected").on("value", (snap) => {
-                const statusEl = document.getElementById('connection-status');
-                if (snap.val() === true) {
-                    statusEl.innerText = "🟢 連線正常";
-                    statusEl.style.backgroundColor = "#27ae60";
-                    statusEl.style.color = "white";
-                } else {
-                    statusEl.innerText = "🔴 断線重連中";
-                    statusEl.style.backgroundColor = "#e74c3c";
-                    statusEl.style.color = "white";
+                // 2. 英文
+                // "Hi! Student, your parent is here"
+                // 這裡我們直接把名字拼音放進去，雖然讀音可能不完美，但外籍老師聽得懂
+                const u2 = new SpeechSynthesisUtterance(`Student ${name}, your parent is here.`);
+                u2.lang = 'en-US';
+                u2.rate = 0.9;
+
+                // 依序排隊播放
+                synth.speak(u1);
+                
+                // 加一點點停頓
+                const pause = new SpeechSynthesisUtterance('');
+                pause.text = ' '; pause.pause = 0.5;
+                synth.speak(pause);
+                
+                synth.speak(u2);
+            }
+        }
+
+        // --- 主程式 ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyB_-fHCMhi-URwyBqzAIipmffWwvNgzJJc",
+            authDomain: "qr-scanner-app-2c73d.firebaseapp.com",
+            databaseURL: "https://qr-scanner-app-2c73d-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "qr-scanner-app-2c73d",
+            storageBucket: "qr-scanner-app-2c73d.firebasestorage.app",
+            messagingSenderId: "385628927398",
+            appId: "1:385628927398:web:00239f1b2acebd6e790b67"
+        };
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZHGM5xMgNFn9Df6BXMVfSesT3BIfHN91NdZjLK5TkHdEOai476VNIlJaw61n3Bxg9CA/exec";
+
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const alertsRef = database.ref("alerts");
+        let studentQueue = [];
+        let classQueueRef = null;
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const className = urlParams.get('class');
+
+        database.ref(".info/connected").on("value", (snap) => {
+            const statusEl = document.getElementById('connection-status');
+            if (snap.val() === true) {
+                statusEl.innerText = "🟢 連線正常";
+                statusEl.style.backgroundColor = "#27ae60";
+                statusEl.style.color = "white";
+            } else {
+                statusEl.innerText = "🔴 断線重連中";
+                statusEl.style.backgroundColor = "#e74c3c";
+                statusEl.style.color = "white";
+            }
+        });
+
+        if (!className) {
+            document.querySelector('.header p').innerText = "請在網址後加上 ?class=1A";
+        } else {
+            document.querySelector('.header h1').innerText = `${className} 班即時看板`;
+            classQueueRef = database.ref(`queues/${className}`);
+            const startTime = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
+
+            classQueueRef.orderByChild('timestamp').startAt(startTime).on('child_added', (snapshot) => {
+                const data = snapshot.val();
+                data.key = snapshot.key;
+
+                // 檢查是否重複 (1分鐘內)
+                const sameStudentEntries = studentQueue.filter(s => s.id === data.id);
+                let shouldAdd = true;
+                if (sameStudentEntries.length > 0) {
+                    const lastEntry = sameStudentEntries[sameStudentEntries.length - 1];
+                    const lastTime = new Date(lastEntry.timestamp).getTime();
+                    const newTime = new Date(data.timestamp).getTime();
+                    if (newTime - lastTime < 60000) shouldAdd = false;
+                }
+
+                if (shouldAdd) {
+                    studentQueue.push(data);
+                    updateDisplay();
+                    
+                    // 1. 叮咚 (無爆音)
+                    playDingDong();
+                    
+                    // 2. 延遲後開始雙語播報
+                    // 延遲是為了讓叮咚聲先播完，避免聲音打架
+                    setTimeout(() => {
+                        speak(data.name);
+                    }, 1500);
                 }
             });
 
-            if (!className) {
-                document.querySelector('.header p').innerText = "請在網址後加上 ?class=1A";
-            } else {
-                document.querySelector('.header h1').innerText = `${className} 班即時看板`;
-                classQueueRef = database.ref(`queues/${className}`);
-                const startTime = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
-
-                classQueueRef.orderByChild('timestamp').startAt(startTime).on('child_added', (snapshot) => {
-                    const data = snapshot.val();
-                    data.key = snapshot.key;
-
-                    if (!studentQueue.find(s => s.key === data.key)) {
-                        studentQueue.push(data);
-                        updateDisplay();
-                        
-                        // 播放合成音效
-                        playDingDong();
-                        
-                        if ('speechSynthesis' in window) {
-                            setTimeout(() => {
-                                const u = new SpeechSynthesisUtterance(`${data.name}同學，家長來接囉`);
-                                u.lang = 'zh-TW';
-                                window.speechSynthesis.speak(u);
-                            }, 1500);
-                        }
-                    }
-                });
-
-                classQueueRef.on('child_removed', (snapshot) => {
-                    studentQueue = studentQueue.filter(s => s.key !== snapshot.key);
-                    updateDisplay();
-                });
-            }
-
-            function updateDisplay() {
-                const container = document.getElementById('queue-container');
-                const emptyState = document.getElementById('empty-state');
-                container.innerHTML = '';
-
-                if (studentQueue.length === 0) {
-                    emptyState.style.display = 'block';
-                    return;
-                }
-                emptyState.style.display = 'none';
-
-                studentQueue.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-
-                studentQueue.forEach(s => {
-                    const card = document.createElement('div');
-                    card.className = 'student-card';
-                    const sClass = s.class || className || "未分班";
-                    
-                    card.innerHTML = `
-                        <div class="info">
-                            <h2>${s.name}</h2>
-                            <div class="time">掃描: ${new Date(s.timestamp).toLocaleTimeString('zh-TW', {hour:'2-digit', minute:'2-digit'})}</div>
-                        </div>
-                        <div class="actions">
-                            <button class="btn btn-1" onclick="handleResponse('${s.key}', '${s.name}', '${sClass}', '收拾書包前往警衛室')">📗<br>收拾書包</button>
-                            <button class="btn btn-2" onclick="handleResponse('${s.key}', '${s.name}', '${sClass}', '上廁所請稍候')">🚽<br>上廁所</button>
-                            <button class="btn btn-3" onclick="handleResponse('${s.key}', '${s.name}', '${sClass}', '班級在室外活動')">⚽️<br>室外活動</button>
-                            <button class="btn btn-4" onclick="handleResponse('${s.key}', '${s.name}', '${sClass}', '老師另外連絡家長')">📲<br>另約家長</button>
-                        </div>
-                    `;
-                    container.appendChild(card);
-                });
-            }
-
-            window.handleResponse = function(key, name, sClass, responseText) {
-                fetch(GOOGLE_SCRIPT_URL, {
-                    method: "POST",
-                    headers: { "Content-Type": "text/plain" },
-                    body: JSON.stringify({ type: 'reply', studentName: name, response: responseText })
-                }).catch(e => console.error(e));
-                
-                alertsRef.push({
-                    name: name, class: sClass, status: responseText, timestamp: new Date().toISOString()
-                });
-                
-                if (classQueueRef) classQueueRef.child(key).remove();
-            };
-
-        } catch (err) {
-            showError(err.message);
+            classQueueRef.on('child_removed', (snapshot) => {
+                studentQueue = studentQueue.filter(s => s.key !== snapshot.key);
+                updateDisplay();
+            });
         }
+
+        function updateDisplay() {
+            const container = document.getElementById('queue-container');
+            const emptyState = document.getElementById('empty-state');
+            container.innerHTML = '';
+
+            if (studentQueue.length === 0) {
+                emptyState.style.display = 'block';
+                return;
+            }
+            emptyState.style.display = 'none';
+
+            studentQueue.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+            studentQueue.forEach(s => {
+                const card = document.createElement('div');
+                card.className = 'student-card';
+                const sClass = s.class || className || "未分班";
+                
+                card.innerHTML = `
+                    <div class="info">
+                        <h2>${s.name}</h2>
+                        <div class="time">掃描: ${new Date(s.timestamp).toLocaleTimeString('zh-TW', {hour:'2-digit', minute:'2-digit'})}</div>
+                    </div>
+                    <div class="actions">
+                        <button class="btn btn-1" onclick="handleResponse('${s.key}', '${s.name}', '${sClass}', '收拾書包前往警衛室')">📗<br>收拾書包</button>
+                        <button class="btn btn-2" onclick="handleResponse('${s.key}', '${s.name}', '${sClass}', '上廁所請稍候')">🚽<br>上廁所</button>
+                        <button class="btn btn-3" onclick="handleResponse('${s.key}', '${s.name}', '${sClass}', '班級在室外活動')">⚽️<br>室外活動</button>
+                        <button class="btn btn-4" onclick="handleResponse('${s.key}', '${s.name}', '${sClass}', '老師另外連絡家長')">📲<br>另約家長</button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        window.handleResponse = function(key, name, sClass, responseText) {
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: "POST",
+                headers: { "Content-Type": "text/plain" },
+                body: JSON.stringify({ type: 'reply', studentName: name, response: responseText })
+            }).catch(e => console.error(e));
+            
+            alertsRef.push({
+                name: name, class: sClass, status: responseText, timestamp: new Date().toISOString()
+            });
+            
+            if (classQueueRef) classQueueRef.child(key).remove();
+        };
     </script>
 </body>
 </html>
