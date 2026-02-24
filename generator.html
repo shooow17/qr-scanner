@@ -320,24 +320,30 @@
 
                 if (data.error) throw new Error(data.error);
 
-                // 過濾與排序
-                const studentsArray = Object.entries(data)
-                    .map(([id, info]) => ({
-                        id: String(id).trim(),
-                        name: String(info.name).trim(),
-                        class: String(info.class).trim()
+                // --- ★ 關鍵修正：前端對接 code.gs 的 JSON 格式 ---
+                const studentsArray = data
+                    .map(info => ({
+                        id: String(info.id || "").trim(),
+                        name: String(info.name || "").trim(),
+                        class: String(info.className || "未分班").trim() // 對應 code.gs 傳來的 className
                     }))
                     .filter(student => {
                         const invalidKeywords = ["ID", "id", "學生", "姓名", "班級", "Student", "Name", "Class", "編號"];
                         const isHeader = invalidKeywords.includes(student.id) || invalidKeywords.includes(student.name);
-                        return !isHeader && student.id !== ""; 
+                        // 過濾掉標題列、空 ID 以及不完整的資料
+                        return !isHeader && student.id !== "" && student.class !== "undefined" && student.name !== "undefined"; 
                     })
                     .sort((a, b) => {
-                        if (a.class === b.class) return a.id.localeCompare(b.id, undefined, {numeric: true});
+                        // 1. 先照班級排序
+                        if (a.class === b.class) {
+                            // 2. 如果同班，照學號排序
+                            return a.id.localeCompare(b.id, undefined, {numeric: true});
+                        }
                         return a.class.localeCompare(b.class, undefined, {numeric: true});
                     });
+                // --------------------------------------------------
 
-                if (studentsArray.length === 0) throw new Error("沒有有效的學生資料");
+                if (studentsArray.length === 0) throw new Error("沒有有效的學生資料，請檢查 Google Sheets 是否有填寫內容。");
 
                 statusText.textContent = `成功取得 ${studentsArray.length} 筆有效資料，開始繪製...`;
                 progressContainer.style.display = 'block';
@@ -404,7 +410,7 @@
             } catch (err) {
                 console.error(err);
                 statusText.innerHTML = `<span style="color: #e63946;"><i class="fas fa-exclamation-triangle"></i> 錯誤：${err.message}</span>`;
-                alert("讀取失敗，請檢查 GAS 權限或網路狀態。");
+                alert("讀取失敗，請檢查網路狀態或確認試算表內是否有資料。");
                 btnLoad.disabled = false;
             }
         }
@@ -425,7 +431,7 @@
                 if (img) {
                     const imgData = img.src.split(',')[1];
                     const folder = zip.folder(student.class);
-                    folder.file(`${student.id}${student.name}.png`, imgData, {base64: true});
+                    folder.file(`${student.id}_${student.name}.png`, imgData, {base64: true});
                 }
             }
 
@@ -437,7 +443,7 @@
             });
         }
 
-        // --- [新增功能] 生成 2x4 PDF ---
+        // --- 生成 2x4 PDF ---
         async function generatePDF() {
             if (allStudents.length === 0) return;
             const { jsPDF } = window.jspdf;
@@ -490,13 +496,7 @@
                     doc.addImage(imgData, 'PNG', x + 22.5, y + 5, 45, 45);
                 }
 
-                // 3. 處理中文字型 (因為 jsPDF 預設不支援中文，我們改用圖片方式或不依賴字型)
-                // 為了避免字型問題，最簡單的解法是把文字轉成圖片，或只用簡單排版
-                // 這裡我們用一個小技巧：直接輸出文字，但如果亂碼，建議用截圖方式
-                // **但 jsPDF 標準版不含中文字型**。
-                // *** 解決方案：我們用 canvas 把文字畫出來轉圖片貼上去 ***
-                
-                // 建立一個隱藏的 canvas 來繪製文字標籤
+                // 3. 處理中文字型 (用 Canvas 畫成圖片貼上)
                 const canvas = document.createElement('canvas');
                 canvas.width = 300;
                 canvas.height = 80;
@@ -519,7 +519,7 @@
                 const textImgData = canvas.toDataURL("image/png");
                 
                 // 貼上文字圖片 (在 QR Code 下方)
-                doc.addImage(textImgData, 'PNG', x + 5, y + 50, 80, 15); // 調整大小貼上去
+                doc.addImage(textImgData, 'PNG', x + 5, y + 50, 80, 15);
 
                 // 4. 進度更新
                 const progress = Math.round(((i + 1) / allStudents.length) * 100);
